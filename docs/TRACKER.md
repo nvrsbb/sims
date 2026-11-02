@@ -108,3 +108,7 @@ Status: **Planned**. F-06 introduces the `KaptUsageInsteadOfKsp` lint advisory; 
 Choose a useful subset or the completed batch before installing. Record version/commit and results here, keeping automated checks separate from owner-reported checks. Advance the app version for the distribution batch and verify signing compatibility before suggesting installation.
 
 Existing baseline: the owner reported draft isolation, fold/unfold, and relaunch working before this queue. PR #1's visual changes have not yet been checked on the phone.
+
+## Usage-limit handoff — 2026-11-02
+
+Paused after a subagent hit its usage limit. F-03–F-06 PRs are open (#6–#9), never merged. F-07–F-10 remain **In progress**, with committed implementations and partial combined verification; they are not PR open. See docs/CONTINUE.md for exact commits and pending integration. No Android instrumentation or new phone checks ran.

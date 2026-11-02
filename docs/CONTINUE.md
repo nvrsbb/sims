@@ -60,3 +60,13 @@ APK output: `app/build/outputs/apk/debug/app-debug.apk`.
 Release: https://github.com/nvrsbb/sims/releases/tag/v0.1.0-preview
 
 SMS/MMS transport, default app eligibility, real sending/receiving, backups/restoration, and notifications remain future work. Read `AGENTS.md` for development and verification requirements.
+
+## Paused by usage limit — 2026-11-02
+
+Stop requested when usage limits block progress: drafts agent hit a usage limit, so feature work paused. Never merge. PRs F-03 through F-06 are open as #6–#9; CI confirmed green for #6–#8, #9 not yet rechecked. All data fabricated, sending disabled.
+
+Current branch queue/f07-pins has integrated pin code plus uncommitted horizontal-scroll action row and UI-test adjustments. Combined full Gradle checks passed in /tmp/stack-f07.log. Commit these intended files with the F-07 tracker update before publishing; no F-07 PR yet. Preserve this working tree.
+
+Remaining committed work: integrated F-08 150bc925 (cherry onto F-07; combine archive action into same scrollable row and adapt tests), F-09 a673aee plus test follow-up b9a1995 (final full checks passed in /tmp/f09-final.log), F-10 integrated 2d09788 (standalone checks passed; integrated verification stopped to avoid duplicate builds). F-07 standalone 2e46bb2 and F-08 ecfafb7 passed checks. Combined downstream branches still need checks after integration. Worktrees under /workspace/sims-* retain source; inspect git worktree list and existing remote PRs before continuing.
+
+Follow-ups: Android instrumentation tests remain compiled but unexecuted, no emulator/KVM. E-02 records kapt/KSP advisory. Add targeted cancellation/orphan-initial-draft recovery coverage: preferences and Room cannot commit atomically; negative draft IDs are reserved to prevent overwriting an unattached draft. User requests follow-ups every 3 hours for 12 hours, skipping if work is active and stopping on usage limits; scheduling tool availability must be verified separately.

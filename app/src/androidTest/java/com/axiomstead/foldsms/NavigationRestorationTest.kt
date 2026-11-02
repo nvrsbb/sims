@@ -103,7 +103,7 @@ class NavigationRestorationTest {
         val restoration = StateRestorationTester(compose)
         val wide = mutableStateOf(false)
         restoration.setContent {
-            IsolatedApp(wide = wide.value, height = 400)
+            IsolatedApp(wide = wide.value, height = 480)
         }
         compose.onNodeWithTag("inbox-list").performScrollToNode(hasTestTag("thread_3"))
         compose.onNodeWithTag("thread_3").performClick()

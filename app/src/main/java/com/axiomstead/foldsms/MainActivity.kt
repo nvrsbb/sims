@@ -22,6 +22,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.isSystemInDarkTheme
 
 class MainActivity : ComponentActivity() {
@@ -159,7 +161,7 @@ internal fun FoldSmsApp(
                             Text("Sample conversation · ${active.category}", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
                         }
                     }
-                    Row {
+                    Row(Modifier.horizontalScroll(rememberScrollState())) {
                         TextButton(onClick = { showCategories = true }) { Text("Change category") }
                         TextButton(onClick = { scope.launch { metadata.setPinned(active.id, active.id !in pinnedIds) } }) {
                             Text(if (active.id in pinnedIds) "Unpin conversation" else "Pin conversation")
