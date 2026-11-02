@@ -1,7 +1,6 @@
 package com.axiomstead.foldsms
 
 import android.os.Bundle
-import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
@@ -17,17 +16,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.isSystemInDarkTheme
-
-private class DraftStore(context: Context) {
-    private val preferences = context.getSharedPreferences("sample_drafts", Context.MODE_PRIVATE)
-
-    fun get(threadId: Int): String = preferences.getString("thread_$threadId", "") ?: ""
-
-    fun save(threadId: Int, text: String) {
-        preferences.edit().putString("thread_$threadId", text).apply()
-    }
-}
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -53,9 +43,12 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun FoldSmsApp() {
+internal fun FoldSmsApp(store: DraftStore? = null) {
     val context = androidx.compose.ui.platform.LocalContext.current
-    val draftStore = remember(context) { DraftStore(context.applicationContext) }
+    val draftStore = store ?: remember(context) { DraftStore(context.applicationContext) }
+    val drafts = remember(draftStore) { mutableStateMapOf<Int, String>().apply {
+        exampleThreads.forEach { put(it.id, draftStore.get(it.id)) }
+    } }
     var filter by remember { mutableStateOf("All") }
     var search by remember { mutableStateOf("") }
     var selected by remember { mutableIntStateOf(1) }
@@ -94,6 +87,7 @@ private fun FoldSmsApp() {
                         items(filtered) { thread ->
                             Card(
                                 onClick = { selected = thread.id; showConversation = true },
+                                modifier = Modifier.testTag("thread_${thread.id}"),
                                 shape = RoundedCornerShape(14.dp),
                                 border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                                 colors = CardDefaults.cardColors(containerColor = if (thread.id == selected && wide) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface)
@@ -104,6 +98,9 @@ private fun FoldSmsApp() {
                                         Text(thread.time, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                     Spacer(Modifier.height(4.dp))
+                                    if (!drafts[thread.id].isNullOrEmpty()) {
+                                        Text("Draft saved", modifier = Modifier.testTag("draft_indicator_${thread.id}"), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
+                                    }
                                     Text(thread.preview, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     Spacer(Modifier.height(7.dp))
                                     Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surfaceVariant) {
@@ -155,20 +152,15 @@ private fun FoldSmsApp() {
                             }
                         }
                     }
-                    var draft by remember(selected) { mutableStateOf(draftStore.get(selected)) }
-                    OutlinedTextField(
-                        value = draft,
-                        onValueChange = { updated ->
-                            draft = updated
-                            draftStore.save(selected, updated)
-                        },
-                        label = { Text("Draft message") },
-                        placeholder = { Text("Write a draft…") },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 2,
-                        shape = RoundedCornerShape(14.dp),
-                        supportingText = { Text("Saved on this device · Sending disabled", color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                    )
+                    key(selected) {
+                        DraftComposer(
+                            draft = drafts[selected].orEmpty(),
+                            onDraftChange = { updated ->
+                                draftStore.save(selected, updated)
+                                drafts[selected] = updated
+                            }
+                        )
+                    }
                 }
             }
         }
