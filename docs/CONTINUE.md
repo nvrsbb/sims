@@ -22,6 +22,7 @@ Original starter archive: ignored `sims.zip`. Native Kotlin / Jetpack Compose ap
 - The owner requested ten feature PRs tracked and completed sequentially. Queue and acceptance checks: `docs/TRACKER.md`. Close each card only after merge; phone checks are tracked separately.
 - F-01 adds chronological fabricated histories and the first JVM tests. Persistence/restoration tests remain queued work. Existing draft preference keys stay unchanged.
 - F-01 local checks: three JVM tests passed; lint and debug assembly succeeded, with the same three lint warnings. No emulator or physical-device UI check was performed for this feature.
+- F-01 is open as PR #2 (`feature/sample-message-history`). Confirm CI and merge status before starting F-02; update its tracker status after merge.
 - Local validation of the visual changes and updated check command: debug assembly and lint succeeded; the unit-test task reported `NO-SOURCE`. No new physical-device verification was performed.
 - Continue one focused feature at a time, accumulating changes before another phone installation. Sending stays disabled.
 

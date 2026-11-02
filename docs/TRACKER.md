@@ -6,7 +6,7 @@ Status: **Planned → In progress → PR open → Merged**. Close an item only a
 
 | ID | Feature / proposed PR | Status | PR | Phone check |
 |---|---|---|---|---|
-| F-01 | Chronological sample message history | In progress | Pending | Pending |
+| F-01 | Chronological sample message history | PR open | [#2](https://github.com/nvrsbb/sims/pull/2) | Pending |
 | F-02 | Message details and copying sample text | Planned | — | Pending |
 | F-03 | Draft indicators and deliberate draft clearing | Planned | — | Pending |
 | F-04 | Restore conversation navigation and Android Back | Planned | — | Pending |
