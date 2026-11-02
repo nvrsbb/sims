@@ -10,8 +10,8 @@ Status: **Planned → In progress → PR open → Merged**. Close an item only a
 | F-02 | Message details and copying sample text | Merged | [#3](https://github.com/nvrsbb/sims/pull/3) | Pending |
 | F-03 | Draft indicators and deliberate draft clearing | PR open | [6](https://github.com/nvrsbb/sims/pull/6) | Pending |
 | F-04 | Restore conversation navigation and Android Back | PR open | [7](https://github.com/nvrsbb/sims/pull/7) | Pending |
-| F-05 | Search across complete sample histories | PR open | Awaiting PR link | Pending |
-| F-06 | Change and remember conversation categories | In progress | — | Pending |
+| F-05 | Search across complete sample histories | PR open | [8](https://github.com/nvrsbb/sims/pull/8) | Pending |
+| F-06 | Change and remember conversation categories | PR open | Awaiting PR link | Pending |
 | F-07 | Pin important conversations | In progress | — | Pending |
 | F-08 | Archive and restore conversations | In progress | — | Pending |
 | F-09 | Start a new local sample conversation | In progress | — | Pending |
@@ -63,6 +63,8 @@ Let the owner assign Personal, Finance, Services, Promotions, OTP, or Unknown to
 
 Completion: category changes persist and immediately affect filtering; resetting restores the sample default; unrelated drafts survive. Test database reads/writes with isolated storage and Compose filter behavior. Do not add automatic categorization rules in this PR.
 
+Implementation and local verification: Room schema 1 stores category overrides and reset behavior without moving legacy drafts. Category changes immediately feed the combined search/filter list. Isolated storage/reopen and category/filter UI tests were added. Lint has two existing warnings plus a new kapt-versus-KSP advisory; there are no lint errors. JVM tests, lint, debug APK, and Android-test APK assembly passed. Android interaction tests are compiled, not executed: no emulator/device is attached and this environment has no `/dev/kvm`. Phone checks remain pending.
+
 ## F-07 — Pin important conversations
 
 Pin/unpin a conversation and list pinned conversations first, preserving deterministic order within both groups. Store the choice in the local metadata from F-06; keep search and category filters consistent.
@@ -96,6 +98,10 @@ Status: **Planned**. Schedule separately from the ten feature PRs.
 Set up a dedicated emulator with fabricated data so Compose interaction tests can run without another Fold6 installation. Document reproducible setup and test commands. Keep its data separate from the owner's phone and drafts.
 
 Completion: run `:app:connectedDebugAndroidTest` successfully, including the message details/copy/dismiss test; record emulator API/device configuration and results. Support narrow and expanded layouts where practical. Physical Fold6 checks remain necessary for actual folding and Samsung-specific behavior.
+
+### E-02 — Replace Room kapt processing with compatible KSP
+
+Status: **Planned**. F-06 introduces the `KaptUsageInsteadOfKsp` lint advisory; the existing backup-extraction and application-icon warnings remain separate. Keep the current verified Kotlin/Room versions stable for this batch, then evaluate a compatible KSP setup and compare generated schemas before changing processors. No runtime failure was observed.
 
 ## Batch phone check results
 

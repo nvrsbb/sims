@@ -7,6 +7,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.room.Room
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.After
 import org.junit.Assert.*
@@ -19,10 +20,12 @@ class DraftsTest {
     @get:Rule val compose = createComposeRule()
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
     private val preferences = context.getSharedPreferences("draft_test_${UUID.randomUUID()}", Context.MODE_PRIVATE)
+    private val database = Room.inMemoryDatabaseBuilder(context, ConversationMetadataDatabase::class.java).build()
+    private val metadata = ConversationMetadataStore(database.metadata())
     private lateinit var store: DraftStore
 
     @Before fun prepare() { store = DraftStore(preferences) }
-    @After fun clean() { preferences.edit().clear().commit() }
+    @After fun clean() { database.close(); preferences.edit().clear().commit() }
 
     @Test fun legacyKeysMultilineAndIndependentClearingSurviveStoreReopening() {
         preferences.edit().putString("thread_1", "Existing fabricated\nmultiline draft").commit()
@@ -56,7 +59,7 @@ class DraftsTest {
         compose.setContent {
             val configuration = Configuration(LocalConfiguration.current).apply { screenWidthDp = 840 }
             CompositionLocalProvider(LocalConfiguration provides configuration) {
-                MaterialTheme { FoldSmsApp(reopened) }
+                MaterialTheme { FoldSmsApp(reopened, metadataStore = metadata) }
             }
         }
         compose.onNodeWithTag("draft_indicator_1").assertExists()

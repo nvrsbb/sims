@@ -21,6 +21,7 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.dp
+import androidx.room.Room
 import androidx.test.platform.app.InstrumentationRegistry
 import java.util.UUID
 import org.junit.Assert.assertEquals
@@ -32,6 +33,8 @@ import org.junit.Test
 class NavigationRestorationTest {
     @get:Rule val compose = createComposeRule()
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
+    private val database = Room.inMemoryDatabaseBuilder(context, ConversationMetadataDatabase::class.java).build()
+    private val metadata = ConversationMetadataStore(database.metadata())
     private val preferenceName = "navigation_test_${UUID.randomUUID()}"
     private val isolatedContext = object : ContextWrapper(context) {
         override fun getApplicationContext(): Context = this
@@ -41,12 +44,12 @@ class NavigationRestorationTest {
     private fun scrollPosition(tag: String): Float = compose.onNodeWithTag(tag)
         .fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange].value()
 
-    @After fun cleanup() { context.deleteSharedPreferences(preferenceName) }
+    @After fun cleanup() { database.close(); context.deleteSharedPreferences(preferenceName) }
 
     @Composable private fun IsolatedApp(wide: Boolean, height: Int) {
         CompositionLocalProvider(LocalContext provides isolatedContext) {
             MaterialTheme {
-                Box(Modifier.width(380.dp).height(height.dp)) { FoldSmsApp(wide = wide) }
+                Box(Modifier.width(380.dp).height(height.dp)) { FoldSmsApp(wide = wide, metadataStore = metadata) }
             }
         }
     }
@@ -62,7 +65,7 @@ class NavigationRestorationTest {
             dismissKeyboard = { focus.clearFocus(); keyboard?.hide() }
             IsolatedApp(wide = false, height = 600)
         }
-        compose.onNodeWithTag("category-Finance").performScrollTo().performClick()
+        compose.onNodeWithTag("category-filter-Finance").performScrollTo().performClick()
         compose.onNodeWithTag("inbox-search").performTextInput("Bank")
         compose.runOnIdle { dismissKeyboard() }
         compose.onNodeWithTag("thread_2").performClick()
@@ -73,7 +76,7 @@ class NavigationRestorationTest {
         compose.runOnIdle { back.onBackPressed() }
         compose.onNodeWithTag("inbox-list").assertExists()
         compose.onNodeWithTag("inbox-search").assertTextContains("Bank")
-        compose.onNodeWithTag("category-Finance").assertIsSelected()
+        compose.onNodeWithTag("category-filter-Finance").assertIsSelected()
         compose.onNodeWithTag("thread_2").assertExists()
         compose.onNodeWithTag("thread_1").assertDoesNotExist()
     }

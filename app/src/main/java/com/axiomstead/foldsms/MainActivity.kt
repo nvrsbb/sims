@@ -1,5 +1,6 @@
 package com.axiomstead.foldsms
 
+import kotlinx.coroutines.launch
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -47,12 +48,23 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-internal fun FoldSmsApp(store: DraftStore? = null, wide: Boolean = LocalConfiguration.current.screenWidthDp >= 600) {
+internal fun FoldSmsApp(
+    store: DraftStore? = null,
+    wide: Boolean = LocalConfiguration.current.screenWidthDp >= 600,
+    metadataStore: ConversationMetadataStore? = null
+) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val draftStore = store ?: remember(context) { DraftStore(context.applicationContext) }
     val drafts = remember(draftStore) { mutableStateMapOf<Int, String>().apply {
         exampleThreads.forEach { put(it.id, draftStore.get(it.id)) }
     } }
+    val metadata = remember(context, metadataStore) { metadataStore ?: ConversationMetadataStore.get(context) }
+    val overrides by metadata.categories.collectAsState(initial = emptyList())
+    val threads = exampleThreads.map { thread ->
+        thread.copy(category = overrides.firstOrNull { it.threadId == thread.id }?.category ?: thread.category)
+    }
+    val scope = rememberCoroutineScope()
+    var showCategories by rememberSaveable { mutableStateOf(false) }
     var filter by rememberSaveable { mutableStateOf("All") }
     var search by rememberSaveable { mutableStateOf("") }
     var selected by rememberSaveable { mutableIntStateOf(1) }
@@ -62,12 +74,24 @@ internal fun FoldSmsApp(store: DraftStore? = null, wide: Boolean = LocalConfigur
     val conversationStates = rememberSaveableStateHolder()
     val keyboardVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
     BackHandler(enabled = !wide && showConversation && !keyboardVisible) { showConversation = false }
-    val filtered = searchConversations(exampleThreads, search, filter)
-    val active = exampleThreads.first { it.id == selected }
+    val filtered = searchConversations(threads, search, filter)
+    val active = threads.first { it.id == selected }
     var detailMessageId by rememberSaveable(selected) { mutableStateOf<Int?>(null) }
     active.history.firstOrNull { it.id == detailMessageId }?.let { message ->
         MessageDetailsSheet(message, active.sender, onDismiss = { detailMessageId = null })
     }
+    if (showCategories) CategoryPicker(
+        category = active.category,
+        onChoose = { category ->
+            scope.launch { metadata.setCategory(active.id, category) }
+            showCategories = false
+        },
+        onReset = {
+            scope.launch { metadata.setCategory(active.id, null) }
+            showCategories = false
+        },
+        onDismiss = { showCategories = false }
+    )
     Surface(Modifier.fillMaxSize().imePadding(), color = MaterialTheme.colorScheme.background) {
         Row {
             if (wide || !showConversation) {
@@ -86,9 +110,9 @@ internal fun FoldSmsApp(store: DraftStore? = null, wide: Boolean = LocalConfigur
                         shape = RoundedCornerShape(14.dp)
                     )
                     Spacer(Modifier.height(12.dp))
-                    androidx.compose.foundation.lazy.LazyRow(state = categoryState, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(listOf("All", "Personal", "Finance", "Services", "Promotions", "OTP")) { c ->
-                            FilterChip(modifier = Modifier.testTag("category-$c"), selected = c == filter, onClick = { filter = c }, label = { Text(c) })
+                    androidx.compose.foundation.lazy.LazyRow(state = categoryState, modifier = Modifier.testTag("category-filters"), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(listOf("All") + conversationCategories) { c ->
+                            FilterChip(modifier = Modifier.testTag("category-filter-$c"), selected = c == filter, onClick = { filter = c }, label = { Text(c) })
                         }
                     }
                     Spacer(Modifier.height(10.dp))
@@ -133,6 +157,7 @@ internal fun FoldSmsApp(store: DraftStore? = null, wide: Boolean = LocalConfigur
                             Text("Sample conversation · ${active.category}", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
                         }
                     }
+                    TextButton(onClick = { showCategories = true }) { Text("Change category") }
                     HorizontalDivider(Modifier.padding(vertical = 16.dp), color = MaterialTheme.colorScheme.outlineVariant)
                     Text("Sample history · 2 Nov 2026 · Manila time", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     conversationStates.SaveableStateProvider(active.id) {
