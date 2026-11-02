@@ -2,7 +2,7 @@
 
 ## Current project
 
-Continue in `/Users/arvinbobis/Programs/sims` (remote: `https://github.com/nvrsbb/sims.git`). The repository is public. The remote initially contained an empty commit and the `v0.1.0-preview` APK release. Source is now committed locally; this handoff does not imply it has been pushed.
+Continue in `/Users/arvinbobis/Programs/sims` (remote: `https://github.com/nvrsbb/sims.git`). The repository is public. Source and persistent drafts were pushed to `main`; inspect status/history for subsequent local changes.
 
 Original starter archive: ignored `sims.zip`. Native Kotlin / Jetpack Compose app, package `com.axiomstead.foldsms`, min SDK 29, compile/target SDK 35. Specification: `docs/MVP_SPEC.md`.
 
@@ -13,9 +13,15 @@ Original starter archive: ignored `sims.zip`. Native Kotlin / Jetpack Compose ap
 - User installed the released preview on their only phone, a Samsung Galaxy Z Fold6, and reported search for Alex, Finance category filtering, conversation opening, unfolded split view, and fold/unfold transition all work. These are user-reported device checks, not automated tests.
 - Google Messages remains the intended default. Do not enable SMS access or default-role behavior as part of the next milestone.
 
-## Next step agreed in chat
+## Latest milestone and next work
 
-Implement a sample conversation draft composer. Store drafts separately per conversation and preserve text through folding and app relaunch. Sending stays disabled. This composer has been proposed but has NOT been implemented. Work one step at a time.
+- Persistent sample drafts are implemented and pushed. The owner installed the updated APK and reported drafts stay separate per conversation and survive folding and relaunch. These are device-reported checks, not automated process-death tests.
+- GitHub Actions successfully built commit `072cee5` after updating Android SDK setup to v4.
+- Local visual changes apply the Budge/IBKR palette and panel hierarchy, including device-selected light/dark mode. They have not yet been checked on the phone.
+- Android-specific development, checks, PR/merge, and batched phone update agreements are in `AGENTS.md`. CI now includes unit tests and lint as well as assembly, and runs on PRs; this workflow revision still needs a GitHub run after pushing.
+- No automated tests currently exist. `testDebugUnitTest` can report `NO-SOURCE`; meaningful persistence and restoration coverage remains work to do.
+- Local validation of the visual changes and updated check command: debug assembly and lint succeeded; the unit-test task reported `NO-SOURCE`. No new physical-device verification was performed.
+- Continue one focused feature at a time, accumulating changes before another phone installation. Sending stays disabled.
 
 ## Build from Warp on this Mac
 
@@ -27,11 +33,11 @@ export JAVA_HOME='/Users/arvinbobis/Documents/Codex/2026-11-02/referenced-chatgp
 export ANDROID_HOME='/Users/arvinbobis/Documents/Codex/2026-11-02/referenced-chatgpt-conversation-this-is-an/work/android-toolchain/sdk'
 export GRADLE_USER_HOME='/Users/arvinbobis/Documents/Codex/2026-11-02/referenced-chatgpt-conversation-this-is-an/work/android-toolchain/gradle-home'
 export PATH="$JAVA_HOME/bin:$PATH"
-./gradlew --no-daemon :app:assembleDebug :app:lintDebug
+./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
 ```
 
 APK output: `app/build/outputs/apk/debug/app-debug.apk`.
 
 Release: https://github.com/nvrsbb/sims/releases/tag/v0.1.0-preview
 
-GitHub Actions has not been verified. Original source behavior was preserved during import; wrapper, workflow command, README, and local build documentation were added or updated. SMS/MMS transport, default app eligibility, real sending/receiving, backups/restoration, and notifications remain future work.
+SMS/MMS transport, default app eligibility, real sending/receiving, backups/restoration, and notifications remain future work. Read `AGENTS.md` for development and verification requirements.

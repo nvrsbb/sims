@@ -5,7 +5,7 @@ Version 0.1 is a sample inbox for a Samsung Galaxy Z Fold6. It cannot read, send
 ## Current preview
 
 - Fabricated conversations, search, and category filters.
-- Conversation selection and a disabled composer.
+- Conversation selection and editable drafts saved per conversation; sending disabled.
 - Single pane below 600dp available width and split pane at 600dp or wider.
 - No backend, account, analytics, or cloud backup.
 
@@ -18,7 +18,7 @@ Repository: `/Users/arvinbobis/Programs/sims`
 Use JDK 17, Android SDK platform 35, and Build Tools 34.0.0. The Gradle wrapper pins Gradle 8.10.2 and verifies its distribution checksum. Open this folder in Android Studio, select JDK 17 for Gradle, and let Studio locate the SDK. Alternatively set `JAVA_HOME` to JDK 17 and configure `sdk.dir` in ignored `local.properties`, then run:
 
 ```sh
-./gradlew --no-daemon :app:assembleDebug :app:lintDebug
+./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
 ```
 
 APK: `app/build/outputs/apk/debug/app-debug.apk`
@@ -27,7 +27,9 @@ This session's temporary build tools live in the originating Codex chat's `work/
 
 ## GitHub build
 
-The configured repository is `https://github.com/nvrsbb/sims.git`. Once source is pushed to `main`, the **Android debug APK** workflow builds the same preview with JDK 17 and the wrapper. Its **FoldSMS-debug-apk** artifact contains the APK. Local build success does not verify a GitHub Actions run.
+The configured repository is `https://github.com/nvrsbb/sims.git`. The **Android debug APK** workflow runs unit tests, Android lint, and debug assembly on pull requests and pushes to `main`, with JDK 17 and the wrapper. Its **FoldSMS-debug-apk** artifact contains the APK. Local build success does not verify a GitHub Actions run. A unit-test task reporting `NO-SOURCE` means no unit tests ran.
+
+See [the working agreements](AGENTS.md) for development, review, merge, and phone update practices. Features can be checked individually, then installed on the phone as a batch.
 
 ## First Fold6 check
 
