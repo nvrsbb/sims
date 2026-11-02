@@ -8,8 +8,8 @@ Status: **Planned → In progress → PR open → Merged**. Close an item only a
 |---|---|---|---|---|
 | F-01 | Chronological sample message history | Merged | [#2](https://github.com/nvrsbb/sims/pull/2) | Pending |
 | F-02 | Message details and copying sample text | Merged | [#3](https://github.com/nvrsbb/sims/pull/3) | Pending |
-| F-03 | Draft indicators and deliberate draft clearing | PR open | Awaiting PR link | Pending |
-| F-04 | Restore conversation navigation and Android Back | In progress | — | Pending |
+| F-03 | Draft indicators and deliberate draft clearing | PR open | [6](https://github.com/nvrsbb/sims/pull/6) | Pending |
+| F-04 | Restore conversation navigation and Android Back | PR open | Awaiting PR link | Pending |
 | F-05 | Search across complete sample histories | In progress | — | Pending |
 | F-06 | Change and remember conversation categories | In progress | — | Pending |
 | F-07 | Pin important conversations | In progress | — | Pending |
@@ -46,6 +46,8 @@ Implementation and local verification: Saved-draft badges and a confirmed, conve
 Keep selected thread, inbox/conversation position, search, and category filter through activity recreation. Android Back from a cover-screen conversation returns to the inbox; handle keyboard Back naturally. Unfolding/folding keeps the intended conversation.
 
 Completion: restoration tests cover a non-default conversation and filters; Back does not unexpectedly exit from a cover conversation. Report recreation, relaunch, and process-restoration checks separately. Draft contents remain in durable storage.
+
+Implementation and local verification: Saveable navigation retains selected thread, filters, search, and per-thread/inbox/category-strip scroll state; cover Back returns to the inbox after keyboard dismissal. Restoration tests cover nondefault selection and width changes. Fresh relaunch intentionally opens the inbox; actual activity/process/fold checks remain pending. JVM tests, lint, debug APK, and Android-test APK assembly passed. Android interaction tests are compiled, not executed: no emulator/device is attached and this environment has no `/dev/kvm`. Phone checks remain pending.
 
 ## F-05 — Search across complete sample histories
 
