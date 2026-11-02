@@ -38,12 +38,12 @@ class ConversationCategoriesTest {
             store = ConversationMetadataStore(database.metadata())
             assertEquals(setOf(ConversationMetadata(1, "Unknown"), ConversationMetadata(2, "Personal")), store.categories.first().toSet())
             store.setCategory(1, null)
-            assertEquals(listOf(ConversationMetadata(2, "Personal")), store.categories.first())
+            assertEquals(setOf(ConversationMetadata(1), ConversationMetadata(2, "Personal")), store.categories.first().toSet())
             try {
                 store.setCategory(2, "Invalid category")
                 fail("Invalid category must be rejected")
             } catch (_: IllegalArgumentException) { }
-            assertEquals(listOf(ConversationMetadata(2, "Personal")), store.categories.first())
+            assertEquals(setOf(ConversationMetadata(1), ConversationMetadata(2, "Personal")), store.categories.first().toSet())
             assertEquals("line one\nline two", preferences.getString("thread_1", null))
         } finally {
             database.close()
@@ -78,7 +78,7 @@ class ConversationCategoriesTest {
             compose.onNodeWithText("Alex").assertExists().performClick()
             compose.onNodeWithText("Change category").performClick()
             compose.onNodeWithText("Reset to sample default").performScrollTo().performClick()
-            compose.waitUntil { runBlocking { store.categories.first().isEmpty() } }
+            compose.waitUntil { runBlocking { store.categories.first().all { it.category == null } } }
             compose.onNodeWithText("‹ Back").performClick()
             compose.onNodeWithText("Alex").assertDoesNotExist()
             compose.onNodeWithTag("category-filters").performScrollToNode(hasTestTag("category-filter-Personal"))

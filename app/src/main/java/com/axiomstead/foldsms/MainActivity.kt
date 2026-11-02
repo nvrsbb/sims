@@ -74,7 +74,8 @@ internal fun FoldSmsApp(
     val conversationStates = rememberSaveableStateHolder()
     val keyboardVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
     BackHandler(enabled = !wide && showConversation && !keyboardVisible) { showConversation = false }
-    val filtered = searchConversations(threads, search, filter)
+    val pinnedIds = overrides.filter { it.pinned }.map { it.threadId }.toSet()
+    val filtered = searchConversations(orderedConversations(threads, pinnedIds), search, filter)
     val active = threads.first { it.id == selected }
     var detailMessageId by rememberSaveable(selected) { mutableStateOf<Int?>(null) }
     active.history.firstOrNull { it.id == detailMessageId }?.let { message ->
@@ -133,6 +134,7 @@ internal fun FoldSmsApp(
                                         Text(thread.time, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                     Spacer(Modifier.height(4.dp))
+                                    if (thread.id in pinnedIds) Text("Pinned", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                                     if (!drafts[thread.id].isNullOrEmpty()) {
                                         Text("Draft saved", modifier = Modifier.testTag("draft_indicator_${thread.id}"), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
                                     }
@@ -157,7 +159,12 @@ internal fun FoldSmsApp(
                             Text("Sample conversation · ${active.category}", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
                         }
                     }
-                    TextButton(onClick = { showCategories = true }) { Text("Change category") }
+                    Row {
+                        TextButton(onClick = { showCategories = true }) { Text("Change category") }
+                        TextButton(onClick = { scope.launch { metadata.setPinned(active.id, active.id !in pinnedIds) } }) {
+                            Text(if (active.id in pinnedIds) "Unpin conversation" else "Pin conversation")
+                        }
+                    }
                     HorizontalDivider(Modifier.padding(vertical = 16.dp), color = MaterialTheme.colorScheme.outlineVariant)
                     Text("Sample history · 2 Nov 2026 · Manila time", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     conversationStates.SaveableStateProvider(active.id) {
