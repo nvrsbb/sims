@@ -1,6 +1,6 @@
 # FoldSMS feature tracker
 
-Batch 1: ten proposed feature PRs for the sample-data milestone. All content remains fabricated; no SMS/contact/network permission, default-role request, or sending. Work in order, one open feature PR at a time. Each item gets a focused branch, tests appropriate to its behavior, local checks, review, and green CI before merge.
+Batch 1: ten proposed feature PRs for the sample-data milestone. All content remains fabricated; no SMS/contact/network permission, default-role request, or sending. The owner authorized parallel independent work and stacked feature PRs on 2026-11-02. Follow dependencies, keep each PR focused, and never merge during this review batch. Each item gets appropriate tests, local checks, independent review, and CI. Unexecuted Android tests and phone checks remain explicit.
 
 Status: **Planned → In progress → PR open → Merged**. Close an item only after its PR is merged. Track phone validation separately; merging does not imply a device check. Include this file's status update in each feature PR; confirm merge state in the next PR or handoff. A postponed item needs a reason.
 
@@ -8,14 +8,14 @@ Status: **Planned → In progress → PR open → Merged**. Close an item only a
 |---|---|---|---|---|
 | F-01 | Chronological sample message history | Merged | [#2](https://github.com/nvrsbb/sims/pull/2) | Pending |
 | F-02 | Message details and copying sample text | Merged | [#3](https://github.com/nvrsbb/sims/pull/3) | Pending |
-| F-03 | Draft indicators and deliberate draft clearing | Planned | — | Pending |
-| F-04 | Restore conversation navigation and Android Back | Planned | — | Pending |
-| F-05 | Search across complete sample histories | Planned | — | Pending |
-| F-06 | Change and remember conversation categories | Planned | — | Pending |
-| F-07 | Pin important conversations | Planned | — | Pending |
+| F-03 | Draft indicators and deliberate draft clearing | PR open | Awaiting PR link | Pending |
+| F-04 | Restore conversation navigation and Android Back | In progress | — | Pending |
+| F-05 | Search across complete sample histories | In progress | — | Pending |
+| F-06 | Change and remember conversation categories | In progress | — | Pending |
+| F-07 | Pin important conversations | In progress | — | Pending |
 | F-08 | Archive and restore conversations | Planned | — | Pending |
-| F-09 | Start a new local sample conversation | Planned | — | Pending |
-| F-10 | Preview settings and safety information | Planned | — | Pending |
+| F-09 | Start a new local sample conversation | In progress | — | Pending |
+| F-10 | Preview settings and safety information | In progress | — | Pending |
 
 ## F-01 — Chronological sample message history
 
@@ -38,6 +38,8 @@ Implementation: tap a message for a native bottom sheet with sender, full Manila
 Show which inbox conversations have a saved draft and offer an explicit clear action for the active draft. Empty drafts remove their indicator. Preserve the existing preference keys and text.
 
 Completion: two conversations retain independent drafts; clearing affects only the chosen draft; empty and multiline text behave correctly; relaunch restores indicators. Test storage behavior with isolated Android preferences and UI behavior with Compose tests.
+
+Implementation and local verification: Saved-draft badges and a confirmed, conversation-scoped clear action preserve the original draft keys and exact text. Isolated preference and Compose coverage was added; long drafts have a bounded composer. JVM tests, lint, debug APK, and Android-test APK assembly passed. Android interaction tests are compiled, not executed: no emulator/device is attached and this environment has no `/dev/kvm`. Phone checks remain pending.
 
 ## F-04 — Restore conversation navigation and Android Back
 
