@@ -1,6 +1,6 @@
 # FoldSMS feature tracker
 
-Batch 1: ten proposed feature PRs for the sample-data milestone. All content remains fabricated; no SMS/contact/network permission, default-role request, or sending. Work in order, one open feature PR at a time. Each item gets a focused branch, tests appropriate to its behavior, local checks, review, and green CI before merge.
+Batch 1: the original ten feature PRs plus two requested message-deletion features for the sample-data milestone. All content remains fabricated; no SMS/contact/network permission, default-role request, or sending. Work in order, one open feature PR at a time. Each item gets a focused branch, tests appropriate to its behavior, local checks, review, and green CI before merge.
 
 Status: **Planned → In progress → PR open → Merged**. Close an item only after its PR is merged. Track phone validation separately; merging does not imply a device check. Include this file's status update in each feature PR; confirm merge state in the next PR or handoff. A postponed item needs a reason.
 
@@ -16,6 +16,8 @@ Status: **Planned → In progress → PR open → Merged**. Close an item only a
 | F-08 | Archive and restore conversations | Planned | — | Pending |
 | F-09 | Start a new local sample conversation | Planned | — | Pending |
 | F-10 | Preview settings and safety information | Planned | — | Pending |
+| F-11 | Select individual messages and delete selected | Planned | — | Pending |
+| F-12 | Delete all messages | Planned | — | Pending |
 
 ## F-01 — Chronological sample message history
 
@@ -80,6 +82,18 @@ Completion: input validation, repeated-address handling, stable IDs without fixt
 Add a native settings screen with remembered Light/Dark/Device theme selection, privacy/storage explanation, and a factual preview capabilities checklist. Explain the future default-SMS milestone without requesting the role. Keep navigation and drafts intact.
 
 Completion: theme choice survives relaunch; Device follows Android; settings return to the active thread; no permissions/role prompts. Test preference mapping and navigation; check contrast, large text, and both Fold layouts. No backup/restore implementation in this PR.
+
+## F-11 — Select individual messages and delete selected
+
+Let the owner enter message-selection mode in a conversation, select/deselect individual messages, see the selected count, and delete only those selected messages. This concerns messages, not just conversation selection. Use local sample data initially; real Telephony-provider deletion requires the later authorized SMS milestone.
+
+Completion: confirmation identifies the conversation and selected message count; cancelling changes nothing; deletion updates history and inbox preview and survives relaunch. Unselected messages and drafts remain intact. Provide undo that restores the deleted sample messages. Test selection, cancellation, mixed incoming/outgoing deletion, last-message deletion, undo, and persistence. Depends on F-01 and F-06.
+
+## F-12 — Delete all messages
+
+Add explicit actions to delete every message in the current conversation and, separately, every message across the app. Label each scope clearly; an active search/filter must not silently redefine what “all” means. Initially this affects only local sample histories; deleting real SMS/MMS belongs to the later authorized role milestone.
+
+Completion: confirmation states the exact scope and message count; cancellation preserves everything. Confirmed deletion survives relaunch and updates all affected histories/previews; empty conversations remain understandable and drafts remain intact. Provide undo for sample deletion. Test current-conversation versus app-wide deletion, filtered views, empty state, undo, and persistence. Depends on F-11. No automatic deletion or background cleanup.
 
 ## Engineering follow-ups
 
