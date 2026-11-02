@@ -6,8 +6,8 @@ Status: **Planned → In progress → PR open → Merged**. Close an item only a
 
 | ID | Feature / proposed PR | Status | PR | Phone check |
 |---|---|---|---|---|
-| F-01 | Chronological sample message history | PR open | [#2](https://github.com/nvrsbb/sims/pull/2) | Pending |
-| F-02 | Message details and copying sample text | Planned | — | Pending |
+| F-01 | Chronological sample message history | Merged | [#2](https://github.com/nvrsbb/sims/pull/2) | Pending |
+| F-02 | Message details and copying sample text | PR open | [Find PR](https://github.com/nvrsbb/sims/pulls?q=is%3Apr+head%3Afeature%2Fmessage-details) | Pending |
 | F-03 | Draft indicators and deliberate draft clearing | Planned | — | Pending |
 | F-04 | Restore conversation navigation and Android Back | Planned | — | Pending |
 | F-05 | Search across complete sample histories | Planned | — | Pending |
@@ -30,6 +30,8 @@ Local verification: three JVM tests passed, Android lint and debug assembly succ
 Open a selected message's details with sender, full timestamp, direction, and clearly fabricated status; copy its text using Android clipboard handling. No fake real delivery or SIM guarantees.
 
 Completion: details belong to the tapped message; copying uses that message's body; dismissing returns to the same conversation and draft. Android UI checks cover selection/copy/dismiss. Depends on F-01.
+
+Implementation: tap a message for a native bottom sheet with sender, full Manila timestamp, direction, sample disclaimer, Copy text, and Close. Local verification: five JVM tests pass; lint, debug APK, and UI-test APK assembly pass. Clipboard/dismissal Compose test compiled but was not executed: no local emulator installed. Phone interaction and draft-preservation checks remain pending.
 
 ## F-03 — Draft indicators and deliberate draft clearing
 

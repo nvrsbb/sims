@@ -31,6 +31,8 @@ This session's temporary build tools live in the originating Codex chat's `work/
 
 The configured repository is `https://github.com/nvrsbb/sims.git`. The **Android debug APK** workflow runs unit tests, Android lint, and debug assembly on pull requests and pushes to `main`, with JDK 17 and the wrapper. Its **FoldSMS-debug-apk** artifact contains the APK. Local build success does not verify a GitHub Actions run. A unit-test task reporting `NO-SOURCE` means no unit tests ran.
 
+CI also compiles the Android UI-test APK (`:app:assembleDebugAndroidTest`). This does not execute UI tests; use `:app:connectedDebugAndroidTest` on a dedicated test emulator/device for that. UI tests use fabricated data.
+
 See [the working agreements](AGENTS.md) for development, review, merge, and phone update practices. Features can be checked individually, then installed on the phone as a batch.
 
 ## First Fold6 check
