@@ -1,6 +1,7 @@
 package com.axiomstead.foldsms
 
 import android.os.Bundle
+import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.clickable
@@ -26,6 +27,16 @@ private val exampleThreads = listOf(
     ThreadPreview(5, "Verification", "Your sample code is 123456", "OTP", "Sunday")
 )
 
+private class DraftStore(context: Context) {
+    private val preferences = context.getSharedPreferences("sample_drafts", Context.MODE_PRIVATE)
+
+    fun get(threadId: Int): String = preferences.getString("thread_$threadId", "") ?: ""
+
+    fun save(threadId: Int, text: String) {
+        preferences.edit().putString("thread_$threadId", text).apply()
+    }
+}
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,6 +46,8 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun FoldSmsApp() {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val draftStore = remember(context) { DraftStore(context.applicationContext) }
     var filter by remember { mutableStateOf("All") }
     var search by remember { mutableStateOf("") }
     var selected by remember { mutableIntStateOf(1) }
@@ -85,7 +98,19 @@ private fun FoldSmsApp() {
                         Text(active.preview, Modifier.padding(16.dp))
                     }
                     Spacer(Modifier.weight(1f))
-                    OutlinedTextField(value = "", onValueChange = {}, enabled = false, label = { Text("Sending disabled in preview") }, modifier = Modifier.fillMaxWidth())
+                    var draft by remember(selected) { mutableStateOf(draftStore.get(selected)) }
+                    OutlinedTextField(
+                        value = draft,
+                        onValueChange = { updated ->
+                            draft = updated
+                            draftStore.save(selected, updated)
+                        },
+                        label = { Text("Sample draft") },
+                        placeholder = { Text("Write a draft…") },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 2,
+                        supportingText = { Text("Saved on this device · Sending disabled") }
+                    )
                 }
             }
         }
