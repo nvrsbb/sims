@@ -24,6 +24,7 @@ Original starter archive: ignored `sims.zip`. Native Kotlin / Jetpack Compose ap
 - F-01 local checks: three JVM tests passed; lint and debug assembly succeeded, with the same three lint warnings. No emulator or physical-device UI check was performed for this feature.
 - F-01 merged as PR #2 (`03549e4`). F-02 implements tap-to-open message details and Android clipboard copying on `feature/message-details`.
 - F-02 local checks passed: five JVM tests, lint, debug assembly, and UI-test APK assembly. The new clipboard/dismissal Compose test is compiled, not executed; no emulator is installed. CI now compiles UI tests as well. Phone checks remain deferred to a batch.
+- F-02 merged as PR #3 (`7a29453`). F-03 is next. E-01 in `docs/TRACKER.md` records emulator setup as a planned engineering follow-up; it has not been implemented.
 - Local validation of the visual changes and updated check command: debug assembly and lint succeeded; the unit-test task reported `NO-SOURCE`. No new physical-device verification was performed.
 - Continue one focused feature at a time, accumulating changes before another phone installation. Sending stays disabled.
 
