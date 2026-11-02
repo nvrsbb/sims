@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -62,6 +63,10 @@ private fun FoldSmsApp() {
     val wide = LocalConfiguration.current.screenWidthDp >= 600
     val filtered = exampleThreads.filter { (filter == "All" || it.category == filter) && (it.sender.contains(search, true) || it.preview.contains(search, true)) }
     val active = exampleThreads.first { it.id == selected }
+    var detailMessageId by rememberSaveable(selected) { mutableStateOf<Int?>(null) }
+    active.history.firstOrNull { it.id == detailMessageId }?.let { message ->
+        MessageDetailsSheet(message, active.sender, onDismiss = { detailMessageId = null })
+    }
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Row {
             if (wide || !showConversation) {
@@ -132,6 +137,7 @@ private fun FoldSmsApp() {
                                 val outgoing = message.direction == MessageDirection.OUTGOING
                                 Column(Modifier.fillMaxWidth(), horizontalAlignment = if (outgoing) Alignment.End else Alignment.Start) {
                                     Surface(
+                                        onClick = { detailMessageId = message.id },
                                         modifier = Modifier.fillMaxWidth(0.9f),
                                         shape = RoundedCornerShape(14.dp),
                                         color = if (outgoing) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant,
