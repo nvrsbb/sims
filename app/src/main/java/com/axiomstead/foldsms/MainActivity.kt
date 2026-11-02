@@ -21,7 +21,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.isSystemInDarkTheme
 
 class MainActivity : ComponentActivity() {
@@ -63,7 +62,7 @@ internal fun FoldSmsApp(store: DraftStore? = null, wide: Boolean = LocalConfigur
     val conversationStates = rememberSaveableStateHolder()
     val keyboardVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
     BackHandler(enabled = !wide && showConversation && !keyboardVisible) { showConversation = false }
-    val filtered = exampleThreads.filter { (filter == "All" || it.category == filter) && (it.sender.contains(search, true) || it.preview.contains(search, true)) }
+    val filtered = searchConversations(exampleThreads, search, filter)
     val active = exampleThreads.first { it.id == selected }
     var detailMessageId by rememberSaveable(selected) { mutableStateOf<Int?>(null) }
     active.history.firstOrNull { it.id == detailMessageId }?.let { message ->
@@ -81,6 +80,7 @@ internal fun FoldSmsApp(store: DraftStore? = null, wide: Boolean = LocalConfigur
                         value = search,
                         onValueChange = { search = it },
                         label = { Text("Search sample messages") },
+                        trailingIcon = { if (search.isNotEmpty()) TextButton(onClick = { search = "" }) { Text("Clear search") } },
                         modifier = Modifier.fillMaxWidth().testTag("inbox-search"),
                         singleLine = true,
                         shape = RoundedCornerShape(14.dp)
@@ -92,8 +92,10 @@ internal fun FoldSmsApp(store: DraftStore? = null, wide: Boolean = LocalConfigur
                         }
                     }
                     Spacer(Modifier.height(10.dp))
+                    if (filtered.isEmpty()) Text("No sample conversations found", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     LazyColumn(state = inboxState, modifier = Modifier.testTag("inbox-list"), verticalArrangement = Arrangement.spacedBy(9.dp), contentPadding = PaddingValues(bottom = 12.dp)) {
-                        items(filtered, key = { it.id }) { thread ->
+                        items(filtered, key = { it.conversation.id }) { result ->
+                            val thread = result.conversation
                             Card(
                                 onClick = { selected = thread.id; showConversation = true },
                                 modifier = Modifier.testTag("thread_${thread.id}"),
@@ -110,7 +112,7 @@ internal fun FoldSmsApp(store: DraftStore? = null, wide: Boolean = LocalConfigur
                                     if (!drafts[thread.id].isNullOrEmpty()) {
                                         Text("Draft saved", modifier = Modifier.testTag("draft_indicator_${thread.id}"), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
                                     }
-                                    Text(thread.preview, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(result.snippet, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     Spacer(Modifier.height(7.dp))
                                     Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surfaceVariant) {
                                         Text(thread.category, modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Medium)

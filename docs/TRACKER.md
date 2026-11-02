@@ -9,11 +9,11 @@ Status: **Planned → In progress → PR open → Merged**. Close an item only a
 | F-01 | Chronological sample message history | Merged | [#2](https://github.com/nvrsbb/sims/pull/2) | Pending |
 | F-02 | Message details and copying sample text | Merged | [#3](https://github.com/nvrsbb/sims/pull/3) | Pending |
 | F-03 | Draft indicators and deliberate draft clearing | PR open | [6](https://github.com/nvrsbb/sims/pull/6) | Pending |
-| F-04 | Restore conversation navigation and Android Back | PR open | Awaiting PR link | Pending |
-| F-05 | Search across complete sample histories | In progress | — | Pending |
+| F-04 | Restore conversation navigation and Android Back | PR open | [7](https://github.com/nvrsbb/sims/pull/7) | Pending |
+| F-05 | Search across complete sample histories | PR open | Awaiting PR link | Pending |
 | F-06 | Change and remember conversation categories | In progress | — | Pending |
 | F-07 | Pin important conversations | In progress | — | Pending |
-| F-08 | Archive and restore conversations | Planned | — | Pending |
+| F-08 | Archive and restore conversations | In progress | — | Pending |
 | F-09 | Start a new local sample conversation | In progress | — | Pending |
 | F-10 | Preview settings and safety information | In progress | — | Pending |
 
@@ -54,6 +54,8 @@ Implementation and local verification: Saveable navigation retains selected thre
 Search sender and every message body, not only the latest preview. Add fabricated addresses to support number search. Show useful result snippets, a no-results state, and a clear-search action; respect category filtering.
 
 Completion: older-message matches open the correct conversation; whitespace/case/number formatting are handled deliberately; clearing recovers the list. Unit tests cover combined filters and matches. Depends on F-01 and F-04.
+
+Implementation and local verification: Search covers senders, fictional reserved phone addresses, and every sample message body, with matching snippets, no-results copy, and a clear action. Tests cover older messages, case/whitespace/number formatting, category combinations, and clearing. JVM tests, lint, debug APK, and Android-test APK assembly passed. Android interaction tests are compiled, not executed: no emulator/device is attached and this environment has no `/dev/kvm`. Phone checks remain pending.
 
 ## F-06 — Change and remember conversation categories
 

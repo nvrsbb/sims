@@ -38,6 +38,8 @@ Cloud verification uses JDK 17 and Android SDK 35 with writable Android user/cac
 
 - F-04: Saveable navigation retains selected thread, filters, search, and per-thread/inbox/category-strip scroll state; cover Back returns to the inbox after keyboard dismissal. Restoration tests cover nondefault selection and width changes. Fresh relaunch intentionally opens the inbox; actual activity/process/fold checks remain pending. Local JVM/lint/debug/Android-test assembly passed; instrumentation unexecuted. Status: PR open, awaiting owner review; never merged.
 
+- F-05: Search covers senders, fictional reserved phone addresses, and every sample message body, with matching snippets, no-results copy, and a clear action. Tests cover older messages, case/whitespace/number formatting, category combinations, and clearing. Local JVM/lint/debug/Android-test assembly passed; instrumentation unexecuted. Status: PR open, awaiting owner review; never merged.
+
 ## Build from Warp on this Mac
 
 Android Studio was not detected. The system JDK is 27; use the downloaded JDK 17 for this Gradle version. Temporary build tools are in the original Codex chat workspace. `local.properties` already points to its SDK. Do not delete that toolchain until a durable Android environment replaces it.
