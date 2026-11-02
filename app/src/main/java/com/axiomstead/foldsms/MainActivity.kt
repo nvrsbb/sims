@@ -3,13 +3,18 @@ package com.axiomstead.foldsms
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -43,24 +48,28 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-internal fun FoldSmsApp(store: DraftStore? = null) {
+internal fun FoldSmsApp(store: DraftStore? = null, wide: Boolean = LocalConfiguration.current.screenWidthDp >= 600) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val draftStore = store ?: remember(context) { DraftStore(context.applicationContext) }
     val drafts = remember(draftStore) { mutableStateMapOf<Int, String>().apply {
         exampleThreads.forEach { put(it.id, draftStore.get(it.id)) }
     } }
-    var filter by remember { mutableStateOf("All") }
-    var search by remember { mutableStateOf("") }
-    var selected by remember { mutableIntStateOf(1) }
-    var showConversation by remember { mutableStateOf(false) }
-    val wide = LocalConfiguration.current.screenWidthDp >= 600
+    var filter by rememberSaveable { mutableStateOf("All") }
+    var search by rememberSaveable { mutableStateOf("") }
+    var selected by rememberSaveable { mutableIntStateOf(1) }
+    var showConversation by rememberSaveable { mutableStateOf(false) }
+    val inboxState = rememberLazyListState()
+    val categoryState = rememberLazyListState()
+    val conversationStates = rememberSaveableStateHolder()
+    val keyboardVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+    BackHandler(enabled = !wide && showConversation && !keyboardVisible) { showConversation = false }
     val filtered = exampleThreads.filter { (filter == "All" || it.category == filter) && (it.sender.contains(search, true) || it.preview.contains(search, true)) }
     val active = exampleThreads.first { it.id == selected }
     var detailMessageId by rememberSaveable(selected) { mutableStateOf<Int?>(null) }
     active.history.firstOrNull { it.id == detailMessageId }?.let { message ->
         MessageDetailsSheet(message, active.sender, onDismiss = { detailMessageId = null })
     }
-    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    Surface(Modifier.fillMaxSize().imePadding(), color = MaterialTheme.colorScheme.background) {
         Row {
             if (wide || !showConversation) {
                 Column(Modifier.weight(1f).fillMaxHeight().padding(horizontal = 18.dp, vertical = 20.dp)) {
@@ -72,19 +81,19 @@ internal fun FoldSmsApp(store: DraftStore? = null) {
                         value = search,
                         onValueChange = { search = it },
                         label = { Text("Search sample messages") },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().testTag("inbox-search"),
                         singleLine = true,
                         shape = RoundedCornerShape(14.dp)
                     )
                     Spacer(Modifier.height(12.dp))
-                    androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    androidx.compose.foundation.lazy.LazyRow(state = categoryState, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         items(listOf("All", "Personal", "Finance", "Services", "Promotions", "OTP")) { c ->
-                            FilterChip(selected = c == filter, onClick = { filter = c }, label = { Text(c) })
+                            FilterChip(modifier = Modifier.testTag("category-$c"), selected = c == filter, onClick = { filter = c }, label = { Text(c) })
                         }
                     }
                     Spacer(Modifier.height(10.dp))
-                    LazyColumn(verticalArrangement = Arrangement.spacedBy(9.dp), contentPadding = PaddingValues(bottom = 12.dp)) {
-                        items(filtered) { thread ->
+                    LazyColumn(state = inboxState, modifier = Modifier.testTag("inbox-list"), verticalArrangement = Arrangement.spacedBy(9.dp), contentPadding = PaddingValues(bottom = 12.dp)) {
+                        items(filtered, key = { it.id }) { thread ->
                             Card(
                                 onClick = { selected = thread.id; showConversation = true },
                                 modifier = Modifier.testTag("thread_${thread.id}"),
@@ -124,9 +133,11 @@ internal fun FoldSmsApp(store: DraftStore? = null) {
                     }
                     HorizontalDivider(Modifier.padding(vertical = 16.dp), color = MaterialTheme.colorScheme.outlineVariant)
                     Text("Sample history · 2 Nov 2026 · Manila time", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    key(active.id) {
+                    conversationStates.SaveableStateProvider(active.id) {
+                        val historyState = rememberLazyListState()
                         LazyColumn(
-                            modifier = Modifier.weight(1f).fillMaxWidth(),
+                            state = historyState,
+                            modifier = Modifier.weight(1f).fillMaxWidth().testTag("conversation-history-${active.id}"),
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                             contentPadding = PaddingValues(vertical = 16.dp)
                         ) {
