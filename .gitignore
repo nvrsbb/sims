@@ -1,0 +1,13 @@
+.gradle/
+.idea/
+local.properties
+**/build/
+*.iml
+.DS_Store
+*.apk
+*.aab
+*.keystore
+*.jks
+
+# Original import archive
+/sims.zip
