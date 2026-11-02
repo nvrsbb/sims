@@ -11,6 +11,8 @@ Version 0.1 is a sample inbox for a Samsung Galaxy Z Fold6. It cannot read, send
 
 Read [the MVP specification](docs/MVP_SPEC.md) for future milestones and the requirements before attempting a real SMS replacement.
 
+Follow the [feature tracker](docs/TRACKER.md) for the next ten feature PRs, their completion checks, and separate phone validation status.
+
 ## Build on this Mac
 
 Repository: `/Users/arvinbobis/Programs/sims`

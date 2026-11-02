@@ -4,12 +4,10 @@ import android.os.Bundle
 import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,15 +17,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.isSystemInDarkTheme
-
-private data class ThreadPreview(val id: Int, val sender: String, val preview: String, val category: String, val time: String)
-private val exampleThreads = listOf(
-    ThreadPreview(1, "Alex", "See you this evening!", "Personal", "10:42"),
-    ThreadPreview(2, "Bank Alert", "Sample transaction: ₱1,250", "Finance", "09:18"),
-    ThreadPreview(3, "Parcel Updates", "Sample package is on the way", "Services", "Yesterday"),
-    ThreadPreview(4, "Promo Center", "Sample weekend offer", "Promotions", "Monday"),
-    ThreadPreview(5, "Verification", "Your sample code is 123456", "OTP", "Sunday")
-)
 
 private class DraftStore(context: Context) {
     private val preferences = context.getSharedPreferences("sample_drafts", Context.MODE_PRIVATE)
@@ -132,11 +121,34 @@ private fun FoldSmsApp() {
                         }
                     }
                     HorizontalDivider(Modifier.padding(vertical = 16.dp), color = MaterialTheme.colorScheme.outlineVariant)
-                    Surface(shape = RoundedCornerShape(topStart = 4.dp, topEnd = 16.dp, bottomEnd = 16.dp, bottomStart = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
-                        Text(active.preview, Modifier.padding(horizontal = 16.dp, vertical = 13.dp), color = MaterialTheme.colorScheme.onSurface)
+                    Text("Sample history · 2 Nov 2026 · Manila time", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    key(active.id) {
+                        LazyColumn(
+                            modifier = Modifier.weight(1f).fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            contentPadding = PaddingValues(vertical = 16.dp)
+                        ) {
+                            items(active.history, key = { it.id }) { message ->
+                                val outgoing = message.direction == MessageDirection.OUTGOING
+                                Column(Modifier.fillMaxWidth(), horizontalAlignment = if (outgoing) Alignment.End else Alignment.Start) {
+                                    Surface(
+                                        modifier = Modifier.fillMaxWidth(0.9f),
+                                        shape = RoundedCornerShape(14.dp),
+                                        color = if (outgoing) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant,
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                                    ) {
+                                        Text(message.body, Modifier.padding(horizontal = 16.dp, vertical = 13.dp), color = MaterialTheme.colorScheme.onSurface)
+                                    }
+                                    Text(
+                                        if (outgoing) "You · ${message.time} · Sample sent" else "${active.sender} · ${message.time}",
+                                        Modifier.padding(top = 4.dp),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        style = MaterialTheme.typography.labelSmall
+                                    )
+                                }
+                            }
+                        }
                     }
-                    Text(active.time, Modifier.padding(start = 4.dp, top = 6.dp), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
-                    Spacer(Modifier.weight(1f))
                     var draft by remember(selected) { mutableStateOf(draftStore.get(selected)) }
                     OutlinedTextField(
                         value = draft,

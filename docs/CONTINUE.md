@@ -17,9 +17,12 @@ Original starter archive: ignored `sims.zip`. Native Kotlin / Jetpack Compose ap
 
 - Persistent sample drafts are implemented and pushed. The owner installed the updated APK and reported drafts stay separate per conversation and survive folding and relaunch. These are device-reported checks, not automated process-death tests.
 - GitHub Actions successfully built commit `072cee5` after updating Android SDK setup to v4.
-- Local visual changes apply the Budge/IBKR palette and panel hierarchy, including device-selected light/dark mode. They have not yet been checked on the phone.
-- Android-specific development, checks, PR/merge, and batched phone update agreements are in `AGENTS.md`. CI now includes unit tests and lint as well as assembly, and runs on PRs; this workflow revision still needs a GitHub run after pushing.
-- No automated tests currently exist. `testDebugUnitTest` can report `NO-SOURCE`; meaningful persistence and restoration coverage remains work to do.
+- PR #1 merged the Budge/IBKR palette and Android working agreements. Local main was synced to `eec9632`; PR CI passed. Visual changes still need a phone check.
+- CI includes unit tests, lint, and assembly on PRs and main. Agreements are in `AGENTS.md`.
+- The owner requested ten feature PRs tracked and completed sequentially. Queue and acceptance checks: `docs/TRACKER.md`. Close each card only after merge; phone checks are tracked separately.
+- F-01 adds chronological fabricated histories and the first JVM tests. Persistence/restoration tests remain queued work. Existing draft preference keys stay unchanged.
+- F-01 local checks: three JVM tests passed; lint and debug assembly succeeded, with the same three lint warnings. No emulator or physical-device UI check was performed for this feature.
+- F-01 is open as PR #2 (`feature/sample-message-history`). Confirm CI and merge status before starting F-02; update its tracker status after merge.
 - Local validation of the visual changes and updated check command: debug assembly and lint succeeded; the unit-test task reported `NO-SOURCE`. No new physical-device verification was performed.
 - Continue one focused feature at a time, accumulating changes before another phone installation. Sending stays disabled.
 
