@@ -46,6 +46,7 @@ class NewSampleConversationUiTest {
         compose.waitUntil { runBlocking { metadata.categories.first().any { it.threadId == -1 && it.category == "Finance" } } }
         restoration.emulateSavedInstanceStateRestore()
         compose.waitUntil { compose.onAllNodesWithTag("conversation-history--1").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil { compose.onAllNodesWithText("Sample conversation · Finance").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("Sample conversation · Finance").assertExists()
         compose.onNodeWithText("Fabricated draft\nsecond line").assertExists()
         compose.onNodeWithText("‹ Back").performClick()
