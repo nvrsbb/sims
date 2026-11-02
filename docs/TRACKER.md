@@ -7,7 +7,7 @@ Status: **Planned → In progress → PR open → Merged**. Close an item only a
 | ID | Feature / proposed PR | Status | PR | Phone check |
 |---|---|---|---|---|
 | F-01 | Chronological sample message history | Merged | [#2](https://github.com/nvrsbb/sims/pull/2) | Pending |
-| F-02 | Message details and copying sample text | PR open | [Find PR](https://github.com/nvrsbb/sims/pulls?q=is%3Apr+head%3Afeature%2Fmessage-details) | Pending |
+| F-02 | Message details and copying sample text | Merged | [#3](https://github.com/nvrsbb/sims/pull/3) | Pending |
 | F-03 | Draft indicators and deliberate draft clearing | Planned | — | Pending |
 | F-04 | Restore conversation navigation and Android Back | Planned | — | Pending |
 | F-05 | Search across complete sample histories | Planned | — | Pending |
@@ -81,7 +81,17 @@ Add a native settings screen with remembered Light/Dark/Device theme selection, 
 
 Completion: theme choice survives relaunch; Device follows Android; settings return to the active thread; no permissions/role prompts. Test preference mapping and navigation; check contrast, large text, and both Fold layouts. No backup/restore implementation in this PR.
 
-## Batch phone check
+## Engineering follow-ups
+
+### E-01 — Set up an Android emulator for interaction tests
+
+Status: **Planned**. Schedule separately from the ten feature PRs.
+
+Set up a dedicated emulator with fabricated data so Compose interaction tests can run without another Fold6 installation. Document reproducible setup and test commands. Keep its data separate from the owner's phone and drafts.
+
+Completion: run `:app:connectedDebugAndroidTest` successfully, including the message details/copy/dismiss test; record emulator API/device configuration and results. Support narrow and expanded layouts where practical. Physical Fold6 checks remain necessary for actual folding and Samsung-specific behavior.
+
+## Batch phone check results
 
 Choose a useful subset or the completed batch before installing. Record version/commit and results here, keeping automated checks separate from owner-reported checks. Advance the app version for the distribution batch and verify signing compatibility before suggesting installation.
 
