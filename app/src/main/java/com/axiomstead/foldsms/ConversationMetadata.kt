@@ -55,9 +55,10 @@ interface ConversationMetadataDao {
 
 // Legacy sample_drafts preferences stay untouched.
 // Future schema changes must supply explicit migrations; never use destructive fallback.
-@Database(entities = [ConversationMetadata::class], version = 3, exportSchema = true)
+@Database(entities = [ConversationMetadata::class, CustomSampleConversation::class], version = 4, exportSchema = true)
 abstract class ConversationMetadataDatabase : RoomDatabase() {
     abstract fun metadata(): ConversationMetadataDao
+    abstract fun customConversations(): CustomSampleConversationDao
 }
 
 class ConversationMetadataStore(private val dao: ConversationMetadataDao) {
@@ -77,8 +78,7 @@ class ConversationMetadataStore(private val dao: ConversationMetadataDao) {
 
         fun get(context: Context): ConversationMetadataStore = instance ?: synchronized(this) {
             instance ?: ConversationMetadataStore(
-                Room.databaseBuilder(context.applicationContext, ConversationMetadataDatabase::class.java,
-                    "sample_metadata.db").addMigrations(METADATA_MIGRATION_1_2, METADATA_MIGRATION_2_3).build().metadata()
+                sampleMetadataDatabase(context).metadata()
             ).also { instance = it }
         }
     }
@@ -99,3 +99,22 @@ val METADATA_MIGRATION_2_3 = object : Migration(2, 3) {
         db.execSQL("ALTER TABLE conversation_metadata ADD COLUMN archived INTEGER NOT NULL DEFAULT 0")
     }
 }
+
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS custom_sample_conversations (id INTEGER NOT NULL, name TEXT NOT NULL, address TEXT NOT NULL, normalizedAddress TEXT NOT NULL, PRIMARY KEY(id))")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_custom_sample_conversations_normalizedAddress ON custom_sample_conversations (normalizedAddress)")
+    }
+}
+
+private object SampleMetadataDatabaseProvider {
+    @Volatile var instance: ConversationMetadataDatabase? = null
+}
+
+internal fun sampleMetadataDatabase(context: Context): ConversationMetadataDatabase =
+    SampleMetadataDatabaseProvider.instance ?: synchronized(SampleMetadataDatabaseProvider) {
+        SampleMetadataDatabaseProvider.instance ?: Room.databaseBuilder(context.applicationContext,
+            ConversationMetadataDatabase::class.java, "sample_metadata.db")
+            .addMigrations(METADATA_MIGRATION_1_2, METADATA_MIGRATION_2_3, MIGRATION_3_4)
+            .build().also { SampleMetadataDatabaseProvider.instance = it }
+    }

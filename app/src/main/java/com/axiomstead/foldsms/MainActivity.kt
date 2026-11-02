@@ -53,7 +53,8 @@ class MainActivity : ComponentActivity() {
 internal fun FoldSmsApp(
     store: DraftStore? = null,
     wide: Boolean = LocalConfiguration.current.screenWidthDp >= 600,
-    metadataStore: ConversationMetadataStore? = null
+    metadataStore: ConversationMetadataStore? = null,
+    customStore: CustomSampleConversationStore? = null
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val draftStore = store ?: remember(context) { DraftStore(context.applicationContext) }
@@ -61,11 +62,26 @@ internal fun FoldSmsApp(
         exampleThreads.forEach { put(it.id, draftStore.get(it.id)) }
     } }
     val metadata = remember(context, metadataStore) { metadataStore ?: ConversationMetadataStore.get(context) }
+    val custom = remember(context, customStore, draftStore) {
+        customStore ?: CustomSampleConversationStore(sampleMetadataDatabase(context), draftStore)
+    }
+    val customRows by custom.conversations.collectAsState<List<CustomSampleConversation>, List<CustomSampleConversation>?>(initial = null)
+    LaunchedEffect(customRows, draftStore) {
+        customRows.orEmpty().forEach { row ->
+            if (!drafts.containsKey(row.id)) drafts[row.id] = draftStore.get(row.id)
+        }
+    }
     val overrides by metadata.categories.collectAsState(initial = emptyList())
-    val threads = exampleThreads.map { thread ->
+    val allThreads = exampleThreads + customRows.orEmpty().map { row ->
+        SampleConversation(row.id, row.name, "Unknown", emptyList(), row.address)
+    }
+    val threads = allThreads.map { thread ->
         thread.copy(category = overrides.firstOrNull { it.threadId == thread.id }?.category ?: thread.category)
     }
     val scope = rememberCoroutineScope()
+    var showNewSample by rememberSaveable { mutableStateOf(false) }
+    var creatingSample by remember { mutableStateOf(false) }
+    var createError by remember { mutableStateOf<String?>(null) }
     var showCategories by rememberSaveable { mutableStateOf(false) }
     var showArchive by rememberSaveable { mutableStateOf(false) }
     var filter by rememberSaveable { mutableStateOf("All") }
@@ -82,7 +98,40 @@ internal fun FoldSmsApp(
     val available = archiveConversations(threads, archivedIds, showArchive)
     val activeVisible = (selected in archivedIds) == showArchive
     val filtered = searchConversations(orderedConversations(available, pinnedIds), search, filter)
-    val active = threads.first { it.id == selected }
+    val active = threads.firstOrNull { it.id == selected }
+    if (showNewSample) NewSampleConversationDialog(
+        saving = creatingSample,
+        error = createError,
+        onDismiss = { showNewSample = false; createError = null },
+        onCreate = { name, address, initialDraft ->
+            creatingSample = true
+            createError = null
+            scope.launch {
+                try {
+                    val created = custom.create(name, address, initialDraft, exampleThreads.map { it.address })
+                    drafts[created.id] = draftStore.get(created.id)
+                    selected = created.id
+                    showConversation = true
+                    showArchive = false
+                    filter = "All"
+                    search = ""
+                    showNewSample = false
+                } catch (failure: IllegalArgumentException) {
+                    createError = failure.message
+                } catch (_: android.database.sqlite.SQLiteConstraintException) {
+                    createError = "A sample conversation already uses this address. Open that conversation to keep its draft."
+                } catch (_: java.io.IOException) {
+                    createError = "The sample conversation could not be saved. Your existing drafts are unchanged."
+                } finally {
+                    creatingSample = false
+                }
+            }
+        }
+    )
+    if (active == null) {
+        Surface(Modifier.fillMaxSize()) { Text("Loading local sample conversation…", Modifier.padding(20.dp)) }
+        return
+    }
     var detailMessageId by rememberSaveable(selected) { mutableStateOf<Int?>(null) }
     active.history.takeIf { activeVisible }?.firstOrNull { it.id == detailMessageId }?.let { message ->
         MessageDetailsSheet(message, active.sender, onDismiss = { detailMessageId = null })
@@ -109,7 +158,8 @@ internal fun FoldSmsApp(
                     TextButton(onClick = { showArchive = !showArchive; showConversation = false; detailMessageId = null }) {
                         Text(if (showArchive) "Inbox" else "Archive")
                     }
-                    Spacer(Modifier.height(16.dp))
+                    TextButton(onClick = { showNewSample = true; createError = null }) { Text("New sample") }
+                    Spacer(Modifier.height(8.dp))
                     OutlinedTextField(
                         value = search,
                         onValueChange = { search = it },
@@ -142,14 +192,14 @@ internal fun FoldSmsApp(
                                 Column(Modifier.fillMaxWidth().padding(horizontal = 15.dp, vertical = 13.dp)) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Text(thread.sender, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface)
-                                        Text(thread.time, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        if (thread.time.isNotEmpty()) Text(thread.time, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                     Spacer(Modifier.height(4.dp))
                                     if (thread.id in pinnedIds) Text("Pinned", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                                     if (!drafts[thread.id].isNullOrEmpty()) {
                                         Text("Draft saved", modifier = Modifier.testTag("draft_indicator_${thread.id}"), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
                                     }
-                                    Text(result.snippet, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(result.snippet.ifEmpty { "Local sample · No messages" }, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     Spacer(Modifier.height(7.dp))
                                     Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surfaceVariant) {
                                         Text(thread.category, modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Medium)
@@ -184,7 +234,7 @@ internal fun FoldSmsApp(
                     }) { Text(if (active.id in archivedIds) "Restore conversation" else "Archive conversation") }
                     }
                     HorizontalDivider(Modifier.padding(vertical = 16.dp), color = MaterialTheme.colorScheme.outlineVariant)
-                    Text("Sample history · 2 Nov 2026 · Manila time", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(if (active.history.isEmpty()) "Local sample · Unsent draft only" else "Sample history · 2 Nov 2026 · Manila time", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     conversationStates.SaveableStateProvider(active.id) {
                         val historyState = rememberLazyListState()
                         LazyColumn(
@@ -193,6 +243,9 @@ internal fun FoldSmsApp(
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                             contentPadding = PaddingValues(vertical = 16.dp)
                         ) {
+                            if (active.history.isEmpty()) item {
+                                Text("No messages. This local sample contains only your draft; sending is disabled.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                             items(active.history, key = { it.id }) { message ->
                                 val outgoing = message.direction == MessageDirection.OUTGOING
                                 Column(Modifier.fillMaxWidth(), horizontalAlignment = if (outgoing) Alignment.End else Alignment.Start) {

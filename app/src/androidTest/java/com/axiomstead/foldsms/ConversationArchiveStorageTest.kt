@@ -27,7 +27,7 @@ class ConversationArchiveStorageTest {
         }
         migrations.runMigrationsAndValidate(name, 3, true, METADATA_MIGRATION_2_3).close()
         fun open() = Room.databaseBuilder(context, ConversationMetadataDatabase::class.java, name)
-            .addMigrations(METADATA_MIGRATION_1_2, METADATA_MIGRATION_2_3).build()
+            .addMigrations(METADATA_MIGRATION_1_2, METADATA_MIGRATION_2_3, MIGRATION_3_4).build()
         var database = open()
         try {
             var store = ConversationMetadataStore(database.metadata())
