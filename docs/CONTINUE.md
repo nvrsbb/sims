@@ -29,6 +29,14 @@ Original starter archive: ignored `sims.zip`. Native Kotlin / Jetpack Compose ap
 - Local validation of the visual changes and updated check command: debug assembly and lint succeeded; the unit-test task reported `NO-SOURCE`. No new physical-device verification was performed.
 - Continue one focused feature at a time, accumulating changes before another phone installation. Sending stays disabled.
 
+## Review batch — 2026-11-02
+
+Owner instructions for this batch: continue from F-03 using independent agents and stacked PRs; never merge. All data stays fabricated and sending disabled. PR #5 already proposes F-11/F-12; leave it for review rather than duplicating it.
+
+Cloud verification uses JDK 17 and Android SDK 35 with writable Android user/cache directories and in-process Kotlin compilation. Keep signing keys outside source; do not install this environment’s debug build over the phone without checking signing compatibility. No emulator/device is attached; Android UI/storage tests compile only. Actual recreation, process death, relaunch, fold transitions, large fonts, keyboard/Back, and phone update checks remain pending. E-01 remains planned.
+
+- F-03: Saved-draft badges and a confirmed, conversation-scoped clear action preserve the original draft keys and exact text. Isolated preference and Compose coverage was added; long drafts have a bounded composer. Local JVM/lint/debug/Android-test assembly passed; instrumentation unexecuted. Status: PR open, awaiting owner review; never merged.
+
 ## Build from Warp on this Mac
 
 Android Studio was not detected. The system JDK is 27; use the downloaded JDK 17 for this Gradle version. Temporary build tools are in the original Codex chat workspace. `local.properties` already points to its SDK. Do not delete that toolchain until a durable Android environment replaces it.
