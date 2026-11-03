@@ -30,22 +30,47 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            val dark = isSystemInDarkTheme()
-            val colors = if (dark) darkColorScheme(
-                primary = Color(0xFFF2A26A), onPrimary = Color(0xFF112022),
-                secondary = Color(0xFF6DC3B8), background = Color(0xFF051214),
-                surface = Color(0xFF112022), surfaceVariant = Color(0xFF1B292C),
-                onSurface = Color(0xFFD9ECEF), onSurfaceVariant = Color(0xFF9DAFB2),
-                outline = Color(0xFF314043), outlineVariant = Color(0xFF253336)
-            ) else lightColorScheme(
-                primary = Color(0xFFAC5700), onPrimary = Color(0xFFFDF8EF),
-                secondary = Color(0xFF00877C), background = Color(0xFFF4ECE0),
-                surface = Color(0xFFFDF8EF), surfaceVariant = Color(0xFFEBDCC9),
-                onSurface = Color(0xFF211C15), onSurfaceVariant = Color(0xFF756A58),
-                outline = Color(0xFFD6C8B4), outlineVariant = Color(0xFFE2D3BF)
-            )
-            MaterialTheme(colorScheme = colors) { FoldSmsApp() }
+            val context = androidx.compose.ui.platform.LocalContext.current
+            val themeStore = remember(context) { ThemeStore(context.applicationContext) }
+            PreviewApp(themeStore)
         }
+    }
+}
+
+@Composable
+internal fun PreviewApp(
+    themeStore: ThemeStore,
+    draftStore: DraftStore? = null,
+    metadataStore: ConversationMetadataStore? = null,
+    customStore: CustomSampleConversationStore? = null,
+    wide: Boolean = LocalConfiguration.current.screenWidthDp >= 600
+) {
+    var theme by remember { mutableStateOf(themeStore.get()) }
+    var showSettings by rememberSaveable { mutableStateOf(false) }
+    val dark = theme.usesDarkColors(isSystemInDarkTheme())
+    val colors = if (dark) darkColorScheme(
+        primary = Color(0xFFF2A26A), onPrimary = Color(0xFF112022),
+        secondary = Color(0xFF6DC3B8), background = Color(0xFF051214),
+        surface = Color(0xFF112022), surfaceVariant = Color(0xFF1B292C),
+        onSurface = Color(0xFFD9ECEF), onSurfaceVariant = Color(0xFF9DAFB2),
+        outline = Color(0xFF314043), outlineVariant = Color(0xFF253336)
+    ) else lightColorScheme(
+        primary = Color(0xFFAC5700), onPrimary = Color(0xFFFDF8EF),
+        secondary = Color(0xFF00877C), background = Color(0xFFF4ECE0),
+        surface = Color(0xFFFDF8EF), surfaceVariant = Color(0xFFEBDCC9),
+        onSurface = Color(0xFF211C15), onSurfaceVariant = Color(0xFF756A58),
+        outline = Color(0xFFD6C8B4), outlineVariant = Color(0xFFE2D3BF)
+    )
+    MaterialTheme(colorScheme = colors) {
+        FoldSmsApp(
+            store = draftStore, wide = wide, metadataStore = metadataStore, customStore = customStore,
+            onOpenSettings = { showSettings = true }
+        )
+        if (showSettings) PreviewSettings(
+            theme = theme,
+            onThemeChange = { theme = it; themeStore.save(it) },
+            onDismiss = { showSettings = false }
+        )
     }
 }
 
@@ -54,7 +79,8 @@ internal fun FoldSmsApp(
     store: DraftStore? = null,
     wide: Boolean = LocalConfiguration.current.screenWidthDp >= 600,
     metadataStore: ConversationMetadataStore? = null,
-    customStore: CustomSampleConversationStore? = null
+    customStore: CustomSampleConversationStore? = null,
+    onOpenSettings: () -> Unit = {}
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val draftStore = store ?: remember(context) { DraftStore(context.applicationContext) }
@@ -152,6 +178,7 @@ internal fun FoldSmsApp(
         Row {
             if (wide || !showConversation) {
                 Column(Modifier.weight(1f).fillMaxHeight().padding(horizontal = 18.dp, vertical = 20.dp)) {
+                    TextButton(onClick = onOpenSettings) { Text("Settings") }
                     Text("FoldSMS", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     Spacer(Modifier.height(3.dp))
                     Text(if (showArchive) "SAMPLE ARCHIVE" else "SAMPLE INBOX", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium)
@@ -215,6 +242,7 @@ internal fun FoldSmsApp(
                 Column(Modifier.weight(1f).fillMaxHeight().padding(horizontal = 20.dp, vertical = 20.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (!wide) TextButton(onClick = { showConversation = false }) { Text("‹ Back") }
+                        TextButton(onClick = onOpenSettings) { Text("Settings") }
                         Column(Modifier.weight(1f)) {
                             Text(active.sender, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                             Text("Sample conversation · ${active.category}", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
