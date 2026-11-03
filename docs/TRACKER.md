@@ -15,7 +15,7 @@ Status: **Planned → In progress → PR open → Merged**. Close an item only a
 | F-07 | Pin important conversations | PR open | [11](https://github.com/nvrsbb/sims/pull/11) | Pending |
 | F-08 | Archive and restore conversations | PR open | [12](https://github.com/nvrsbb/sims/pull/12) | Pending |
 | F-09 | Start a new local sample conversation | PR open | [13](https://github.com/nvrsbb/sims/pull/13) | Pending |
-| F-10 | Preview settings and safety information | PR open | Awaiting PR link | Pending |
+| F-10 | Preview settings and safety information | PR open | [#14](https://github.com/nvrsbb/sims/pull/14) | Pending |
 
 ## F-01 — Chronological sample message history
 
@@ -126,3 +126,5 @@ Existing baseline: the owner reported draft isolation, fold/unfold, and relaunch
 Paused after a subagent hit its usage limit. F-03–F-06 PRs are open (#6–#9), never merged. F-07–F-10 remain **In progress**, with committed implementations and partial combined verification; they are not PR open. See docs/CONTINUE.md for exact commits and pending integration. No Android instrumentation or new phone checks ran.
 
 Resumed 2026-11-03: #6–#9 are confirmed merged on GitHub, but F-04–F-06 remain outside main because their targets were stack branches. A consolidation PR carries them forward; phone checks remain pending. The prior usage-limit pause has ended.
+
+Current review stack: [#10](https://github.com/nvrsbb/sims/pull/10) (F-04–F-06 consolidation) → [#11](https://github.com/nvrsbb/sims/pull/11) (F-07) → [#12](https://github.com/nvrsbb/sims/pull/12) (F-08) → [#13](https://github.com/nvrsbb/sims/pull/13) (F-09) → [#14](https://github.com/nvrsbb/sims/pull/14) (F-10). All are awaiting owner review; no agent merges. Final combined local verification: 18 JVM tests, lint, debug APK and Android-test APK assembly pass. Android interaction tests remain unexecuted.
