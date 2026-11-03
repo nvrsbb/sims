@@ -1,4 +1,4 @@
-# FoldSMS handoff — 2026-11-02
+# FoldSMS handoff — 2026-11-03
 
 ## Current project
 
@@ -48,6 +48,8 @@ Cloud verification uses JDK 17 and Android SDK 35 with writable Android user/cac
 
 - F-09: Create local conversations from explicitly fabricated name/address input, with an unsent saved draft and no synthetic message history. Schema 4 adds custom rows with noncolliding reserved negative IDs and normalized unique addresses. Initial drafts save durably before row commit; existing draft keys stay unchanged. E-03 tracks interrupted-creation recovery. Local JVM/lint/debug/Android-test assembly passed; instrumentation unexecuted. Status: PR open, awaiting owner review; never merged.
 
+- F-10: Native preview settings retain Light/Dark/Device appearance locally and explain fabricated histories, device-local storage and disabled transport. Settings overlays the live conversation so navigation, drafts and list state remain composed. Theme mapping has JVM coverage; isolated preference/navigation Compose tests compile only. Local JVM/lint/debug/Android-test assembly passed; instrumentation unexecuted. Status: PR open, awaiting owner review; never merged.
+
 ## Build from Warp on this Mac
 
 Android Studio was not detected. The system JDK is 27; use the downloaded JDK 17 for this Gradle version. Temporary build tools are in the original Codex chat workspace. `local.properties` already points to its SDK. Do not delete that toolchain until a durable Android environment replaces it.
@@ -80,3 +82,11 @@ Follow-ups: Android instrumentation tests remain compiled but unexecuted, no emu
 ## Resume — 2026-11-03
 
 No other work was active. GitHub confirms #6–#9 merged externally; main contains F-03 only because later PRs targeted stack branches. A consolidation PR was opened without merging. Preserve the existing tested implementations and continue F-07–F-10. Prior usage-limit pause is historical.
+
+## Current review handoff — 2026-11-03
+
+F-07–F-10 have been integrated without reimplementing the preserved feature commits. See the tracker table for the latest PR links. Consolidation #10 carries F-04–F-06 to main; they were merged externally into stack branches rather than main. The agent has not merged anything or enabled auto-merge.
+
+Review dependency order: consolidation, pins, archive, new sample conversation, settings. Keep dependent diffs focused. If the owner merges a prerequisite into main, verify its code is present and retarget the next dependent PR to main before owner merge, so later changes are not stranded in an already-merged branch again. Never merge automatically.
+
+After these PRs are open, the ten-feature implementation queue is awaiting owner review. Future scheduled runs should check CI and PR state, avoid duplicate work, and update statuses; do not invent more features. PR #5 remains separate proposed deletion tracking. E-01 (emulator), E-02 (KSP), and E-03 (interrupted initial draft recovery) are recorded follow-ups. No emulator/device execution or phone installation occurred.

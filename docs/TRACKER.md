@@ -14,8 +14,8 @@ Status: **Planned → In progress → PR open → Merged**. Close an item only a
 | F-06 | Change and remember conversation categories | Merged | [9](https://github.com/nvrsbb/sims/pull/9) | Pending |
 | F-07 | Pin important conversations | PR open | [11](https://github.com/nvrsbb/sims/pull/11) | Pending |
 | F-08 | Archive and restore conversations | PR open | [12](https://github.com/nvrsbb/sims/pull/12) | Pending |
-| F-09 | Start a new local sample conversation | PR open | Awaiting PR link | Pending |
-| F-10 | Preview settings and safety information | In progress | — | Pending |
+| F-09 | Start a new local sample conversation | PR open | [13](https://github.com/nvrsbb/sims/pull/13) | Pending |
+| F-10 | Preview settings and safety information | PR open | Awaiting PR link | Pending |
 
 ## F-01 — Chronological sample message history
 
@@ -94,6 +94,8 @@ Implementation and local verification: Create local conversations from explicitl
 Add a native settings screen with remembered Light/Dark/Device theme selection, privacy/storage explanation, and a factual preview capabilities checklist. Explain the future default-SMS milestone without requesting the role. Keep navigation and drafts intact.
 
 Completion: theme choice survives relaunch; Device follows Android; settings return to the active thread; no permissions/role prompts. Test preference mapping and navigation; check contrast, large text, and both Fold layouts. No backup/restore implementation in this PR.
+
+Implementation and local verification: Native preview settings retain Light/Dark/Device appearance locally and explain fabricated histories, device-local storage and disabled transport. Settings overlays the live conversation so navigation, drafts and list state remain composed. Theme mapping has JVM coverage; isolated preference/navigation Compose tests compile only. JVM tests, lint, debug APK, and Android-test APK assembly passed. Android interaction tests are compiled, not executed: no emulator/device is attached and this environment has no `/dev/kvm`. Phone checks remain pending.
 
 ## Engineering follow-ups
 
