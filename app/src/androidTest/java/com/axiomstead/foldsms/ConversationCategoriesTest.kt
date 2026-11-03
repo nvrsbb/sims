@@ -38,12 +38,12 @@ class ConversationCategoriesTest {
             store = ConversationMetadataStore(database.metadata())
             assertEquals(setOf(ConversationMetadata(1, "Unknown"), ConversationMetadata(2, "Personal")), store.categories.first().toSet())
             store.setCategory(1, null)
-            assertEquals(listOf(ConversationMetadata(2, "Personal")), store.categories.first())
+            assertEquals(setOf(ConversationMetadata(1), ConversationMetadata(2, "Personal")), store.categories.first().toSet())
             try {
                 store.setCategory(2, "Invalid category")
                 fail("Invalid category must be rejected")
             } catch (_: IllegalArgumentException) { }
-            assertEquals(listOf(ConversationMetadata(2, "Personal")), store.categories.first())
+            assertEquals(setOf(ConversationMetadata(1), ConversationMetadata(2, "Personal")), store.categories.first().toSet())
             assertEquals("line one\nline two", preferences.getString("thread_1", null))
         } finally {
             database.close()
@@ -68,7 +68,7 @@ class ConversationCategoriesTest {
                 }
             }
             compose.onNodeWithText("Alex").performClick()
-            compose.onNodeWithText("Change category").performClick()
+            compose.onNodeWithText("Change category").performScrollTo().performClick()
             compose.onNodeWithText("Unknown", useUnmergedTree = true).performClick()
             compose.waitUntil { runBlocking { store.categories.first().any { it.threadId == 1 && it.category == "Unknown" } } }
             compose.onNodeWithText("‹ Back").performClick()
@@ -76,9 +76,9 @@ class ConversationCategoriesTest {
             compose.onNodeWithTag("category-filters").performScrollToNode(hasTestTag("category-filter-Unknown"))
             compose.onNodeWithTag("category-filter-Unknown").performClick()
             compose.onNodeWithText("Alex").assertExists().performClick()
-            compose.onNodeWithText("Change category").performClick()
+            compose.onNodeWithText("Change category").performScrollTo().performClick()
             compose.onNodeWithText("Reset to sample default").performScrollTo().performClick()
-            compose.waitUntil { runBlocking { store.categories.first().isEmpty() } }
+            compose.waitUntil { runBlocking { store.categories.first().all { it.category == null } } }
             compose.onNodeWithText("‹ Back").performClick()
             compose.onNodeWithText("Alex").assertDoesNotExist()
             compose.onNodeWithTag("category-filters").performScrollToNode(hasTestTag("category-filter-Personal"))

@@ -2,6 +2,8 @@ package com.axiomstead.foldsms
 
 import android.content.Context
 import androidx.room.*
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.flow.Flow
 
 val conversationCategories = listOf("Personal", "Finance", "Services", "Promotions", "OTP", "Unknown")
@@ -9,7 +11,8 @@ val conversationCategories = listOf("Personal", "Finance", "Services", "Promotio
 @Entity(tableName = "conversation_metadata")
 data class ConversationMetadata(
     @PrimaryKey val threadId: Int,
-    val category: String
+    val category: String? = null,
+    @ColumnInfo(defaultValue = "0") val pinned: Boolean = false
 )
 
 @Dao
@@ -17,16 +20,32 @@ interface ConversationMetadataDao {
     @Query("SELECT * FROM conversation_metadata")
     fun observeCategories(): Flow<List<ConversationMetadata>>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun setCategory(value: ConversationMetadata)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertIfAbsent(value: ConversationMetadata)
 
-    @Query("DELETE FROM conversation_metadata WHERE threadId = :threadId")
-    suspend fun resetCategory(threadId: Int)
+    @Query("UPDATE conversation_metadata SET category = :category WHERE threadId = :threadId")
+    suspend fun updateCategory(threadId: Int, category: String?)
+
+    @Query("UPDATE conversation_metadata SET pinned = :pinned WHERE threadId = :threadId")
+    suspend fun updatePinned(threadId: Int, pinned: Boolean)
+
+    @Transaction
+    suspend fun setCategory(threadId: Int, category: String?) {
+        insertIfAbsent(ConversationMetadata(threadId))
+        updateCategory(threadId, category)
+    }
+
+    @Transaction
+    suspend fun setPinned(threadId: Int, pinned: Boolean) {
+        insertIfAbsent(ConversationMetadata(threadId))
+        updatePinned(threadId, pinned)
+    }
+
 }
 
-// Version 1 introduces metadata only. Legacy sample_drafts preferences stay untouched.
+// Legacy sample_drafts preferences stay untouched.
 // Future schema changes must supply explicit migrations; never use destructive fallback.
-@Database(entities = [ConversationMetadata::class], version = 1, exportSchema = true)
+@Database(entities = [ConversationMetadata::class], version = 2, exportSchema = true)
 abstract class ConversationMetadataDatabase : RoomDatabase() {
     abstract fun metadata(): ConversationMetadataDao
 }
@@ -36,9 +55,10 @@ class ConversationMetadataStore(private val dao: ConversationMetadataDao) {
 
     suspend fun setCategory(threadId: Int, category: String?) {
         require(category == null || category in conversationCategories)
-        if (category == null) dao.resetCategory(threadId)
-        else dao.setCategory(ConversationMetadata(threadId, category))
+        dao.setCategory(threadId, category)
     }
+
+    suspend fun setPinned(threadId: Int, pinned: Boolean) = dao.setPinned(threadId, pinned)
 
     companion object {
         @Volatile private var instance: ConversationMetadataStore? = null
@@ -46,8 +66,18 @@ class ConversationMetadataStore(private val dao: ConversationMetadataDao) {
         fun get(context: Context): ConversationMetadataStore = instance ?: synchronized(this) {
             instance ?: ConversationMetadataStore(
                 Room.databaseBuilder(context.applicationContext, ConversationMetadataDatabase::class.java,
-                    "sample_metadata.db").build().metadata()
+                    "sample_metadata.db").addMigrations(METADATA_MIGRATION_1_2).build().metadata()
             ).also { instance = it }
         }
+    }
+}
+
+val METADATA_MIGRATION_1_2 = object : Migration(1, 2) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Nullable category means resetting an override can retain other metadata.
+        db.execSQL("CREATE TABLE conversation_metadata_new (threadId INTEGER NOT NULL, category TEXT, pinned INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(threadId))")
+        db.execSQL("INSERT INTO conversation_metadata_new (threadId, category, pinned) SELECT threadId, category, 0 FROM conversation_metadata")
+        db.execSQL("DROP TABLE conversation_metadata")
+        db.execSQL("ALTER TABLE conversation_metadata_new RENAME TO conversation_metadata")
     }
 }

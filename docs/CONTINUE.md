@@ -42,6 +42,8 @@ Cloud verification uses JDK 17 and Android SDK 35 with writable Android user/cac
 
 - F-06: Room schema 1 stores category overrides and reset behavior without moving legacy drafts. Category changes immediately feed the combined search/filter list. Isolated storage/reopen and category/filter UI tests were added. Lint has two existing warnings plus a new kapt-versus-KSP advisory; there are no lint errors. Local JVM/lint/debug/Android-test assembly passed; instrumentation unexecuted. Status: PR open, awaiting owner review; never merged.
 
+- F-07: Pins persist in schema 2 via an explicit category-preserving migration. Ordering is deterministic and respects search/category exclusions. Conversation actions scroll horizontally; restoration tests retain a nonzero history scroll assertion. Local JVM/lint/debug/Android-test assembly passed; instrumentation unexecuted. Status: PR open, awaiting owner review; never merged.
+
 ## Build from Warp on this Mac
 
 Android Studio was not detected. The system JDK is 27; use the downloaded JDK 17 for this Gradle version. Temporary build tools are in the original Codex chat workspace. `local.properties` already points to its SDK. Do not delete that toolchain until a durable Android environment replaces it.
@@ -60,3 +62,17 @@ APK output: `app/build/outputs/apk/debug/app-debug.apk`.
 Release: https://github.com/nvrsbb/sims/releases/tag/v0.1.0-preview
 
 SMS/MMS transport, default app eligibility, real sending/receiving, backups/restoration, and notifications remain future work. Read `AGENTS.md` for development and verification requirements.
+
+## Paused by usage limit — 2026-11-02
+
+Stop requested when usage limits block progress: drafts agent hit a usage limit, so feature work paused. Never merge. PRs F-03 through F-06 are open as #6–#9; CI confirmed green for #6–#8, #9 not yet rechecked. All data fabricated, sending disabled.
+
+Current branch queue/f07-pins has integrated pin code plus committed horizontal-scroll action row and UI-test adjustments. Combined full Gradle checks passed in /tmp/stack-f07.log. The action-row changes were preserved in e1a278b; add the F-07 tracker update before publishing; no F-07 PR yet. Preserve this working tree.
+
+Remaining committed work: integrated F-08 150bc925 (cherry onto F-07; combine archive action into same scrollable row and adapt tests), F-09 a673aee plus test follow-up b9a1995 (final full checks passed in /tmp/f09-final.log), F-10 integrated 2d09788 (standalone checks passed; integrated verification stopped to avoid duplicate builds). F-07 standalone 2e46bb2 and F-08 ecfafb7 passed checks. Combined downstream branches still need checks after integration. Worktrees under /workspace/sims-* retain source; inspect git worktree list and existing remote PRs before continuing.
+
+Follow-ups: Android instrumentation tests remain compiled but unexecuted, no emulator/KVM. E-02 records kapt/KSP advisory. Add targeted cancellation/orphan-initial-draft recovery coverage: preferences and Room cannot commit atomically; negative draft IDs are reserved to prevent overwriting an unattached draft. User requests follow-ups every 3 hours for 12 hours, skipping if work is active and stopping on usage limits; scheduling tool availability must be verified separately.
+
+## Resume — 2026-11-03
+
+No other work was active. GitHub confirms #6–#9 merged externally; main contains F-03 only because later PRs targeted stack branches. A consolidation PR was opened without merging. Preserve the existing tested implementations and continue F-07–F-10. Prior usage-limit pause is historical.

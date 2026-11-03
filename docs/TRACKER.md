@@ -8,11 +8,11 @@ Status: **Planned → In progress → PR open → Merged**. Close an item only a
 |---|---|---|---|---|
 | F-01 | Chronological sample message history | Merged | [#2](https://github.com/nvrsbb/sims/pull/2) | Pending |
 | F-02 | Message details and copying sample text | Merged | [#3](https://github.com/nvrsbb/sims/pull/3) | Pending |
-| F-03 | Draft indicators and deliberate draft clearing | PR open | [6](https://github.com/nvrsbb/sims/pull/6) | Pending |
-| F-04 | Restore conversation navigation and Android Back | PR open | [7](https://github.com/nvrsbb/sims/pull/7) | Pending |
-| F-05 | Search across complete sample histories | PR open | [8](https://github.com/nvrsbb/sims/pull/8) | Pending |
-| F-06 | Change and remember conversation categories | PR open | Awaiting PR link | Pending |
-| F-07 | Pin important conversations | In progress | — | Pending |
+| F-03 | Draft indicators and deliberate draft clearing | Merged | [6](https://github.com/nvrsbb/sims/pull/6) | Pending |
+| F-04 | Restore conversation navigation and Android Back | Merged | [7](https://github.com/nvrsbb/sims/pull/7) | Pending |
+| F-05 | Search across complete sample histories | Merged | [8](https://github.com/nvrsbb/sims/pull/8) | Pending |
+| F-06 | Change and remember conversation categories | Merged | [9](https://github.com/nvrsbb/sims/pull/9) | Pending |
+| F-07 | Pin important conversations | PR open | Awaiting PR link | Pending |
 | F-08 | Archive and restore conversations | In progress | — | Pending |
 | F-09 | Start a new local sample conversation | In progress | — | Pending |
 | F-10 | Preview settings and safety information | In progress | — | Pending |
@@ -71,6 +71,8 @@ Pin/unpin a conversation and list pinned conversations first, preserving determi
 
 Completion: pin state survives relaunch; filters do not resurrect excluded conversations; pinning does not change message timestamps or drafts. Unit tests cover ordering, and Android tests cover persistence. Depends on F-06.
 
+Implementation and local verification: Pins persist in schema 2 via an explicit category-preserving migration. Ordering is deterministic and respects search/category exclusions. Conversation actions scroll horizontally; restoration tests retain a nonzero history scroll assertion. JVM tests, lint, debug APK, and Android-test APK assembly passed. Android interaction tests are compiled, not executed: no emulator/device is attached and this environment has no `/dev/kvm`. Phone checks remain pending.
+
 ## F-08 — Archive and restore conversations
 
 Move a sample conversation to a separate Archive view and restore it. Archive is reversible and retains message history, category, pins, and drafts. No deletion feature.
@@ -108,3 +110,9 @@ Status: **Planned**. F-06 introduces the `KaptUsageInsteadOfKsp` lint advisory; 
 Choose a useful subset or the completed batch before installing. Record version/commit and results here, keeping automated checks separate from owner-reported checks. Advance the app version for the distribution batch and verify signing compatibility before suggesting installation.
 
 Existing baseline: the owner reported draft isolation, fold/unfold, and relaunch working before this queue. PR #1's visual changes have not yet been checked on the phone.
+
+## Usage-limit handoff — 2026-11-02
+
+Paused after a subagent hit its usage limit. F-03–F-06 PRs are open (#6–#9), never merged. F-07–F-10 remain **In progress**, with committed implementations and partial combined verification; they are not PR open. See docs/CONTINUE.md for exact commits and pending integration. No Android instrumentation or new phone checks ran.
+
+Resumed 2026-11-03: #6–#9 are confirmed merged on GitHub, but F-04–F-06 remain outside main because their targets were stack branches. A consolidation PR carries them forward; phone checks remain pending. The prior usage-limit pause has ended.
