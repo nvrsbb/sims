@@ -67,6 +67,7 @@ internal fun FoldSmsApp(
     }
     val scope = rememberCoroutineScope()
     var showCategories by rememberSaveable { mutableStateOf(false) }
+    var showArchive by rememberSaveable { mutableStateOf(false) }
     var filter by rememberSaveable { mutableStateOf("All") }
     var search by rememberSaveable { mutableStateOf("") }
     var selected by rememberSaveable { mutableIntStateOf(1) }
@@ -77,10 +78,13 @@ internal fun FoldSmsApp(
     val keyboardVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
     BackHandler(enabled = !wide && showConversation && !keyboardVisible) { showConversation = false }
     val pinnedIds = overrides.filter { it.pinned }.map { it.threadId }.toSet()
-    val filtered = searchConversations(orderedConversations(threads, pinnedIds), search, filter)
+    val archivedIds = overrides.filter { it.archived }.map { it.threadId }.toSet()
+    val available = archiveConversations(threads, archivedIds, showArchive)
+    val activeVisible = (selected in archivedIds) == showArchive
+    val filtered = searchConversations(orderedConversations(available, pinnedIds), search, filter)
     val active = threads.first { it.id == selected }
     var detailMessageId by rememberSaveable(selected) { mutableStateOf<Int?>(null) }
-    active.history.firstOrNull { it.id == detailMessageId }?.let { message ->
+    active.history.takeIf { activeVisible }?.firstOrNull { it.id == detailMessageId }?.let { message ->
         MessageDetailsSheet(message, active.sender, onDismiss = { detailMessageId = null })
     }
     if (showCategories) CategoryPicker(
@@ -101,7 +105,10 @@ internal fun FoldSmsApp(
                 Column(Modifier.weight(1f).fillMaxHeight().padding(horizontal = 18.dp, vertical = 20.dp)) {
                     Text("FoldSMS", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     Spacer(Modifier.height(3.dp))
-                    Text("SAMPLE INBOX", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium)
+                    Text(if (showArchive) "SAMPLE ARCHIVE" else "SAMPLE INBOX", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium)
+                    TextButton(onClick = { showArchive = !showArchive; showConversation = false; detailMessageId = null }) {
+                        Text(if (showArchive) "Inbox" else "Archive")
+                    }
                     Spacer(Modifier.height(16.dp))
                     OutlinedTextField(
                         value = search,
@@ -119,7 +126,9 @@ internal fun FoldSmsApp(
                         }
                     }
                     Spacer(Modifier.height(10.dp))
-                    if (filtered.isEmpty()) Text("No sample conversations found", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (filtered.isEmpty()) {
+                        Text(if (showArchive && available.isEmpty()) "Archive is empty" else "No sample conversations match", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                     LazyColumn(state = inboxState, modifier = Modifier.testTag("inbox-list"), verticalArrangement = Arrangement.spacedBy(9.dp), contentPadding = PaddingValues(bottom = 12.dp)) {
                         items(filtered, key = { it.conversation.id }) { result ->
                             val thread = result.conversation
@@ -151,7 +160,7 @@ internal fun FoldSmsApp(
                     }
                 }
             }
-            if (wide || showConversation) {
+            if ((wide || showConversation) && activeVisible) {
                 if (wide) VerticalDivider()
                 Column(Modifier.weight(1f).fillMaxHeight().padding(horizontal = 20.dp, vertical = 20.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -166,6 +175,13 @@ internal fun FoldSmsApp(
                         TextButton(onClick = { scope.launch { metadata.setPinned(active.id, active.id !in pinnedIds) } }) {
                             Text(if (active.id in pinnedIds) "Unpin conversation" else "Pin conversation")
                         }
+                    TextButton(onClick = {
+                        scope.launch {
+                            metadata.setArchived(active.id, active.id !in archivedIds)
+                            showConversation = false
+                            detailMessageId = null
+                        }
+                    }) { Text(if (active.id in archivedIds) "Restore conversation" else "Archive conversation") }
                     }
                     HorizontalDivider(Modifier.padding(vertical = 16.dp), color = MaterialTheme.colorScheme.outlineVariant)
                     Text("Sample history · 2 Nov 2026 · Manila time", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -208,6 +224,11 @@ internal fun FoldSmsApp(
                             }
                         )
                     }
+                }
+            } else if (wide) {
+                VerticalDivider()
+                Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) {
+                    Text("Choose a sample conversation", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }

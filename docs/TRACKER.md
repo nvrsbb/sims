@@ -12,8 +12,8 @@ Status: **Planned → In progress → PR open → Merged**. Close an item only a
 | F-04 | Restore conversation navigation and Android Back | Merged | [7](https://github.com/nvrsbb/sims/pull/7) | Pending |
 | F-05 | Search across complete sample histories | Merged | [8](https://github.com/nvrsbb/sims/pull/8) | Pending |
 | F-06 | Change and remember conversation categories | Merged | [9](https://github.com/nvrsbb/sims/pull/9) | Pending |
-| F-07 | Pin important conversations | PR open | Awaiting PR link | Pending |
-| F-08 | Archive and restore conversations | In progress | — | Pending |
+| F-07 | Pin important conversations | PR open | [11](https://github.com/nvrsbb/sims/pull/11) | Pending |
+| F-08 | Archive and restore conversations | PR open | Awaiting PR link | Pending |
 | F-09 | Start a new local sample conversation | In progress | — | Pending |
 | F-10 | Preview settings and safety information | In progress | — | Pending |
 
@@ -79,6 +79,8 @@ Move a sample conversation to a separate Archive view and restore it. Archive is
 
 Completion: archived items leave the normal inbox and remain reachable in Archive; restoring recovers their metadata and draft; an empty Archive is understandable. Test visibility rules and persistence. Depends on F-06 and F-07.
 
+Implementation and local verification: Archive/restore is reversible and retains history, category, pins and drafts. Schema 3 explicitly migrates archive flags. Archive exclusion precedes pin ordering and complete-history/category search. All conversation actions share one horizontally scrollable row. JVM tests, lint, debug APK, and Android-test APK assembly passed. Android interaction tests are compiled, not executed: no emulator/device is attached and this environment has no `/dev/kvm`. Phone checks remain pending.
+
 ## F-09 — Start a new local sample conversation
 
 Create a conversation using a locally entered sample name/address and draft text, with a clear preview explanation. Do not access Android contacts or messaging intents. Persist the custom sample conversation locally; do not fabricate sent messages from the draft.
@@ -104,6 +106,10 @@ Completion: run `:app:connectedDebugAndroidTest` successfully, including the mes
 ### E-02 — Replace Room kapt processing with compatible KSP
 
 Status: **Planned**. F-06 introduces the `KaptUsageInsteadOfKsp` lint advisory; the existing backup-extraction and application-icon warnings remain separate. Keep the current verified Kotlin/Room versions stable for this batch, then evaluate a compatible KSP setup and compare generated schemas before changing processors. No runtime failure was observed.
+
+### E-03 — Recover interrupted sample-conversation drafts
+
+Status: **Planned**. F-09 writes the initial draft durably before committing its Room conversation row. Cancellation or database commit failure between those stores can leave an unattached draft; reserved negative IDs prevent later creation from overwriting it. Add a targeted cancellation regression and a deliberate recovery path. Ordinary typing retains the existing draft preference keys and behavior.
 
 ## Batch phone check results
 
