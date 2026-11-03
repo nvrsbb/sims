@@ -13,8 +13,8 @@ Status: **Planned → In progress → PR open → Merged**. Close an item only a
 | F-05 | Search across complete sample histories | Merged | [8](https://github.com/nvrsbb/sims/pull/8) | Pending |
 | F-06 | Change and remember conversation categories | Merged | [9](https://github.com/nvrsbb/sims/pull/9) | Pending |
 | F-07 | Pin important conversations | PR open | [11](https://github.com/nvrsbb/sims/pull/11) | Pending |
-| F-08 | Archive and restore conversations | PR open | Awaiting PR link | Pending |
-| F-09 | Start a new local sample conversation | In progress | — | Pending |
+| F-08 | Archive and restore conversations | PR open | [12](https://github.com/nvrsbb/sims/pull/12) | Pending |
+| F-09 | Start a new local sample conversation | PR open | Awaiting PR link | Pending |
 | F-10 | Preview settings and safety information | In progress | — | Pending |
 
 ## F-01 — Chronological sample message history
@@ -86,6 +86,8 @@ Implementation and local verification: Archive/restore is reversible and retains
 Create a conversation using a locally entered sample name/address and draft text, with a clear preview explanation. Do not access Android contacts or messaging intents. Persist the custom sample conversation locally; do not fabricate sent messages from the draft.
 
 Completion: input validation, repeated-address handling, stable IDs without fixture collisions, saved draft, relaunch, category assignment, and navigation work. Test validation and persistence. Depends on F-03, F-04, and F-06.
+
+Implementation and local verification: Create local conversations from explicitly fabricated name/address input, with an unsent saved draft and no synthetic message history. Schema 4 adds custom rows with noncolliding reserved negative IDs and normalized unique addresses. Initial drafts save durably before row commit; existing draft keys stay unchanged. E-03 tracks interrupted-creation recovery. JVM tests, lint, debug APK, and Android-test APK assembly passed. Android interaction tests are compiled, not executed: no emulator/device is attached and this environment has no `/dev/kvm`. Phone checks remain pending.
 
 ## F-10 — Preview settings and safety information
 

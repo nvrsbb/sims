@@ -41,7 +41,7 @@ class NewSampleConversationUiTest {
         compose.waitUntil { compose.onAllNodesWithTag("conversation-history--1").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("Local sample · Unsent draft only").assertExists()
         compose.onNodeWithText("Fabricated draft\nsecond line").assertExists()
-        compose.onNodeWithText("Change category").performClick()
+        compose.onNodeWithText("Change category").performScrollTo().performClick()
         compose.onNodeWithText("Finance", useUnmergedTree = true).performClick()
         compose.waitUntil { runBlocking { metadata.categories.first().any { it.threadId == -1 && it.category == "Finance" } } }
         restoration.emulateSavedInstanceStateRestore()

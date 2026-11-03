@@ -46,6 +46,8 @@ Cloud verification uses JDK 17 and Android SDK 35 with writable Android user/cac
 
 - F-08: Archive/restore is reversible and retains history, category, pins and drafts. Schema 3 explicitly migrates archive flags. Archive exclusion precedes pin ordering and complete-history/category search. All conversation actions share one horizontally scrollable row. Local JVM/lint/debug/Android-test assembly passed; instrumentation unexecuted. Status: PR open, awaiting owner review; never merged.
 
+- F-09: Create local conversations from explicitly fabricated name/address input, with an unsent saved draft and no synthetic message history. Schema 4 adds custom rows with noncolliding reserved negative IDs and normalized unique addresses. Initial drafts save durably before row commit; existing draft keys stay unchanged. E-03 tracks interrupted-creation recovery. Local JVM/lint/debug/Android-test assembly passed; instrumentation unexecuted. Status: PR open, awaiting owner review; never merged.
+
 ## Build from Warp on this Mac
 
 Android Studio was not detected. The system JDK is 27; use the downloaded JDK 17 for this Gradle version. Temporary build tools are in the original Codex chat workspace. `local.properties` already points to its SDK. Do not delete that toolchain until a durable Android environment replaces it.
