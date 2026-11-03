@@ -13,9 +13,9 @@ Status: **Planned → In progress → PR open → Merged**. Close an item only a
 | F-05 | Search across complete sample histories | Merged | [8](https://github.com/nvrsbb/sims/pull/8) | Pending |
 | F-06 | Change and remember conversation categories | Merged | [9](https://github.com/nvrsbb/sims/pull/9) | Pending |
 | F-07 | Pin important conversations | PR open | [11](https://github.com/nvrsbb/sims/pull/11) | Pending |
-| F-08 | Archive and restore conversations | PR open | Awaiting PR link | Pending |
-| F-09 | Start a new local sample conversation | In progress | — | Pending |
-| F-10 | Preview settings and safety information | In progress | — | Pending |
+| F-08 | Archive and restore conversations | PR open | [12](https://github.com/nvrsbb/sims/pull/12) | Pending |
+| F-09 | Start a new local sample conversation | PR open | [13](https://github.com/nvrsbb/sims/pull/13) | Pending |
+| F-10 | Preview settings and safety information | PR open | [#14](https://github.com/nvrsbb/sims/pull/14) | Pending |
 
 ## F-01 — Chronological sample message history
 
@@ -87,11 +87,15 @@ Create a conversation using a locally entered sample name/address and draft text
 
 Completion: input validation, repeated-address handling, stable IDs without fixture collisions, saved draft, relaunch, category assignment, and navigation work. Test validation and persistence. Depends on F-03, F-04, and F-06.
 
+Implementation and local verification: Create local conversations from explicitly fabricated name/address input, with an unsent saved draft and no synthetic message history. Schema 4 adds custom rows with noncolliding reserved negative IDs and normalized unique addresses. Initial drafts save durably before row commit; existing draft keys stay unchanged. E-03 tracks interrupted-creation recovery. JVM tests, lint, debug APK, and Android-test APK assembly passed. Android interaction tests are compiled, not executed: no emulator/device is attached and this environment has no `/dev/kvm`. Phone checks remain pending.
+
 ## F-10 — Preview settings and safety information
 
 Add a native settings screen with remembered Light/Dark/Device theme selection, privacy/storage explanation, and a factual preview capabilities checklist. Explain the future default-SMS milestone without requesting the role. Keep navigation and drafts intact.
 
 Completion: theme choice survives relaunch; Device follows Android; settings return to the active thread; no permissions/role prompts. Test preference mapping and navigation; check contrast, large text, and both Fold layouts. No backup/restore implementation in this PR.
+
+Implementation and local verification: Native preview settings retain Light/Dark/Device appearance locally and explain fabricated histories, device-local storage and disabled transport. Settings overlays the live conversation so navigation, drafts and list state remain composed. Theme mapping has JVM coverage; isolated preference/navigation Compose tests compile only. JVM tests, lint, debug APK, and Android-test APK assembly passed. Android interaction tests are compiled, not executed: no emulator/device is attached and this environment has no `/dev/kvm`. Phone checks remain pending.
 
 ## Engineering follow-ups
 
@@ -122,3 +126,5 @@ Existing baseline: the owner reported draft isolation, fold/unfold, and relaunch
 Paused after a subagent hit its usage limit. F-03–F-06 PRs are open (#6–#9), never merged. F-07–F-10 remain **In progress**, with committed implementations and partial combined verification; they are not PR open. See docs/CONTINUE.md for exact commits and pending integration. No Android instrumentation or new phone checks ran.
 
 Resumed 2026-11-03: #6–#9 are confirmed merged on GitHub, but F-04–F-06 remain outside main because their targets were stack branches. A consolidation PR carries them forward; phone checks remain pending. The prior usage-limit pause has ended.
+
+Current review stack: [#10](https://github.com/nvrsbb/sims/pull/10) (F-04–F-06 consolidation) → [#11](https://github.com/nvrsbb/sims/pull/11) (F-07) → [#12](https://github.com/nvrsbb/sims/pull/12) (F-08) → [#13](https://github.com/nvrsbb/sims/pull/13) (F-09) → [#14](https://github.com/nvrsbb/sims/pull/14) (F-10). All are awaiting owner review; no agent merges. Final combined local verification: 18 JVM tests, lint, debug APK and Android-test APK assembly pass. Android interaction tests remain unexecuted.

@@ -62,9 +62,11 @@ class ConversationCategoriesTest {
         val database = Room.inMemoryDatabaseBuilder(context, ConversationMetadataDatabase::class.java).build()
         try {
             val store = ConversationMetadataStore(database.metadata())
+            val drafts = DraftStore(isolatedContext)
+            val custom = CustomSampleConversationStore(database, drafts)
             compose.setContent {
                 CompositionLocalProvider(LocalContext provides isolatedContext, LocalConfiguration provides Configuration().apply { screenWidthDp = 400 }) {
-                    MaterialTheme { FoldSmsApp(metadataStore = store) }
+                    MaterialTheme { FoldSmsApp(store = drafts, metadataStore = store, customStore = custom) }
                 }
             }
             compose.onNodeWithText("Alex").performClick()

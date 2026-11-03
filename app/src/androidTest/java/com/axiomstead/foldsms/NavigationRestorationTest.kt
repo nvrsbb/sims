@@ -41,6 +41,8 @@ class NavigationRestorationTest {
         override fun getSharedPreferences(name: String, mode: Int): SharedPreferences =
             context.getSharedPreferences(preferenceName, mode)
     }
+    private val drafts = DraftStore(isolatedContext)
+    private val custom = CustomSampleConversationStore(database, drafts)
     private fun scrollPosition(tag: String): Float = compose.onNodeWithTag(tag)
         .fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange].value()
 
@@ -49,7 +51,7 @@ class NavigationRestorationTest {
     @Composable private fun IsolatedApp(wide: Boolean, height: Int) {
         CompositionLocalProvider(LocalContext provides isolatedContext) {
             MaterialTheme {
-                Box(Modifier.width(380.dp).height(height.dp)) { FoldSmsApp(wide = wide, metadataStore = metadata) }
+                Box(Modifier.width(380.dp).height(height.dp)) { FoldSmsApp(store = drafts, wide = wide, metadataStore = metadata, customStore = custom) }
             }
         }
     }
