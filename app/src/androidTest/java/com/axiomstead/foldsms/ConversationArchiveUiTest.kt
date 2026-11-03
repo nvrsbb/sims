@@ -36,12 +36,12 @@ class ConversationArchiveUiTest {
                 }
             }
             compose.onNodeWithText("Alex").performClick()
-            compose.onNodeWithText("Archive conversation").performClick()
+            compose.onNodeWithText("Archive conversation").performScrollTo().performClick()
             compose.waitUntil { compose.onAllNodesWithText("Alex").fetchSemanticsNodes().isEmpty() }
             compose.onNodeWithText("Alex").assertDoesNotExist()
             compose.onNodeWithText("Archive").performClick()
             compose.onNodeWithText("Alex").performClick()
-            compose.onNodeWithText("Restore conversation").performClick()
+            compose.onNodeWithText("Restore conversation").performScrollTo().performClick()
             compose.waitUntil { compose.onAllNodesWithText("Archive is empty").fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithText("Archive is empty").assertExists()
             compose.onNodeWithText("Inbox").performClick()

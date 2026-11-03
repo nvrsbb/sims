@@ -175,7 +175,6 @@ internal fun FoldSmsApp(
                         TextButton(onClick = { scope.launch { metadata.setPinned(active.id, active.id !in pinnedIds) } }) {
                             Text(if (active.id in pinnedIds) "Unpin conversation" else "Pin conversation")
                         }
-                    }
                     TextButton(onClick = {
                         scope.launch {
                             metadata.setArchived(active.id, active.id !in archivedIds)
@@ -183,6 +182,7 @@ internal fun FoldSmsApp(
                             detailMessageId = null
                         }
                     }) { Text(if (active.id in archivedIds) "Restore conversation" else "Archive conversation") }
+                    }
                     HorizontalDivider(Modifier.padding(vertical = 16.dp), color = MaterialTheme.colorScheme.outlineVariant)
                     Text("Sample history · 2 Nov 2026 · Manila time", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     conversationStates.SaveableStateProvider(active.id) {
