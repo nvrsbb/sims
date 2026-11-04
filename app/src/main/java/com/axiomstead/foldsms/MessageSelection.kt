@@ -5,8 +5,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 
 @Composable
 internal fun MessageSelectionActions(
@@ -17,7 +20,8 @@ internal fun MessageSelectionActions(
     onCategory: () -> Unit,
     onSelect: () -> Unit,
     onCancel: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onDeleteAll: () -> Unit
 ) {
     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
         if (selecting) {
@@ -27,6 +31,22 @@ internal fun MessageSelectionActions(
         } else {
             TextButton(onClick = onCategory) { Text("Change category") }
             TextButton(onClick = onSelect, enabled = hasMessages && !busy) { Text("Select messages") }
+            SampleDeletionMenu("conversation", "Delete all in conversation", hasMessages && !busy, onDeleteAll)
+        }
+    }
+}
+
+@Composable
+internal fun SampleDeletionMenu(scope: String, action: String, enabled: Boolean, onDelete: () -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        TextButton(onClick = { expanded = true }, modifier = Modifier.testTag("$scope-actions")
+            .semantics { contentDescription = "$scope actions" }) { Text("More") }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(text = { Text(action) }, enabled = enabled, onClick = {
+                expanded = false
+                onDelete()
+            })
         }
     }
 }

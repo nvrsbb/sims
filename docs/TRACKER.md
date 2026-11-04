@@ -16,8 +16,8 @@ Status: **Planned → In progress → PR open → Merged**. Close an item only a
 | F-08 | Archive and restore conversations | In progress | — | Pending |
 | F-09 | Start a new local sample conversation | In progress | — | Pending |
 | F-10 | Preview settings and safety information | In progress | — | Pending |
-| F-11 | Select individual messages and delete selected | PR open | Selected-message deletion branch | Pending |
-| F-12 | Delete all messages | Planned | — | Pending |
+| F-11 | Select individual messages and delete selected | PR open | [#16](https://github.com/nvrsbb/sims/pull/16) | Pending |
+| F-12 | Delete all messages | PR open | Delete-all scopes branch | Pending |
 
 F-07–F-10 PRs merged into stacked feature branches but are not present on main as of `c2e1732`; integration remains pending.
 
@@ -108,6 +108,8 @@ Add explicit actions to delete every message in the current conversation and, se
 Completion: confirmation states the exact scope and message count; cancellation preserves everything. Confirmed deletion survives relaunch and updates all affected histories/previews; empty conversations remain understandable and drafts remain intact. Provide undo for sample deletion. Test current-conversation versus app-wide deletion, filtered views, empty state, undo, and persistence. Depends on F-11. No automatic deletion or background cleanup.
 
 ## Engineering follow-ups
+
+F-12 implementation: separate conversation and app-wide menu actions, with immutable confirmation targets and counts from the complete dataset before search/category filtering. Both scopes preserve drafts and conversation shells, retain durable latest-operation undo, and disable deletion for an empty scope. Verification results are in CONTINUE.md.
 
 ### E-01 — Set up an Android emulator for interaction tests
 

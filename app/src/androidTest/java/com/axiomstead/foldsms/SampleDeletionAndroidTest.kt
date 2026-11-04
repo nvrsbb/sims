@@ -104,6 +104,54 @@ class SampleDeletionAndroidTest {
         assertEquals(setOf(201), SampleDeletionStore(preferences).state.value.undoIds)
     }
 
+    @Test fun deleteAllScopesKeepCountsIndependentOfSearchAndCategory() {
+        drafts.save(1, "Fabricated Alex draft")
+        drafts.save(2, "Fabricated Bank draft")
+        compose.setContent {
+            MaterialTheme { FoldSmsApp(drafts, wide = false, metadataStore = metadata, deletionStore = deletions) }
+        }
+        compose.onNodeWithTag("inbox-search").performTextInput("meeting")
+        compose.onNodeWithTag("thread_1").performClick()
+        compose.onNodeWithTag("conversation-actions").performScrollTo().performClick()
+        compose.onNodeWithText("Delete all in conversation").performClick()
+        compose.onNodeWithText("Delete 3 sample messages in the entire Alex conversation?", substring = true).assertExists()
+        compose.onNodeWithText("Keep messages").performClick()
+        compose.runOnIdle { assertTrue(deletions.state.value.deletedIds.isEmpty()) }
+        compose.onNodeWithTag("conversation-actions").performClick()
+        compose.onNodeWithText("Delete all in conversation").performClick()
+        compose.onNodeWithTag("confirm-delete").performClick()
+        compose.waitUntil(5_000) { deletions.state.value.deletedIds.size == 3 }
+        compose.onNodeWithTag("empty-history").assertExists()
+        compose.onNodeWithText("Fabricated Alex draft").assertExists()
+        compose.onNodeWithText("‹ Back").performClick()
+        compose.onNodeWithTag("category-filter-Finance").performScrollTo().performClick()
+        compose.onNodeWithTag("inbox-search").performTextReplacement("Bank")
+        compose.onNodeWithTag("thread_1").assertDoesNotExist()
+        compose.onNodeWithTag("inbox-actions").performClick()
+        compose.onNodeWithText("Delete all messages in app").performClick()
+        compose.onNodeWithText("Delete 8 sample messages across the entire app", substring = true).assertExists()
+        compose.onNodeWithText("Keep messages").performClick()
+        compose.runOnIdle { assertEquals(setOf(101, 102, 103), deletions.state.value.deletedIds) }
+        compose.onNodeWithTag("inbox-actions").performClick()
+        compose.onNodeWithText("Delete all messages in app").performClick()
+        compose.onNodeWithTag("confirm-delete").performClick()
+        compose.waitUntil(5_000) { deletions.state.value.deletedIds.size == 11 }
+        compose.runOnIdle {
+            val reopened = SampleDeletionStore(preferences).state.value
+            assertTrue(reopened.visible(exampleThreads).all { it.messages.isEmpty() })
+            assertEquals(8, reopened.undoIds.size)
+            assertEquals("Fabricated Alex draft", drafts.get(1))
+            assertEquals("Fabricated Bank draft", drafts.get(2))
+        }
+        compose.onNodeWithTag("undo-inbox").performClick()
+        compose.waitUntil(5_000) { deletions.state.value.deletedIds.size == 3 }
+        compose.runOnIdle {
+            val visible = SampleDeletionStore(preferences).state.value.visible(exampleThreads)
+            assertTrue(visible.first().messages.isEmpty())
+            assertEquals(exampleThreads.drop(1), visible.drop(1))
+        }
+    }
+
     private fun selectVisible(id: Int) {
         compose.onNodeWithTag("conversation-history-1").performScrollToNode(hasTestTag("message-$id"))
     }

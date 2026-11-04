@@ -30,4 +30,21 @@ class SampleDeletionTest {
         assertEquals(setOf(101), second.undo().deletedIds)
         assertEquals(second.undo(), second.undo().undo())
     }
+
+    @Test fun conversationAndAppScopesIgnoreSearchAndCategoryAndExcludeAlreadyDeletedMessages() {
+        val initial = SampleDeletionState()
+        val alexIds = sampleMessageIds(initial.visible(exampleThreads), 1)
+        assertEquals(setOf(101, 102, 103), alexIds)
+        val afterAlex = initial.delete(alexIds)
+        val remaining = afterAlex.visible(exampleThreads)
+        assertEquals(1, searchConversations(remaining, "Bank", "Finance").size)
+        assertEquals(8, sampleMessageIds(remaining).size)
+        assertTrue(sampleMessageIds(remaining, 1).isEmpty())
+        assertTrue(sampleMessageIds(remaining, 999).isEmpty())
+        val allDeleted = afterAlex.delete(sampleMessageIds(remaining))
+        assertTrue(allDeleted.visible(exampleThreads).all { it.messages.isEmpty() })
+        assertEquals(5, allDeleted.visible(exampleThreads).size)
+        assertEquals(afterAlex, allDeleted.undo().copy(undoIds = afterAlex.undoIds))
+        assertEquals(afterAlex.deletedIds, allDeleted.undo().deletedIds)
+    }
 }
