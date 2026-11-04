@@ -59,7 +59,7 @@ class DraftsTest {
         compose.setContent {
             val configuration = Configuration(LocalConfiguration.current).apply { screenWidthDp = 840 }
             CompositionLocalProvider(LocalConfiguration provides configuration) {
-                MaterialTheme { FoldSmsApp(reopened, metadataStore = metadata) }
+                MaterialTheme { FoldSmsApp(reopened, metadataStore = metadata, customStore = CustomSampleConversationStore(database, reopened), deletionStore = SampleDeletionStore(preferences)) }
             }
         }
         compose.onNodeWithTag("draft_indicator_1", useUnmergedTree = true).assertExists()

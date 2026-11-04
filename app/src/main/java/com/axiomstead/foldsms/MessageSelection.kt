@@ -21,7 +21,8 @@ internal fun MessageSelectionActions(
     onSelect: () -> Unit,
     onCancel: () -> Unit,
     onDelete: () -> Unit,
-    onDeleteAll: () -> Unit
+    onDeleteAll: () -> Unit,
+    extraActions: @Composable RowScope.() -> Unit = {}
 ) {
     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
         if (selecting) {
@@ -32,6 +33,7 @@ internal fun MessageSelectionActions(
             TextButton(onClick = onCategory) { Text("Change category") }
             TextButton(onClick = onSelect, enabled = hasMessages && !busy) { Text("Select messages") }
             SampleDeletionMenu("conversation", "Delete all in conversation", hasMessages && !busy, onDeleteAll)
+            extraActions()
         }
     }
 }

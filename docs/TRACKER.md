@@ -12,14 +12,14 @@ Status: **Planned → In progress → PR open → Merged**. Close an item only a
 | F-04 | Restore conversation navigation and Android Back | Merged | [#7](https://github.com/nvrsbb/sims/pull/7) | Pending |
 | F-05 | Search across complete sample histories | Merged | [#8](https://github.com/nvrsbb/sims/pull/8) | Pending |
 | F-06 | Change and remember conversation categories | Merged | [#10](https://github.com/nvrsbb/sims/pull/10) | Pending |
-| F-07 | Pin important conversations | In progress | — | Pending |
-| F-08 | Archive and restore conversations | In progress | — | Pending |
-| F-09 | Start a new local sample conversation | In progress | — | Pending |
-| F-10 | Preview settings and safety information | In progress | — | Pending |
-| F-11 | Select individual messages and delete selected | PR open | [#16](https://github.com/nvrsbb/sims/pull/16) | Pending |
-| F-12 | Delete all messages | PR open | Delete-all scopes branch | Pending |
+| F-07 | Pin important conversations | PR open | Integration branch (pending link) | Pending |
+| F-08 | Archive and restore conversations | PR open | Integration branch (pending link) | Pending |
+| F-09 | Start a new local sample conversation | PR open | Integration branch (pending link) | Pending |
+| F-10 | Preview settings and safety information | PR open | Integration branch (pending link) | Pending |
+| F-11 | Select individual messages and delete selected | Merged | [#16](https://github.com/nvrsbb/sims/pull/16) | Pending |
+| F-12 | Delete all messages | Merged | [#17](https://github.com/nvrsbb/sims/pull/17) | Pending |
 
-F-07–F-10 PRs merged into stacked feature branches but are not present on main as of `c2e1732`; integration remains pending.
+F-07–F-10 previously merged into stacked branches, not main. The integration branch now combines them with main at `4a3d57f`; awaiting review/merge into main. Integration verification: 22 JVM tests and 25 emulator tests pass, including the final isolated-storage rerun. Historical build-only notes below are superseded by these current results.
 
 ## F-01 — Chronological sample message history
 
@@ -43,7 +43,7 @@ Show which inbox conversations have a saved draft and offer an explicit clear ac
 
 Completion: two conversations retain independent drafts; clearing affects only the chosen draft; empty and multiline text behave correctly; relaunch restores indicators. Test storage behavior with isolated Android preferences and UI behavior with Compose tests.
 
-Implementation and local verification: Saved-draft badges and a confirmed, conversation-scoped clear action preserve the original draft keys and exact text. Isolated preference and Compose coverage was added; long drafts have a bounded composer. JVM tests, lint, debug APK, and Android-test APK assembly passed. Android interaction tests are compiled, not executed: no emulator/device is attached and this environment has no `/dev/kvm`. Phone checks remain pending.
+Implementation and local verification: Saved-draft badges and a confirmed, conversation-scoped clear action preserve the original draft keys and exact text. Isolated preference and Compose coverage was added; long drafts have a bounded composer. JVM tests, lint, debug APK, and Android-test APK assembly passed. Original checks were build-only; see the current integration verification above. Phone checks remain pending.
 
 ## F-04 — Restore conversation navigation and Android Back
 
@@ -51,7 +51,7 @@ Keep selected thread, inbox/conversation position, search, and category filter t
 
 Completion: restoration tests cover a non-default conversation and filters; Back does not unexpectedly exit from a cover conversation. Report recreation, relaunch, and process-restoration checks separately. Draft contents remain in durable storage.
 
-Implementation and local verification: Saveable navigation retains selected thread, filters, search, and per-thread/inbox/category-strip scroll state; cover Back returns to the inbox after keyboard dismissal. Restoration tests cover nondefault selection and width changes. Fresh relaunch intentionally opens the inbox; actual activity/process/fold checks remain pending. JVM tests, lint, debug APK, and Android-test APK assembly passed. Android interaction tests are compiled, not executed: no emulator/device is attached and this environment has no `/dev/kvm`. Phone checks remain pending.
+Implementation and local verification: Saveable navigation retains selected thread, filters, search, and per-thread/inbox/category-strip scroll state; cover Back returns to the inbox after keyboard dismissal. Restoration tests cover nondefault selection and width changes. Fresh relaunch intentionally opens the inbox; actual activity/process/fold checks remain pending. JVM tests, lint, debug APK, and Android-test APK assembly passed. Original checks were build-only; see the current integration verification above. Phone checks remain pending.
 
 ## F-05 — Search across complete sample histories
 
@@ -59,7 +59,7 @@ Search sender and every message body, not only the latest preview. Add fabricate
 
 Completion: older-message matches open the correct conversation; whitespace/case/number formatting are handled deliberately; clearing recovers the list. Unit tests cover combined filters and matches. Depends on F-01 and F-04.
 
-Implementation and local verification: Search covers senders, fictional reserved phone addresses, and every sample message body, with matching snippets, no-results copy, and a clear action. Tests cover older messages, case/whitespace/number formatting, category combinations, and clearing. JVM tests, lint, debug APK, and Android-test APK assembly passed. Android interaction tests are compiled, not executed: no emulator/device is attached and this environment has no `/dev/kvm`. Phone checks remain pending.
+Implementation and local verification: Search covers senders, fictional reserved phone addresses, and every sample message body, with matching snippets, no-results copy, and a clear action. Tests cover older messages, case/whitespace/number formatting, category combinations, and clearing. JVM tests, lint, debug APK, and Android-test APK assembly passed. Original checks were build-only; see the current integration verification above. Phone checks remain pending.
 
 ## F-06 — Change and remember conversation categories
 
@@ -67,7 +67,7 @@ Let the owner assign Personal, Finance, Services, Promotions, OTP, or Unknown to
 
 Completion: category changes persist and immediately affect filtering; resetting restores the sample default; unrelated drafts survive. Test database reads/writes with isolated storage and Compose filter behavior. Do not add automatic categorization rules in this PR.
 
-Implementation and local verification: Room schema 1 stores category overrides and reset behavior without moving legacy drafts. Category changes immediately feed the combined search/filter list. Isolated storage/reopen and category/filter UI tests were added. Lint has two existing warnings plus a new kapt-versus-KSP advisory; there are no lint errors. JVM tests, lint, debug APK, and Android-test APK assembly passed. Android interaction tests are compiled, not executed: no emulator/device is attached and this environment has no `/dev/kvm`. Phone checks remain pending.
+Implementation and local verification: Room schema 1 stores category overrides and reset behavior without moving legacy drafts. Category changes immediately feed the combined search/filter list. Isolated storage/reopen and category/filter UI tests were added. Lint has two existing warnings plus a new kapt-versus-KSP advisory; there are no lint errors. JVM tests, lint, debug APK, and Android-test APK assembly passed. Original checks were build-only; see the current integration verification above. Phone checks remain pending.
 
 ## F-07 — Pin important conversations
 
@@ -75,17 +75,23 @@ Pin/unpin a conversation and list pinned conversations first, preserving determi
 
 Completion: pin state survives relaunch; filters do not resurrect excluded conversations; pinning does not change message timestamps or drafts. Unit tests cover ordering, and Android tests cover persistence. Depends on F-06.
 
+Implementation and local verification: Pins persist in schema 2 via an explicit category-preserving migration. Ordering is deterministic and respects search/category exclusions. Conversation actions scroll horizontally; restoration tests retain a nonzero history scroll assertion. JVM tests, lint, debug APK, and Android-test APK assembly passed. Original checks were build-only; see the current integration verification above. Phone checks remain pending.
+
 ## F-08 — Archive and restore conversations
 
 Move a sample conversation to a separate Archive view and restore it. Archive is reversible and retains message history, category, pins, and drafts. No deletion feature.
 
 Completion: archived items leave the normal inbox and remain reachable in Archive; restoring recovers their metadata and draft; an empty Archive is understandable. Test visibility rules and persistence. Depends on F-06 and F-07.
 
+Implementation and local verification: Archive/restore is reversible and retains history, category, pins and drafts. Schema 3 explicitly migrates archive flags. Archive exclusion precedes pin ordering and complete-history/category search. All conversation actions share one horizontally scrollable row. JVM tests, lint, debug APK, and Android-test APK assembly passed. Original checks were build-only; see the current integration verification above. Phone checks remain pending.
+
 ## F-09 — Start a new local sample conversation
 
 Create a conversation using a locally entered sample name/address and draft text, with a clear preview explanation. Do not access Android contacts or messaging intents. Persist the custom sample conversation locally; do not fabricate sent messages from the draft.
 
 Completion: input validation, repeated-address handling, stable IDs without fixture collisions, saved draft, relaunch, category assignment, and navigation work. Test validation and persistence. Depends on F-03, F-04, and F-06.
+
+Implementation and local verification: Create local conversations from explicitly fabricated name/address input, with an unsent saved draft and no synthetic message history. Schema 4 adds custom rows with noncolliding reserved negative IDs and normalized unique addresses. Initial drafts save durably before row commit; existing draft keys stay unchanged. E-03 tracks interrupted-creation recovery. JVM tests, lint, debug APK, and Android-test APK assembly passed. Original checks were build-only; see the current integration verification above. Phone checks remain pending.
 
 ## F-10 — Preview settings and safety information
 
@@ -107,13 +113,15 @@ Add explicit actions to delete every message in the current conversation and, se
 
 Completion: confirmation states the exact scope and message count; cancellation preserves everything. Confirmed deletion survives relaunch and updates all affected histories/previews; empty conversations remain understandable and drafts remain intact. Provide undo for sample deletion. Test current-conversation versus app-wide deletion, filtered views, empty state, undo, and persistence. Depends on F-11. No automatic deletion or background cleanup.
 
+Implementation and local verification: Native preview settings retain Light/Dark/Device appearance locally and explain fabricated histories, device-local storage and disabled transport. Settings overlays the live conversation so navigation, drafts and list state remain composed. Theme mapping has JVM coverage; isolated preference/navigation Compose tests compile only. JVM tests, lint, debug APK, and Android-test APK assembly passed. Original checks were build-only; see the current integration verification above. Phone checks remain pending.
+
 ## Engineering follow-ups
 
 F-12 implementation: separate conversation and app-wide menu actions, with immutable confirmation targets and counts from the complete dataset before search/category filtering. Both scopes preserve drafts and conversation shells, retain durable latest-operation undo, and disable deletion for an empty scope. Verification results are in CONTINUE.md.
 
 ### E-01 — Set up an Android emulator for interaction tests
 
-Status: **PR open** (this readiness branch). Android Studio AVD API 35 installed and running; all 9 baseline instrumentation tests pass, including message details/copy/dismiss. Corrected nested badge selectors and keyboard-dismissal synchronization. See `docs/EMULATOR.md`. Schedule separately from the ten feature PRs.
+Status: **Merged** via [#15](https://github.com/nvrsbb/sims/pull/15). Android Studio AVD API 35 installed and running; all 9 baseline instrumentation tests pass, including message details/copy/dismiss. Corrected nested badge selectors and keyboard-dismissal synchronization. See `docs/EMULATOR.md`. Schedule separately from the ten feature PRs.
 
 Set up a dedicated emulator with fabricated data so Compose interaction tests can run without another Fold6 installation. Document reproducible setup and test commands. Keep its data separate from the owner's phone and drafts.
 
@@ -122,6 +130,10 @@ Completion: run `:app:connectedDebugAndroidTest` successfully, including the mes
 ### E-02 — Replace Room kapt processing with compatible KSP
 
 Status: **Planned**. F-06 introduces the `KaptUsageInsteadOfKsp` lint advisory; the existing backup-extraction and application-icon warnings remain separate. Keep the current verified Kotlin/Room versions stable for this batch, then evaluate a compatible KSP setup and compare generated schemas before changing processors. No runtime failure was observed.
+
+### E-03 — Recover interrupted sample-conversation drafts
+
+Status: **Planned**. F-09 writes the initial draft durably before committing its Room conversation row. Cancellation or database commit failure between those stores can leave an unattached draft; reserved negative IDs prevent later creation from overwriting it. Add a targeted cancellation regression and a deliberate recovery path. Ordinary typing retains the existing draft preference keys and behavior.
 
 ## Batch phone check results
 

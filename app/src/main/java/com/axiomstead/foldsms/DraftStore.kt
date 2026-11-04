@@ -9,6 +9,18 @@ internal class DraftStore(private val preferences: SharedPreferences) {
 
     fun get(threadId: Int): String = preferences.getString("thread_$threadId", "") ?: ""
 
+    fun lowestCustomThreadId(): Int? = preferences.all.keys.mapNotNull { key ->
+        key.takeIf { it.startsWith("thread_") }?.removePrefix("thread_")?.toIntOrNull()?.takeIf { it < 0 }
+    }.minOrNull()
+
+    // Called on Room's transaction executor before committing a new custom conversation.
+    // Ordinary typing continues to use apply() below.
+    fun saveInitial(threadId: Int, text: String): Boolean {
+        val edit = preferences.edit()
+        if (text.isEmpty()) edit.remove("thread_$threadId") else edit.putString("thread_$threadId", text)
+        return edit.commit()
+    }
+
     fun save(threadId: Int, text: String) {
         val edit = preferences.edit()
         if (text.isEmpty()) edit.remove("thread_$threadId") else edit.putString("thread_$threadId", text)
