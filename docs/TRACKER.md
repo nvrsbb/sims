@@ -16,7 +16,7 @@ Status: **Planned → In progress → PR open → Merged**. Close an item only a
 | F-08 | Archive and restore conversations | In progress | — | Pending |
 | F-09 | Start a new local sample conversation | In progress | — | Pending |
 | F-10 | Preview settings and safety information | In progress | — | Pending |
-| F-11 | Select individual messages and delete selected | Planned | — | Pending |
+| F-11 | Select individual messages and delete selected | PR open | Selected-message deletion branch | Pending |
 | F-12 | Delete all messages | Planned | — | Pending |
 
 F-07–F-10 PRs merged into stacked feature branches but are not present on main as of `c2e1732`; integration remains pending.
@@ -98,6 +98,8 @@ Completion: theme choice survives relaunch; Device follows Android; settings ret
 Let the owner enter message-selection mode in a conversation, select/deselect individual messages, see the selected count, and delete only those selected messages. This concerns messages, not just conversation selection. Use local sample data initially; real Telephony-provider deletion requires the later authorized SMS milestone.
 
 Completion: confirmation identifies the conversation and selected message count; cancelling changes nothing; deletion updates history and inbox preview and survives relaunch. Unselected messages and drafts remain intact. Provide undo that restores the deleted sample messages. Test selection, cancellation, mixed incoming/outgoing deletion, last-message deletion, undo, and persistence. Depends on F-01 and F-06.
+
+F-11 implementation: explicit selection mode, count and conversation confirmation, per-message toggles, cancellation, empty history, and durable latest-deletion undo. A new sample-only preference file stores hidden fixture IDs and undo IDs together without migrating drafts or Room. A new deletion replaces the previous undo, stated in confirmation. Verification results are recorded in CONTINUE.md; physical Fold checks remain pending.
 
 ## F-12 — Delete all messages
 
