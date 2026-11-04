@@ -24,28 +24,56 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.isSystemInDarkTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            val dark = isSystemInDarkTheme()
-            val colors = if (dark) darkColorScheme(
-                primary = Color(0xFFF2A26A), onPrimary = Color(0xFF112022),
-                secondary = Color(0xFF6DC3B8), background = Color(0xFF051214),
-                surface = Color(0xFF112022), surfaceVariant = Color(0xFF1B292C),
-                onSurface = Color(0xFFD9ECEF), onSurfaceVariant = Color(0xFF9DAFB2),
-                outline = Color(0xFF314043), outlineVariant = Color(0xFF253336)
-            ) else lightColorScheme(
-                primary = Color(0xFFAC5700), onPrimary = Color(0xFFFDF8EF),
-                secondary = Color(0xFF00877C), background = Color(0xFFF4ECE0),
-                surface = Color(0xFFFDF8EF), surfaceVariant = Color(0xFFEBDCC9),
-                onSurface = Color(0xFF211C15), onSurfaceVariant = Color(0xFF756A58),
-                outline = Color(0xFFD6C8B4), outlineVariant = Color(0xFFE2D3BF)
-            )
-            MaterialTheme(colorScheme = colors) { FoldSmsApp() }
+            val context = androidx.compose.ui.platform.LocalContext.current
+            val themeStore = remember(context) { ThemeStore(context.applicationContext) }
+            PreviewApp(themeStore)
         }
+    }
+}
+
+@Composable
+internal fun PreviewApp(
+    themeStore: ThemeStore,
+    draftStore: DraftStore? = null,
+    metadataStore: ConversationMetadataStore? = null,
+    customStore: CustomSampleConversationStore? = null,
+    wide: Boolean = LocalConfiguration.current.screenWidthDp >= 600,
+    deletionStore: SampleDeletionStore? = null
+) {
+    var theme by remember { mutableStateOf(themeStore.get()) }
+    var showSettings by rememberSaveable { mutableStateOf(false) }
+    val dark = theme.usesDarkColors(isSystemInDarkTheme())
+    val colors = if (dark) darkColorScheme(
+        primary = Color(0xFFF2A26A), onPrimary = Color(0xFF112022),
+        secondary = Color(0xFF6DC3B8), background = Color(0xFF051214),
+        surface = Color(0xFF112022), surfaceVariant = Color(0xFF1B292C),
+        onSurface = Color(0xFFD9ECEF), onSurfaceVariant = Color(0xFF9DAFB2),
+        outline = Color(0xFF314043), outlineVariant = Color(0xFF253336)
+    ) else lightColorScheme(
+        primary = Color(0xFFAC5700), onPrimary = Color(0xFFFDF8EF),
+        secondary = Color(0xFF00877C), background = Color(0xFFF4ECE0),
+        surface = Color(0xFFFDF8EF), surfaceVariant = Color(0xFFEBDCC9),
+        onSurface = Color(0xFF211C15), onSurfaceVariant = Color(0xFF756A58),
+        outline = Color(0xFFD6C8B4), outlineVariant = Color(0xFFE2D3BF)
+    )
+    MaterialTheme(colorScheme = colors) {
+        FoldSmsApp(
+            store = draftStore, wide = wide, metadataStore = metadataStore, customStore = customStore,
+            onOpenSettings = { showSettings = true }, deletionStore = deletionStore
+        )
+        if (showSettings) PreviewSettings(
+            theme = theme,
+            onThemeChange = { theme = it; themeStore.save(it) },
+            onDismiss = { showSettings = false }
+        )
     }
 }
 
@@ -54,7 +82,9 @@ internal fun FoldSmsApp(
     store: DraftStore? = null,
     wide: Boolean = LocalConfiguration.current.screenWidthDp >= 600,
     metadataStore: ConversationMetadataStore? = null,
-    deletionStore: SampleDeletionStore? = null
+    deletionStore: SampleDeletionStore? = null,
+    customStore: CustomSampleConversationStore? = null,
+    onOpenSettings: () -> Unit = {}
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val draftStore = store ?: remember(context) { DraftStore(context.applicationContext) }
@@ -62,10 +92,22 @@ internal fun FoldSmsApp(
         exampleThreads.forEach { put(it.id, draftStore.get(it.id)) }
     } }
     val metadata = remember(context, metadataStore) { metadataStore ?: ConversationMetadataStore.get(context) }
+    val custom = remember(context, customStore, draftStore) {
+        customStore ?: CustomSampleConversationStore(sampleMetadataDatabase(context), draftStore)
+    }
+    val customRows by custom.conversations.collectAsState<List<CustomSampleConversation>, List<CustomSampleConversation>?>(initial = null)
+    LaunchedEffect(customRows, draftStore) {
+        customRows.orEmpty().forEach { row ->
+            if (!drafts.containsKey(row.id)) drafts[row.id] = draftStore.get(row.id)
+        }
+    }
     val overrides by metadata.categories.collectAsState(initial = emptyList())
+    val allThreads = exampleThreads + customRows.orEmpty().map { row ->
+        SampleConversation(row.id, row.name, "Unknown", emptyList(), row.address)
+    }
     val deletions = remember(context, deletionStore) { deletionStore ?: SampleDeletionStore(context.applicationContext) }
     val deletionState by deletions.state.collectAsState()
-    val threads = deletionState.visible(exampleThreads).map { thread ->
+    val threads = deletionState.visible(allThreads).map { thread ->
         thread.copy(category = overrides.firstOrNull { it.threadId == thread.id }?.category ?: thread.category)
     }
     val scope = rememberCoroutineScope()
@@ -91,7 +133,11 @@ internal fun FoldSmsApp(
         pendingDeleteIds = ids.toList()
         pendingDeleteScope = scopeLabel
     }
+    var showNewSample by rememberSaveable { mutableStateOf(false) }
+    var creatingSample by remember { mutableStateOf(false) }
+    var createError by remember { mutableStateOf<String?>(null) }
     var showCategories by rememberSaveable { mutableStateOf(false) }
+    var showArchive by rememberSaveable { mutableStateOf(false) }
     var filter by rememberSaveable { mutableStateOf("All") }
     var search by rememberSaveable { mutableStateOf("") }
     var selected by rememberSaveable { mutableIntStateOf(1) }
@@ -101,8 +147,45 @@ internal fun FoldSmsApp(
     val conversationStates = rememberSaveableStateHolder()
     val keyboardVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
     BackHandler(enabled = !wide && showConversation && !keyboardVisible) { showConversation = false }
-    val filtered = searchConversations(threads, search, filter)
-    val active = threads.first { it.id == selected }
+    val pinnedIds = overrides.filter { it.pinned }.map { it.threadId }.toSet()
+    val archivedIds = overrides.filter { it.archived }.map { it.threadId }.toSet()
+    val available = archiveConversations(threads, archivedIds, showArchive)
+    val activeVisible = (selected in archivedIds) == showArchive
+    val filtered = searchConversations(orderedConversations(available, pinnedIds), search, filter)
+    val active = threads.firstOrNull { it.id == selected }
+    if (showNewSample) NewSampleConversationDialog(
+        saving = creatingSample,
+        error = createError,
+        onDismiss = { showNewSample = false; createError = null },
+        onCreate = { name, address, initialDraft ->
+            creatingSample = true
+            createError = null
+            scope.launch {
+                try {
+                    val created = custom.create(name, address, initialDraft, exampleThreads.map { it.address })
+                    drafts[created.id] = draftStore.get(created.id)
+                    selected = created.id
+                    showConversation = true
+                    showArchive = false
+                    filter = "All"
+                    search = ""
+                    showNewSample = false
+                } catch (failure: IllegalArgumentException) {
+                    createError = failure.message
+                } catch (_: android.database.sqlite.SQLiteConstraintException) {
+                    createError = "A sample conversation already uses this address. Open that conversation to keep its draft."
+                } catch (_: java.io.IOException) {
+                    createError = "The sample conversation could not be saved. Your existing drafts are unchanged."
+                } finally {
+                    creatingSample = false
+                }
+            }
+        }
+    )
+    if (active == null) {
+        Surface(Modifier.fillMaxSize()) { Text("Loading local sample conversation…", Modifier.padding(20.dp)) }
+        return
+    }
     var selecting by rememberSaveable(selected) { mutableStateOf(false) }
     var selectedMessages by rememberSaveable(selected) { mutableStateOf(emptyList<Int>()) }
     BackHandler(enabled = (wide || showConversation) && selecting && !deletionBusy) {
@@ -123,7 +206,7 @@ internal fun FoldSmsApp(
         confirmButton = { TextButton(onClick = { deletionError = false }) { Text("Close") } }
     )
     var detailMessageId by rememberSaveable(selected) { mutableStateOf<Int?>(null) }
-    active.history.firstOrNull { it.id == detailMessageId }?.let { message ->
+    active.history.takeIf { activeVisible }?.firstOrNull { it.id == detailMessageId }?.let { message ->
         MessageDetailsSheet(message, active.sender, onDismiss = { detailMessageId = null })
     }
     if (showCategories) CategoryPicker(
@@ -153,8 +236,15 @@ internal fun FoldSmsApp(
                         modifier = Modifier.testTag("undo-inbox")
                     ) { Text("Undo last deletion (${deletionState.undoIds.size})") }
                     Spacer(Modifier.height(3.dp))
-                    Text("SAMPLE INBOX", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium)
-                    Spacer(Modifier.height(16.dp))
+                    Text(if (showArchive) "SAMPLE ARCHIVE" else "SAMPLE INBOX", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium)
+                    Row(Modifier.horizontalScroll(rememberScrollState())) {
+                        TextButton(onClick = { showArchive = !showArchive; showConversation = false; selecting = false; selectedMessages = emptyList(); detailMessageId = null }) {
+                            Text(if (showArchive) "Inbox" else "Archive")
+                        }
+                        TextButton(onClick = { showNewSample = true; createError = null }) { Text("New sample") }
+                        TextButton(onClick = onOpenSettings) { Text("Settings") }
+                    }
+                    Spacer(Modifier.height(8.dp))
                     OutlinedTextField(
                         value = search,
                         onValueChange = { search = it },
@@ -171,7 +261,9 @@ internal fun FoldSmsApp(
                         }
                     }
                     Spacer(Modifier.height(10.dp))
-                    if (filtered.isEmpty()) Text("No sample conversations found", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (filtered.isEmpty()) {
+                        Text(if (showArchive && available.isEmpty()) "Archive is empty" else "No sample conversations match", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                     LazyColumn(state = inboxState, modifier = Modifier.testTag("inbox-list"), verticalArrangement = Arrangement.spacedBy(9.dp), contentPadding = PaddingValues(bottom = 12.dp)) {
                         items(filtered, key = { it.conversation.id }) { result ->
                             val thread = result.conversation
@@ -185,9 +277,10 @@ internal fun FoldSmsApp(
                                 Column(Modifier.fillMaxWidth().padding(horizontal = 15.dp, vertical = 13.dp)) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Text(thread.sender, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface)
-                                        Text(thread.time, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        if (thread.time.isNotEmpty()) Text(thread.time, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                     Spacer(Modifier.height(4.dp))
+                                    if (thread.id in pinnedIds) Text("Pinned", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                                     if (!drafts[thread.id].isNullOrEmpty()) {
                                         Text("Draft saved", modifier = Modifier.testTag("draft_indicator_${thread.id}"), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
                                     }
@@ -202,11 +295,12 @@ internal fun FoldSmsApp(
                     }
                 }
             }
-            if (wide || showConversation) {
+            if ((wide || showConversation) && activeVisible) {
                 if (wide) VerticalDivider()
                 Column(Modifier.weight(1f).fillMaxHeight().padding(horizontal = 20.dp, vertical = 20.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (!wide) TextButton(onClick = { showConversation = false; selecting = false; selectedMessages = emptyList() }) { Text("‹ Back") }
+                        TextButton(onClick = onOpenSettings) { Text("Settings") }
                         Column(Modifier.weight(1f)) {
                             Text(active.sender, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                             Text("Sample conversation · ${active.category}", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
@@ -218,14 +312,28 @@ internal fun FoldSmsApp(
                         onSelect = { selecting = true },
                         onCancel = { selecting = false; selectedMessages = emptyList() },
                         onDelete = { requestDelete(selectedMessages.toSet(), "selected in ${active.sender}") },
-                        onDeleteAll = { requestDelete(sampleMessageIds(threads, active.id), "in the entire ${active.sender} conversation") }
+                        onDeleteAll = { requestDelete(sampleMessageIds(threads, active.id), "in the entire ${active.sender} conversation") },
+                        extraActions = {
+                            TextButton(onClick = { scope.launch { metadata.setPinned(active.id, active.id !in pinnedIds) } }) {
+                                Text(if (active.id in pinnedIds) "Unpin conversation" else "Pin conversation")
+                            }
+                            TextButton(onClick = {
+                                scope.launch {
+                                    metadata.setArchived(active.id, active.id !in archivedIds)
+                                    showConversation = false
+                                    selecting = false
+                                    selectedMessages = emptyList()
+                                    detailMessageId = null
+                                }
+                            }) { Text(if (active.id in archivedIds) "Restore conversation" else "Archive conversation") }
+                        }
                     )
                     if (deletionState.undoIds.isNotEmpty()) TextButton(
                         enabled = !deletionBusy,
                         onClick = { undoDeletion() }, modifier = Modifier.testTag("undo-conversation")
                     ) { Text("Undo last deletion (${deletionState.undoIds.size})") }
                     HorizontalDivider(Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant)
-                    Text("Sample history · 2 Nov 2026 · Manila time", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(if (active.id < 0) "Local sample · Unsent draft only" else "Sample history · 2 Nov 2026 · Manila time", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     conversationStates.SaveableStateProvider(active.id) {
                         val historyState = rememberLazyListState()
                         LazyColumn(
@@ -282,6 +390,11 @@ internal fun FoldSmsApp(
                             }
                         )
                     }
+                }
+            } else if (wide) {
+                VerticalDivider()
+                Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) {
+                    Text("Choose a sample conversation", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }

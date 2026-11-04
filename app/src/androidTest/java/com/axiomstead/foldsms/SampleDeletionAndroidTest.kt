@@ -26,6 +26,7 @@ class SampleDeletionAndroidTest {
     private val deletions = SampleDeletionStore(preferences)
     private val database = Room.inMemoryDatabaseBuilder(context, ConversationMetadataDatabase::class.java).build()
     private val metadata = ConversationMetadataStore(database.metadata())
+    private val custom = CustomSampleConversationStore(database, drafts)
 
     @After fun cleanup() {
         database.close()
@@ -52,7 +53,7 @@ class SampleDeletionAndroidTest {
         drafts.save(1, "Fabricated preserved draft")
         val restoration = StateRestorationTester(compose)
         restoration.setContent {
-            MaterialTheme { FoldSmsApp(drafts, wide = false, metadataStore = metadata, deletionStore = deletions) }
+            MaterialTheme { FoldSmsApp(drafts, wide = false, metadataStore = metadata, deletionStore = deletions, customStore = custom) }
         }
         compose.onNodeWithTag("thread_1").performClick()
         compose.onNodeWithText("Select messages").performClick()
@@ -108,7 +109,7 @@ class SampleDeletionAndroidTest {
         drafts.save(1, "Fabricated Alex draft")
         drafts.save(2, "Fabricated Bank draft")
         compose.setContent {
-            MaterialTheme { FoldSmsApp(drafts, wide = false, metadataStore = metadata, deletionStore = deletions) }
+            MaterialTheme { FoldSmsApp(drafts, wide = false, metadataStore = metadata, deletionStore = deletions, customStore = custom) }
         }
         compose.onNodeWithTag("inbox-search").performTextInput("meeting")
         compose.onNodeWithTag("thread_1").performClick()
@@ -150,6 +151,39 @@ class SampleDeletionAndroidTest {
             assertTrue(visible.first().messages.isEmpty())
             assertEquals(exampleThreads.drop(1), visible.drop(1))
         }
+    }
+
+    @Test fun appWideDeletionIncludesArchiveAndPreservesPinsAndCustomDraft() {
+        val created = runBlocking {
+            metadata.setArchived(1, true)
+            metadata.setPinned(2, true)
+            custom.create("Sample Robin", "+1 202-555-0199", "Fabricated custom draft", exampleThreads.map { it.address })
+        }
+        compose.setContent {
+            MaterialTheme { FoldSmsApp(drafts, wide = false, metadataStore = metadata, deletionStore = deletions, customStore = custom) }
+        }
+        compose.waitUntil { compose.onAllNodesWithTag("thread_1").fetchSemanticsNodes().isEmpty() }
+        compose.onNodeWithTag("inbox-actions").performClick()
+        compose.onNodeWithText("Delete all messages in app").performClick()
+        compose.onNodeWithText("Delete 11 sample messages across the entire app", substring = true).assertExists()
+        compose.onNodeWithTag("confirm-delete").performClick()
+        compose.waitUntil(5_000) { deletions.state.value.deletedIds.size == 11 }
+        compose.runOnIdle {
+            runBlocking {
+                val rows = metadata.categories.first()
+                assertTrue(rows.single { it.threadId == 1 }.archived)
+                assertTrue(rows.single { it.threadId == 2 }.pinned)
+                assertEquals(created, database.customConversations().getConversations().single())
+                assertEquals("Fabricated custom draft", drafts.get(created.id))
+            }
+        }
+        compose.onNodeWithTag("undo-inbox").performClick()
+        compose.waitUntil(5_000) { deletions.state.value.deletedIds.isEmpty() }
+        compose.onNodeWithText("Archive", substring = false).performClick()
+        compose.waitUntil { compose.onAllNodesWithTag("thread_1").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("thread_1").performClick()
+        compose.onNodeWithTag("conversation-history-1").performScrollToNode(hasTestTag("message-103"))
+        compose.onNodeWithText("See you this evening!").assertExists()
     }
 
     private fun selectVisible(id: Int) {
