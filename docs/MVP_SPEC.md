@@ -3,6 +3,10 @@
 ## Product intent
 Private, local-first SMS/MMS replacement for a single Samsung Galaxy Z Fold6. Phase 1 is a **non-invasive demonstrator**. No SMS permissions, no role change, no real message access, no account, no server and no telemetry.
 
+## UI direction
+
+Owner preference: use Telegram as a design reference for its straightforward, no-nonsense interface. Favor a clean conversation list, clear typography and hierarchy, restrained chrome, readable message bubbles, and direct, discoverable actions. Adapt these principles to native Android navigation and the Fold6 cover and expanded layouts while retaining the shared semantic palette, flat fills, accessibility, and light/dark themes. This is visual and interaction inspiration; it does not expand the SMS/MMS product scope.
+
 ## Screen inventory
 1. Inbox: thread previews, unread indicator, category chips and search.
 2. Conversation: chronological bubbles, timestamps, composer, delivery state.

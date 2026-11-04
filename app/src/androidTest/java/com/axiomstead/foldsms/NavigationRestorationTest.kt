@@ -5,6 +5,9 @@ import android.content.ContextWrapper
 import android.content.SharedPreferences
 import androidx.activity.OnBackPressedDispatcher
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
@@ -58,8 +61,10 @@ class NavigationRestorationTest {
         val restoration = StateRestorationTester(compose)
         lateinit var back: OnBackPressedDispatcher
         lateinit var dismissKeyboard: () -> Unit
+        var keyboardVisible = false
         restoration.setContent {
             back = LocalOnBackPressedDispatcherOwner.current!!.onBackPressedDispatcher
+            keyboardVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
             val focus = LocalFocusManager.current
             val keyboard = LocalSoftwareKeyboardController.current
             dismissKeyboard = { focus.clearFocus(); keyboard?.hide() }
@@ -73,6 +78,9 @@ class NavigationRestorationTest {
         restoration.emulateSavedInstanceStateRestore()
         compose.onNodeWithTag("conversation-history-2").assertExists()
         compose.onNodeWithTag("inbox-list").assertDoesNotExist()
+        compose.runOnIdle { dismissKeyboard() }
+        compose.waitUntil(5_000) { !keyboardVisible }
+        compose.waitForIdle()
         compose.runOnIdle { back.onBackPressed() }
         compose.onNodeWithTag("inbox-list").assertExists()
         compose.onNodeWithTag("inbox-search").assertTextContains("Bank")

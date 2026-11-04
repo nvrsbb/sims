@@ -62,21 +62,21 @@ class DraftsTest {
                 MaterialTheme { FoldSmsApp(reopened, metadataStore = metadata) }
             }
         }
-        compose.onNodeWithTag("draft_indicator_1").assertExists()
-        compose.onNodeWithTag("draft_indicator_2").assertExists()
+        compose.onNodeWithTag("draft_indicator_1", useUnmergedTree = true).assertExists()
+        compose.onNodeWithTag("draft_indicator_2", useUnmergedTree = true).assertExists()
         compose.onNodeWithText("Clear draft").performClick()
         compose.onNodeWithText("Keep draft").performClick()
         compose.onNodeWithText("Sample Alex draft\nsecond line").assertExists()
         compose.onNodeWithText("Clear draft").performClick()
         compose.onNodeWithText("Clear", useUnmergedTree = true).performClick()
-        compose.onNodeWithTag("draft_indicator_1").assertDoesNotExist()
-        compose.onNodeWithTag("draft_indicator_2").assertExists()
+        compose.onNodeWithTag("draft_indicator_1", useUnmergedTree = true).assertDoesNotExist()
+        compose.onNodeWithTag("draft_indicator_2", useUnmergedTree = true).assertExists()
         compose.onNodeWithTag("thread_2").performClick()
         compose.onNodeWithText("Sample second draft").assertExists()
         compose.onNodeWithText("Draft message").performTextReplacement("")
-        compose.onNodeWithTag("draft_indicator_2").assertDoesNotExist()
+        compose.onNodeWithTag("draft_indicator_2", useUnmergedTree = true).assertDoesNotExist()
         compose.onNodeWithText("Draft message").performTextInput("New fabricated\nmultiline draft")
-        compose.onNodeWithTag("draft_indicator_2").assertExists()
+        compose.onNodeWithTag("draft_indicator_2", useUnmergedTree = true).assertExists()
         compose.runOnIdle {
             assertEquals("", DraftStore(preferences).get(1))
             assertEquals("New fabricated\nmultiline draft", DraftStore(preferences).get(2))
