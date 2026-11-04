@@ -8,6 +8,10 @@
 - Android Studio and dedicated Fold emulator are installed. See `docs/EMULATOR.md`. Baseline local unit/lint/debug/Android-test assembly passed (8 JVM tests; 8 existing lint warnings). Emulator suite now passes all 9 tests after correcting merged Card badge selectors and waiting for keyboard dismissal before asserting conversation Back. These are Compose restoration checks, not actual process-death tests.
 - Tonight's intended PRs: emulator/roadmap readiness, F-11 selected sample-message deletion, F-12 conversation/app-wide sample-message deletion. No SMS permissions, role requests, real sending or phone installation are authorized by this batch.
 
+## F-11 — selected sample-message deletion
+
+Implementation uses explicit selection and confirmation with conversation/count, persistent hidden fixture IDs, latest-deletion undo across store reopening, empty histories and unchanged draft/category storage. Undo is available until a new deletion replaces it. No real message provider operations. Verification: 11 JVM tests, lint, debug and Android-test assembly, and all 12 instrumentation tests on the API 35 Fold emulator pass. Tests cover restored selection, conversation switching, cancellation, mixed directions, persistence/reopen, undo and a simulated failed storage commit. Eight existing lint warnings; no new lint errors. Actual process-death, activity recreation and phone fold checks remain pending. PR #15 readiness CI is green; owner merges.
+
 ## Current project
 
 Continue in `/Users/arvinbobis/Programs/sims` (remote: `https://github.com/nvrsbb/sims.git`). The repository is public. Source and persistent drafts were pushed to `main`; inspect status/history for subsequent local changes.
