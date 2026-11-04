@@ -15,3 +15,8 @@ internal data class SampleDeletionState(
     fun visible(conversations: List<SampleConversation>): List<SampleConversation> =
         conversations.map { it.copy(messages = it.messages.filterNot { message -> message.id in deletedIds }) }
 }
+
+/** Pass the complete visible dataset, never search/filter results, to define “all”. */
+internal fun sampleMessageIds(conversations: List<SampleConversation>, conversationId: Int? = null): Set<Int> =
+    conversations.filter { conversationId == null || it.id == conversationId }
+        .flatMap { it.messages }.map { it.id }.toSet()

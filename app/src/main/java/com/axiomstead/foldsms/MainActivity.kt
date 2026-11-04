@@ -78,6 +78,19 @@ internal fun FoldSmsApp(
             finally { deletionBusy = false }
         }
     }
+    fun undoDeletion() {
+        deletionBusy = true
+        scope.launch {
+            try { if (!deletions.undo()) deletionError = true }
+            finally { deletionBusy = false }
+        }
+    }
+    var pendingDeleteIds by rememberSaveable { mutableStateOf(emptyList<Int>()) }
+    var pendingDeleteScope by rememberSaveable { mutableStateOf("") }
+    fun requestDelete(ids: Set<Int>, scopeLabel: String) {
+        pendingDeleteIds = ids.toList()
+        pendingDeleteScope = scopeLabel
+    }
     var showCategories by rememberSaveable { mutableStateOf(false) }
     var filter by rememberSaveable { mutableStateOf("All") }
     var search by rememberSaveable { mutableStateOf("") }
@@ -92,16 +105,15 @@ internal fun FoldSmsApp(
     val active = threads.first { it.id == selected }
     var selecting by rememberSaveable(selected) { mutableStateOf(false) }
     var selectedMessages by rememberSaveable(selected) { mutableStateOf(emptyList<Int>()) }
-    var confirmSelected by rememberSaveable(selected) { mutableStateOf(false) }
     BackHandler(enabled = (wide || showConversation) && selecting && !deletionBusy) {
-        selecting = false; selectedMessages = emptyList(); confirmSelected = false
+        selecting = false; selectedMessages = emptyList(); pendingDeleteIds = emptyList()
     }
-    if (confirmSelected) SampleDeleteConfirmation(
-        count = selectedMessages.size, scope = "selected in ${active.sender}",
-        onDismiss = { confirmSelected = false },
+    if (pendingDeleteIds.isNotEmpty()) SampleDeleteConfirmation(
+        count = pendingDeleteIds.size, scope = pendingDeleteScope,
+        onDismiss = { pendingDeleteIds = emptyList() },
         onConfirm = {
-            deleteMessages(selectedMessages.toSet())
-            confirmSelected = false; selecting = false; selectedMessages = emptyList()
+            deleteMessages(pendingDeleteIds.toSet())
+            pendingDeleteIds = emptyList(); selecting = false; selectedMessages = emptyList()
         }
     )
     if (deletionError) AlertDialog(
@@ -130,7 +142,16 @@ internal fun FoldSmsApp(
         Row {
             if (wide || !showConversation) {
                 Column(Modifier.weight(1f).fillMaxHeight().padding(horizontal = 18.dp, vertical = 20.dp)) {
-                    Text("FoldSMS", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("FoldSMS", modifier = Modifier.weight(1f), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                        SampleDeletionMenu("inbox", "Delete all messages in app", sampleMessageIds(threads).isNotEmpty() && !deletionBusy) {
+                            requestDelete(sampleMessageIds(threads), "across the entire app, including conversations outside this search or category")
+                        }
+                    }
+                    if (deletionState.undoIds.isNotEmpty()) TextButton(
+                        onClick = { undoDeletion() }, enabled = !deletionBusy,
+                        modifier = Modifier.testTag("undo-inbox")
+                    ) { Text("Undo last deletion (${deletionState.undoIds.size})") }
                     Spacer(Modifier.height(3.dp))
                     Text("SAMPLE INBOX", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium)
                     Spacer(Modifier.height(16.dp))
@@ -196,17 +217,12 @@ internal fun FoldSmsApp(
                         onCategory = { showCategories = true },
                         onSelect = { selecting = true },
                         onCancel = { selecting = false; selectedMessages = emptyList() },
-                        onDelete = { confirmSelected = true }
+                        onDelete = { requestDelete(selectedMessages.toSet(), "selected in ${active.sender}") },
+                        onDeleteAll = { requestDelete(sampleMessageIds(threads, active.id), "in the entire ${active.sender} conversation") }
                     )
                     if (deletionState.undoIds.isNotEmpty()) TextButton(
                         enabled = !deletionBusy,
-                        onClick = {
-                            deletionBusy = true
-                            scope.launch {
-                                try { if (!deletions.undo()) deletionError = true }
-                                finally { deletionBusy = false }
-                            }
-                        }
+                        onClick = { undoDeletion() }, modifier = Modifier.testTag("undo-conversation")
                     ) { Text("Undo last deletion (${deletionState.undoIds.size})") }
                     HorizontalDivider(Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant)
                     Text("Sample history · 2 Nov 2026 · Manila time", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

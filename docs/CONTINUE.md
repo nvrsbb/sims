@@ -12,6 +12,10 @@
 
 Implementation uses explicit selection and confirmation with conversation/count, persistent hidden fixture IDs, latest-deletion undo across store reopening, empty histories and unchanged draft/category storage. Undo is available until a new deletion replaces it. No real message provider operations. Verification: 11 JVM tests, lint, debug and Android-test assembly, and all 12 instrumentation tests on the API 35 Fold emulator pass. Tests cover restored selection, conversation switching, cancellation, mixed directions, persistence/reopen, undo and a simulated failed storage commit. Eight existing lint warnings; no new lint errors. Actual process-death, activity recreation and phone fold checks remain pending. PR #15 readiness CI is green; owner merges.
 
+## F-12 — delete-all sample scopes
+
+Conversation and app-wide deletion have separately labeled menu actions and exact counts. Confirmation snapshots the target IDs from the complete current dataset; search/category filters never redefine all. Inbox undo restores only the latest operation, preserving earlier deletions. Drafts and conversation shells remain. PR #16 CI is green. Verification: 12 JVM tests, lint, debug/Android-test assembly, and all 13 instrumentation tests pass on the API 35 emulator. Eight existing lint warnings, no new errors. UI walkthrough checked expanded light/dark, narrow 968×2160 at density 320, 1.3× fonts, keyboard visibility and keyboard Back. A fabricated draft and conversation-wide deletion survived emulator force-stop/relaunch; undo after relaunch restored the history. Size and font overrides were reset after checks. The AVD fold command did not change display width, so actual fold transitions, real system process restoration and physical Fold6 behavior remain pending. No phone installation.
+
 ## Current project
 
 Continue in `/Users/arvinbobis/Programs/sims` (remote: `https://github.com/nvrsbb/sims.git`). The repository is public. Source and persistent drafts were pushed to `main`; inspect status/history for subsequent local changes.
