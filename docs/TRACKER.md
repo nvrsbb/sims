@@ -1,6 +1,6 @@
 # FoldSMS feature tracker
 
-Batch 1: the original ten feature PRs plus two requested message-deletion features for the sample-data milestone. All content remains fabricated; no SMS/contact/network permission, default-role request, or sending. The owner authorized parallel independent work and stacked feature PRs on 2026-11-02. Follow dependencies, keep each PR focused, and never merge during this review batch. Each item gets appropriate tests, local checks, independent review, and CI. Unexecuted Android tests and phone checks remain explicit.
+Batch 1: the original ten feature PRs plus two requested message-deletion features for the sample-data milestone. All content remains fabricated; no SMS/contact/network permission, default-role request, or sending. Current owner instruction (2026-11-04): focused PRs only; the owner performs all merges. No agents unless requested. Follow dependencies, keep each PR focused, and never merge during this review batch. Each item gets appropriate tests, local checks, independent review, and CI. Unexecuted Android tests and phone checks remain explicit.
 
 Status: **Planned → In progress → PR open → Merged**. Close an item only after its PR is merged. Track phone validation separately; merging does not imply a device check. Include this file's status update in each feature PR; confirm merge state in the next PR or handoff. A postponed item needs a reason.
 
@@ -8,16 +8,18 @@ Status: **Planned → In progress → PR open → Merged**. Close an item only a
 |---|---|---|---|---|
 | F-01 | Chronological sample message history | Merged | [#2](https://github.com/nvrsbb/sims/pull/2) | Pending |
 | F-02 | Message details and copying sample text | Merged | [#3](https://github.com/nvrsbb/sims/pull/3) | Pending |
-| F-03 | Draft indicators and deliberate draft clearing | PR open | [6](https://github.com/nvrsbb/sims/pull/6) | Pending |
-| F-04 | Restore conversation navigation and Android Back | PR open | [7](https://github.com/nvrsbb/sims/pull/7) | Pending |
-| F-05 | Search across complete sample histories | PR open | [8](https://github.com/nvrsbb/sims/pull/8) | Pending |
-| F-06 | Change and remember conversation categories | PR open | Awaiting PR link | Pending |
+| F-03 | Draft indicators and deliberate draft clearing | Merged | [#6](https://github.com/nvrsbb/sims/pull/6) | Pending |
+| F-04 | Restore conversation navigation and Android Back | Merged | [#7](https://github.com/nvrsbb/sims/pull/7) | Pending |
+| F-05 | Search across complete sample histories | Merged | [#8](https://github.com/nvrsbb/sims/pull/8) | Pending |
+| F-06 | Change and remember conversation categories | Merged | [#10](https://github.com/nvrsbb/sims/pull/10) | Pending |
 | F-07 | Pin important conversations | In progress | — | Pending |
 | F-08 | Archive and restore conversations | In progress | — | Pending |
 | F-09 | Start a new local sample conversation | In progress | — | Pending |
 | F-10 | Preview settings and safety information | In progress | — | Pending |
 | F-11 | Select individual messages and delete selected | Planned | — | Pending |
 | F-12 | Delete all messages | Planned | — | Pending |
+
+F-07–F-10 PRs merged into stacked feature branches but are not present on main as of `c2e1732`; integration remains pending.
 
 ## F-01 — Chronological sample message history
 
@@ -107,7 +109,7 @@ Completion: confirmation states the exact scope and message count; cancellation 
 
 ### E-01 — Set up an Android emulator for interaction tests
 
-Status: **Planned**. Schedule separately from the ten feature PRs.
+Status: **PR open** (this readiness branch). Android Studio AVD API 35 installed and running; all 9 baseline instrumentation tests pass, including message details/copy/dismiss. Corrected nested badge selectors and keyboard-dismissal synchronization. See `docs/EMULATOR.md`. Schedule separately from the ten feature PRs.
 
 Set up a dedicated emulator with fabricated data so Compose interaction tests can run without another Fold6 installation. Document reproducible setup and test commands. Keep its data separate from the owner's phone and drafts.
 

@@ -1,5 +1,13 @@
 # FoldSMS handoff — 2026-11-02
 
+## Current session — 2026-11-04
+
+- Owner performs all merges; create focused PRs only. Keep updates about outcomes, blockers and verification rather than file-change or agent details. Use no agents unless requested.
+- Telegram is the UI reference. Replacement backlog corrections and milestone gates are in `docs/REPLACEMENT_PLAN.md`.
+- Actual main at session start is `c2e1732` and contains F-01–F-06. F-07–F-10 were merged into stacked branches, not main; integration remains pending. Historical “PR open” notes below are stale; verify target branches and main ancestry before calling work delivered.
+- Android Studio and dedicated Fold emulator are installed. See `docs/EMULATOR.md`. Baseline local unit/lint/debug/Android-test assembly passed (8 JVM tests; 8 existing lint warnings). Emulator suite now passes all 9 tests after correcting merged Card badge selectors and waiting for keyboard dismissal before asserting conversation Back. These are Compose restoration checks, not actual process-death tests.
+- Tonight's intended PRs: emulator/roadmap readiness, F-11 selected sample-message deletion, F-12 conversation/app-wide sample-message deletion. No SMS permissions, role requests, real sending or phone installation are authorized by this batch.
+
 ## Current project
 
 Continue in `/Users/arvinbobis/Programs/sims` (remote: `https://github.com/nvrsbb/sims.git`). The repository is public. Source and persistent drafts were pushed to `main`; inspect status/history for subsequent local changes.
