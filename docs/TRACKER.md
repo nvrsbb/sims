@@ -16,8 +16,8 @@ Status: **Planned → In progress → PR open → Merged**. Close an item only a
 | F-08 | Archive and restore conversations | In progress | — | Pending |
 | F-09 | Start a new local sample conversation | In progress | — | Pending |
 | F-10 | Preview settings and safety information | In progress | — | Pending |
-| F-11 | Select individual messages and delete selected | PR open | [#16](https://github.com/nvrsbb/sims/pull/16) | Pending |
-| F-12 | Delete all messages | PR open | Delete-all scopes branch | Pending |
+| F-11 | Select individual messages and delete selected | Merged | [#16](https://github.com/nvrsbb/sims/pull/16) | Pending |
+| F-12 | Delete all messages | Merged | [#17](https://github.com/nvrsbb/sims/pull/17) | Pending |
 
 F-07–F-10 PRs merged into stacked feature branches but are not present on main as of `c2e1732`; integration remains pending.
 
@@ -113,7 +113,7 @@ F-12 implementation: separate conversation and app-wide menu actions, with immut
 
 ### E-01 — Set up an Android emulator for interaction tests
 
-Status: **PR open** (this readiness branch). Android Studio AVD API 35 installed and running; all 9 baseline instrumentation tests pass, including message details/copy/dismiss. Corrected nested badge selectors and keyboard-dismissal synchronization. See `docs/EMULATOR.md`. Schedule separately from the ten feature PRs.
+Status: **Merged** via [#15](https://github.com/nvrsbb/sims/pull/15). Android Studio AVD API 35 installed and running; all 9 baseline instrumentation tests pass, including message details/copy/dismiss. Corrected nested badge selectors and keyboard-dismissal synchronization. See `docs/EMULATOR.md`. Schedule separately from the ten feature PRs.
 
 Set up a dedicated emulator with fabricated data so Compose interaction tests can run without another Fold6 installation. Document reproducible setup and test commands. Keep its data separate from the owner's phone and drafts.
 
