@@ -157,4 +157,4 @@ Existing baseline: the owner reported draft isolation, fold/unfold, and relaunch
 
 ### E-04 — Run Android interaction tests in CI
 
-Status: **In progress**. Add a disposable API 35 emulator job after build checks, with isolated storage, report artifacts, bounded runtime and cancellation. CI execution is the acceptance gate; local cloud KVM is unavailable. No phone data or sending.
+Status: **PR open** — [#19](https://github.com/nvrsbb/sims/pull/19). Hosted build and all 25 baseline Android tests passed. The job uses isolated storage, report artifacts, bounded runtime and cancellation. Local cloud KVM is unavailable. No phone data or sending.
