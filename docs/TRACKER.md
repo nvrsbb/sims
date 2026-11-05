@@ -140,3 +140,7 @@ Status: **Planned**. F-09 writes the initial draft durably before committing its
 Choose a useful subset or the completed batch before installing. Record version/commit and results here, keeping automated checks separate from owner-reported checks. Advance the app version for the distribution batch and verify signing compatibility before suggesting installation.
 
 Existing baseline: the owner reported draft isolation, fold/unfold, and relaunch working before this queue. PR #1's visual changes have not yet been checked on the phone.
+
+### E-04 — Run Android interaction tests in CI
+
+Status: **In progress**. Add a disposable API 35 emulator job after build checks, with isolated storage, report artifacts, bounded runtime and cancellation. CI execution is the acceptance gate; local cloud KVM is unavailable. No phone data or sending.
