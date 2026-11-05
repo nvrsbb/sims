@@ -12,14 +12,16 @@ Status: **Planned → In progress → PR open → Merged**. Close an item only a
 | F-04 | Restore conversation navigation and Android Back | Merged | [#7](https://github.com/nvrsbb/sims/pull/7) | Pending |
 | F-05 | Search across complete sample histories | Merged | [#8](https://github.com/nvrsbb/sims/pull/8) | Pending |
 | F-06 | Change and remember conversation categories | Merged | [#10](https://github.com/nvrsbb/sims/pull/10) | Pending |
-| F-07 | Pin important conversations | PR open | Integration branch (pending link) | Pending |
-| F-08 | Archive and restore conversations | PR open | Integration branch (pending link) | Pending |
-| F-09 | Start a new local sample conversation | PR open | Integration branch (pending link) | Pending |
-| F-10 | Preview settings and safety information | PR open | Integration branch (pending link) | Pending |
+| F-07 | Pin important conversations | Merged | [#18](https://github.com/nvrsbb/sims/pull/18) | Pending |
+| F-08 | Archive and restore conversations | Merged | [#18](https://github.com/nvrsbb/sims/pull/18) | Pending |
+| F-09 | Start a new local sample conversation | Merged | [#18](https://github.com/nvrsbb/sims/pull/18) | Pending |
+| F-10 | Preview settings and safety information | Merged | [#18](https://github.com/nvrsbb/sims/pull/18) | Pending |
 | F-11 | Select individual messages and delete selected | Merged | [#16](https://github.com/nvrsbb/sims/pull/16) | Pending |
 | F-12 | Delete all messages | Merged | [#17](https://github.com/nvrsbb/sims/pull/17) | Pending |
+| F-13 | Export local preview data | PR open | [#22](https://github.com/nvrsbb/sims/pull/22) | Pending |
+| F-14 | Validate and restore a preview export | Planned | — | Pending |
 
-F-07–F-10 previously merged into stacked branches, not main. The integration branch now combines them with main at `4a3d57f`; awaiting review/merge into main. Integration verification: 22 JVM tests and 25 emulator tests pass, including the final isolated-storage rerun. Historical build-only notes below are superseded by these current results.
+F-07–F-10 reached main through merged integration #18. Its 22 JVM tests and 25 emulator tests passed. No new phone checks are implied. Open follow-ups #19–#21 add hosted interaction CI, KSP and interrupted-draft recovery; their source remains unmerged.
 
 ## F-01 — Chronological sample message history
 
@@ -115,6 +117,18 @@ Completion: confirmation states the exact scope and message count; cancellation 
 
 Implementation and local verification: Native preview settings retain Light/Dark/Device appearance locally and explain fabricated histories, device-local storage and disabled transport. Settings overlays the live conversation so navigation, drafts and list state remain composed. Theme mapping has JVM coverage; isolated preference/navigation Compose tests compile only. JVM tests, lint, debug APK, and Android-test APK assembly passed. Original checks were build-only; see the current integration verification above. Phone checks remain pending.
 
+## F-13 — Export local preview data
+
+Save a versioned UTF-8 JSON snapshot using Android’s CreateDocument picker after explicit confirmation. Include all fabricated histories (including hidden samples), custom rows, category/pin/archive metadata, exact drafts including unattached negative IDs, deletion/undo state and theme. Explain that the file is unencrypted and cannot currently be imported. No real SMS/MMS access, new permissions, sending, migration or source writes.
+
+Verification at PR opening: 27 JVM tests and full lint/APK checks passed; five new Android tests compile locally and await hosted CI. No Room schema change.
+
+Completion: structured fields/text survive JSON parsing; storage iteration order is deterministic; capture leaves isolated stores unchanged; cancellation does not read/write; failed write/close never reports success; recreation while writing allows retry and warns about an incomplete file. Export is a prerequisite to, not completion of, replacement backup/restore.
+
+## F-14 — Validate and restore a preview export
+
+Status: **Planned**, depends on F-13. Validate format/version, size, all types, IDs and references before any writes; reject truncated/unsupported files. Preview affected data and require explicit confirmation. Define conflict handling and a durable journal for interrupted Room/preference application, including rollback/reconciliation tests. Prove complete round-trip, cancellation, duplicate/invalid data, failure/relaunch and preservation of unrelated drafts. No real Telephony restore in this feature.
+
 ## Engineering follow-ups
 
 F-12 implementation: separate conversation and app-wide menu actions, with immutable confirmation targets and counts from the complete dataset before search/category filtering. Both scopes preserve drafts and conversation shells, retain durable latest-operation undo, and disable deletion for an empty scope. Verification results are in CONTINUE.md.
@@ -129,11 +143,11 @@ Completion: run `:app:connectedDebugAndroidTest` successfully, including the mes
 
 ### E-02 — Replace Room kapt processing with compatible KSP
 
-Status: **Planned**. F-06 introduces the `KaptUsageInsteadOfKsp` lint advisory; the existing backup-extraction and application-icon warnings remain separate. Keep the current verified Kotlin/Room versions stable for this batch, then evaluate a compatible KSP setup and compare generated schemas before changing processors. No runtime failure was observed.
+Status: **PR open** — [#20](https://github.com/nvrsbb/sims/pull/20). F-06 introduced the `KaptUsageInsteadOfKsp` lint advisory; the existing backup-extraction and application-icon warnings remain separate. Keep the current verified Kotlin/Room versions stable for this batch, then evaluate a compatible KSP setup and compare generated schemas before changing processors. No runtime failure was observed.
 
 ### E-03 — Recover interrupted sample-conversation drafts
 
-Status: **Planned**. F-09 writes the initial draft durably before committing its Room conversation row. Cancellation or database commit failure between those stores can leave an unattached draft; reserved negative IDs prevent later creation from overwriting it. Add a targeted cancellation regression and a deliberate recovery path. Ordinary typing retains the existing draft preference keys and behavior.
+Status: **PR open** — [#21](https://github.com/nvrsbb/sims/pull/21), with 28 hosted Android tests passed. F-09 writes the initial draft durably before committing its Room conversation row. Cancellation or database commit failure between those stores can leave an unattached draft; reserved negative IDs prevent later creation from overwriting it. Add a targeted cancellation regression and a deliberate recovery path. Ordinary typing retains the existing draft preference keys and behavior.
 
 ## Batch phone check results
 
@@ -143,4 +157,4 @@ Existing baseline: the owner reported draft isolation, fold/unfold, and relaunch
 
 ### E-04 — Run Android interaction tests in CI
 
-Status: **In progress**. Add a disposable API 35 emulator job after build checks, with isolated storage, report artifacts, bounded runtime and cancellation. CI execution is the acceptance gate; local cloud KVM is unavailable. No phone data or sending.
+Status: **PR open** — [#19](https://github.com/nvrsbb/sims/pull/19). Hosted build and all 25 baseline Android tests passed. The job uses isolated storage, report artifacts, bounded runtime and cancellation. Local cloud KVM is unavailable. No phone data or sending.
