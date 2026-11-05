@@ -4,7 +4,7 @@
 
 - Read `docs/MVP_SPEC.md` and `docs/CONTINUE.md` before starting work.
 - Native Kotlin / Jetpack Compose app for a Samsung Galaxy Z Fold6. No server, Vercel deployment, account, analytics, or network permission.
-- Current milestone: fabricated conversations only, sending disabled, Google Messages remains the intended default. SMS access and default-role requests require explicit authorization for that milestone.
+- Owner authorized opt-in SMS receiving/sending on 2026-11-05. The companion reads Telephony and sends only after explicit number/body/SIM/part-count confirmation. Google Messages or another external app stays default for MMS, storage and notifications. Sample sending remains disabled; all development fixtures remain fabricated. Default-role requests, phone installation and carrier sends during tests are not authorized.
 - Preserve drafts and local metadata through app updates. Never use real messages as fixtures or log private message text.
 
 ## Development
@@ -33,7 +33,7 @@
 
 ## Git and phone updates
 
-- Develop new work on focused feature branches. Open a PR into `main`, describe the user-visible change and checks actually run, and wait for green CI. Merge when the owner agrees or has already authorized that scope.
+- Develop new work on focused feature branches. Open a PR into `main`, describe the user-visible change and checks actually run, and wait for green CI. The owner performs every merge; never merge or enable auto-merge.
 - Inspect status before committing and stage intended files by name. Use plain commit messages. Never force-push `main` or rewrite shared history.
 - Accumulate independently checked changes before a phone update. Local checks and CI do not require reinstalling after every feature. Agree on the batch before requesting phone installation.
 - Preserve application ID and signing identity for updates. CI and local debug keys may differ. Never suggest uninstalling around a signature mismatch without explaining draft loss and arranging preservation.

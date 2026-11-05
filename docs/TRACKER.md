@@ -1,6 +1,6 @@
 # FoldSMS feature tracker
 
-Batch 1: the original ten feature PRs plus two requested message-deletion features for the sample-data milestone. All content remains fabricated; no SMS/contact/network permission, default-role request, or sending. Current owner instruction (2026-11-04): focused PRs only; the owner performs all merges. No agents unless requested. Follow dependencies, keep each PR focused, and never merge during this review batch. Each item gets appropriate tests, local checks, independent review, and CI. Unexecuted Android tests and phone checks remain explicit.
+Batch 1: the original ten feature PRs plus two requested message-deletion features for the sample-data milestone. Sample content remains fabricated and its sending stays disabled. Owner authorized opt-in SMS companion receiving/sending on 2026-11-05; no default-role request or phone installation. Current owner instruction (2026-11-04): focused PRs only; the owner performs all merges. No agents unless requested. Follow dependencies, keep each PR focused, and never merge during this review batch. Each item gets appropriate tests, local checks, independent review, and CI. Unexecuted Android tests and phone checks remain explicit.
 
 Status: **Planned → In progress → PR open → Merged**. Close an item only after its PR is merged. Track phone validation separately; merging does not imply a device check. Include this file's status update in each feature PR; confirm merge state in the next PR or handoff. A postponed item needs a reason.
 
@@ -18,10 +18,11 @@ Status: **Planned → In progress → PR open → Merged**. Close an item only a
 | F-10 | Preview settings and safety information | Merged | [#18](https://github.com/nvrsbb/sims/pull/18) | Pending |
 | F-11 | Select individual messages and delete selected | Merged | [#16](https://github.com/nvrsbb/sims/pull/16) | Pending |
 | F-12 | Delete all messages | Merged | [#17](https://github.com/nvrsbb/sims/pull/17) | Pending |
-| F-13 | Export local preview data | PR open | [#22](https://github.com/nvrsbb/sims/pull/22) | Pending |
-| F-14 | Validate and restore a preview export | Planned | — | Pending |
+| F-13 | Export local preview data | Merged | [#22](https://github.com/nvrsbb/sims/pull/22) | Pending |
+| F-14 | Validate and restore a preview export | Postponed: owner prioritized SMS | — | Pending |
+| F-15 | Opt-in SMS receiving and sending companion | PR open (Android CI pending) | [#23](https://github.com/nvrsbb/sims/pull/23) | Pending |
 
-F-07–F-10 reached main through merged integration #18. Its 22 JVM tests and 25 emulator tests passed. No new phone checks are implied. Open follow-ups #19–#21 add hosted interaction CI, KSP and interrupted-draft recovery; their source remains unmerged.
+F-07–F-10 reached main through merged integration #18. Its 22 JVM tests and 25 emulator tests passed. No new phone checks are implied. #19 (hosted CI) and #22 (export) reached main at `83f7663`. #20 KSP and #21 interrupted-draft recovery remain separate; do not duplicate them.
 
 ## F-01 — Chronological sample message history
 
@@ -127,7 +128,7 @@ Completion: structured fields/text survive JSON parsing; storage iteration order
 
 ## F-14 — Validate and restore a preview export
 
-Status: **Planned**, depends on F-13. Validate format/version, size, all types, IDs and references before any writes; reject truncated/unsupported files. Preview affected data and require explicit confirmation. Define conflict handling and a durable journal for interrupted Room/preference application, including rollback/reconciliation tests. Prove complete round-trip, cancellation, duplicate/invalid data, failure/relaunch and preservation of unrelated drafts. No real Telephony restore in this feature.
+Status: **Postponed** because the owner prioritized receiving/sending SMS for the next PR; depends on merged F-13. Validate format/version, size, all types, IDs and references before any writes; reject truncated/unsupported files. Preview affected data and require explicit confirmation. Define conflict handling and a durable journal for interrupted Room/preference application, including rollback/reconciliation tests. Prove complete round-trip, cancellation, duplicate/invalid data, failure/relaunch and preservation of unrelated drafts. No real Telephony restore in this feature.
 
 ## Engineering follow-ups
 
@@ -157,4 +158,14 @@ Existing baseline: the owner reported draft isolation, fold/unfold, and relaunch
 
 ### E-04 — Run Android interaction tests in CI
 
-Status: **PR open** — [#19](https://github.com/nvrsbb/sims/pull/19). Hosted build and all 25 baseline Android tests passed. The job uses isolated storage, report artifacts, bounded runtime and cancellation. Local cloud KVM is unavailable. No phone data or sending.
+Status: **Merged** — [#19](https://github.com/nvrsbb/sims/pull/19). Hosted build and all 25 baseline Android tests passed. The job uses isolated storage, report artifacts, bounded runtime and cancellation. Local cloud KVM is unavailable. No phone data or sending.
+
+## F-15 — Opt-in SMS receiving and sending companion
+
+Status: **PR open**, [#23](https://github.com/nvrsbb/sims/pull/23); Android execution pending. Owner authorized this priority on 2026-11-05. Settings opens a separate permission-gated device SMS inbox and durable composer. Read the latest 200 provider rows without inserts, mark-read writes or body/time deduplication; observe changes and refresh after incoming SMS. Keep an external default app for MMS, notifications and system persistence. No default-role request.
+
+Sending requires an active explicit SIM, valid number, intact multipart encoding (maximum ten parts), and confirmation of recipient, body, SIM and carrier charges. Separate durable per-part journal prevents duplicate dispatch per draft revision and automatic retries. Uncertain/partial outcomes retain text; another attempt requires an explicit duplicate-charge warning and review. Late callbacks cannot clear newer edits. All test sends use a fake platform. Preview export excludes real SMS, its composer and journal.
+
+Remaining gates: hosted Android execution, installer-dependent restricted permission grants, native-provider receive smoke, real SIM/carrier send callbacks, process death and Fold6 checks. Carrier and owner-phone tests are not authorized here. See `SMS_TRANSPORT.md` for limits and follow-ups.
+
+F-15 local verification: 31 JVM tests, lint, debug APK and Android-test APK assembly passed. Only three baseline lint warnings (backup rules, icon, kapt) remain. Existing preview schemas are unchanged; new SMS journal schema 1 is separate. Android tests compile; hosted execution pending.
