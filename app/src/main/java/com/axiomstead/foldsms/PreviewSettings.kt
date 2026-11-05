@@ -15,7 +15,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 
 @Composable
-internal fun PreviewSettings(theme: ThemeChoice, onThemeChange: (ThemeChoice) -> Unit, onDismiss: () -> Unit) {
+internal fun PreviewSettings(theme: ThemeChoice, onThemeChange: (ThemeChoice) -> Unit, onDismiss: () -> Unit, onOpenSms: (() -> Unit)? = null) {
     var exporting by remember { mutableStateOf(false) }
     Dialog(onDismissRequest = { if (!exporting) onDismiss() }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -46,9 +46,12 @@ internal fun PreviewSettings(theme: ThemeChoice, onThemeChange: (ThemeChoice) ->
                     PreviewExportSection(onBusyChange = { exporting = it })
                     Text("Preview capabilities", style = MaterialTheme.typography.titleMedium)
                     Text("Available: browse fabricated conversations, filter samples, inspect and copy sample text, and save local drafts.")
-                    Text("Sending is disabled. This preview cannot read, receive, or send SMS/MMS, access contacts, or provide message notifications. Sample sent labels do not represent real delivery.")
+                    Text("Sending from sample conversations is disabled. Optional SMS companion mode can read device SMS and send through your selected SIM after explicit access and permissions. It does not handle MMS, contacts or notifications. Sample sent labels do not represent real delivery.")
+                    Text("Device SMS", style = MaterialTheme.typography.titleMedium)
+                    Text("SMS companion data is separate from sample drafts. Preview export excludes device SMS, the SMS composer and its send journal.")
+                    onOpenSms?.let { open -> TextButton(enabled = !exporting, onClick = open) { Text("Open SMS companion") } }
                     Text("Default messaging app", style = MaterialTheme.typography.titleMedium)
-                    Text("Keep Google Messages as your default. A future SMS milestone needs explicit authorization and tested sending, receiving, MMS, notifications, and backup restoration before replacement. This screen does not request the default SMS role or permissions.")
+                    Text("Keep Google Messages as default for provider storage, MMS and notifications. FoldSMS cannot yet replace it; MMS, backup/restore and carrier checks remain. SMS access is requested only inside the opt-in companion screen, never on preview launch.")
                 }
             }
         }

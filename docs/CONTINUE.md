@@ -2,12 +2,12 @@
 
 ## Current state
 
-- Owner merged integration #18. Main baseline is `948c2d6`, including F-01–F-12, pins/archive, custom samples and settings with deletion support.
-- Follow-ups #19 (hosted emulator CI), #20 (Room KSP), and #21 (interrupted draft recovery) are open, unmerged. Their CI passed; #21 ran 28 Android tests. Do not duplicate them.
-- Current feature F-13 is versioned local preview export through Android’s document picker. It does not read real SMS/MMS or enable sending. Import/restore remains F-14 and must be tested before calling backup/restore complete.
+- Owner merged #18, #19 and #22. Main baseline is `83f7663`, including F-01–F-13 and hosted emulator CI.
+- Follow-ups #20 (Room KSP) and #21 (interrupted draft recovery) remain open, unmerged. Their CI passed; #21 ran 28 Android tests. Do not duplicate them.
+- Current feature F-15 is opt-in SMS receiving/sending, prioritized explicitly by the owner. Preview restore F-14 is postponed. F-13 preview export remains fabricated-data only and excludes all SMS companion storage.
 - Create focused PRs into main; the owner performs every merge. Do not use agents unless requested. Keep updates about outcomes, blockers and verification rather than file-change or agent activity details.
 - Telegram is the UI reference: clean conversation lists, readable hierarchy, restrained chrome and direct actions, adapted to native Android/Fold layouts and the shared semantic palette.
-- Fabricated data only, sending disabled, no SMS/contact/network permissions or role requests. Google Messages remains the intended default. No phone installation is authorized in this batch. Replacement gates: `docs/REPLACEMENT_PLAN.md`.
+- Tests use fabricated data and fake sending only. Sample sending stays disabled. Companion access is opt-in and permission-gated; no default-role prompt or phone installation. Google Messages remains default. Replacement gates: `docs/REPLACEMENT_PLAN.md`.
 
 ## Implemented behavior
 
@@ -48,10 +48,18 @@ Confirm the emulator serial before tests; never target the owner's phone or clea
 
 ## Next work
 
-F-13 preview export is open as [#22](https://github.com/nvrsbb/sims/pull/22), stacked on #19 for hosted Android checks. Await green CI and owner review. The owner performs every merge. Then implement F-14 validated import/restore with preview/confirmation, no-write cancellation, interrupted-operation recovery and end-to-end round-trip tests. F-13 export alone does not complete the backup/restore replacement gate.
-
-Real SMS access, default-role prompts and transport still require a separately authorized milestone. Keep Google Messages default, sending disabled, fixtures fabricated, and phone installation unrequested.
+Complete F-15 opt-in SMS companion checks and open its focused PR into main. Do not install on the owner phone or perform real carrier sends. Preserve existing worktrees and open #20/#21. Never merge. Resume F-14 restore after SMS priority; export alone does not complete the backup/restore gate. See `SMS_TRANSPORT.md` for transport limits and follow-ups.
 
 ## F-13 verification
 
-Local full wrapper checks passed: 27 JVM tests, lint, debug APK and Android-test APK. The Unicode regression reproduced a lossy isolated-code-unit write and now passes with JSON escapes. Three local baseline lint warnings remain: backup rules, application icon and kapt (addressed separately by #20). No Room schema change. Initial hosted execution passed 29/30 tests and exposed a mutable-reference writing checkpoint during Compose restoration. An explicit Boolean saver now freezes that checkpoint before cancellation cleanup; the unchanged regression is being rerun after another successful local full check. Hosted checks use the #19 stack; the current cloud host has no KVM. Document streams report success only after close, chooser cancellation does not capture/open data, and interrupted UI state permits retry. Source preferences and Room data are read-only during export. Actual activity/process death and physical Fold6 behavior remain separate from Compose saved-state tests.
+Local full wrapper checks passed: 27 JVM tests, lint, debug APK and Android-test APK. The Unicode regression reproduced a lossy isolated-code-unit write and now passes with JSON escapes. Three local baseline lint warnings remain: backup rules, application icon and kapt (addressed separately by #20). No Room schema change. Initial hosted execution passed 29/30 tests and exposed a mutable-reference writing checkpoint during Compose restoration. An explicit Boolean saver now freezes that checkpoint before cancellation cleanup; the unchanged regression then passed in hosted CI (30 Android tests total). Hosted checks use the #19 stack; the current cloud host has no KVM. Document streams report success only after close, chooser cancellation does not capture/open data, and interrupted UI state permits retry. Source preferences and Room data are read-only during export. Actual activity/process death and physical Fold6 behavior remain separate from Compose saved-state tests.
+
+## F-15 implementation handoff
+
+Feature branch `feature/sms-companion`, isolated worktree, based on owner-merged main `83f7663`. Settings exposes opt-in inbox/composer without requesting default role. Separate composer preferences and Room journal schema 1 leave preview metadata schema 4 and draft keys intact. Consent/permission/default/SIM gates are rechecked at handoff; no default-SIM fallback. No outgoing body copies in journal. Pending or partial attempts never resend automatically. Restricted SMS grants depend on installer allowlisting; fail closed without a bypass. Hosted checkpoints are recorded below and in PR checks; do not claim carrier or device readiness. No native carrier-send API is used by tests.
+
+F-15 local checks passed: 31 JVM tests, lint (three existing warnings), debug and Android-test APK assembly. Initial hosted Android execution ran 47 tests: 45 passed, one failed at the first simulated-commit assertion, and the dedicated smoke was skipped in the ordinary suite. Fluent delegation in the test wrapper returned the real editor, bypassing simulated failure; the wrapper now retains chaining and returns failure after a memory update. Assertions remain unchanged. Current rerun and dedicated smoke results are in PR #23 checks. #21 was retargeted from the merged #19 branch to main; its implementation was not duplicated.
+
+Follow-up blocker: GitHub reports #21 merge conflicts after retargeting to main. Preserve its existing worktree/branch, reconcile current documentation and any source conflicts, then rerun checks. Keep that work separate from F-15.
+
+F-15 code head `262b90d`: hosted build and all 46 ordinary Android tests passed (guarded smoke skipped in that phase). Dedicated smoke stopped before permission granting because Gradle had uninstalled the packages; CI setup now reinstalls the matching build APKs on its disposable emulator. Rerun results are in PR checks.

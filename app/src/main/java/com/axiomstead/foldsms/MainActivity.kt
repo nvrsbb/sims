@@ -46,10 +46,12 @@ internal fun PreviewApp(
     metadataStore: ConversationMetadataStore? = null,
     customStore: CustomSampleConversationStore? = null,
     wide: Boolean = LocalConfiguration.current.screenWidthDp >= 600,
-    deletionStore: SampleDeletionStore? = null
+    deletionStore: SampleDeletionStore? = null,
+    smsCompanion: SmsServices? = null
 ) {
     var theme by remember { mutableStateOf(themeStore.get()) }
     var showSettings by rememberSaveable { mutableStateOf(false) }
+    var showSms by rememberSaveable { mutableStateOf(false) }
     val dark = theme.usesDarkColors(isSystemInDarkTheme())
     val colors = if (dark) darkColorScheme(
         primary = Color(0xFFF2A26A), onPrimary = Color(0xFF112022),
@@ -72,8 +74,15 @@ internal fun PreviewApp(
         if (showSettings) PreviewSettings(
             theme = theme,
             onThemeChange = { theme = it; themeStore.save(it) },
-            onDismiss = { showSettings = false }
+            onDismiss = { showSettings = false },
+            onOpenSms = { showSettings = false; showSms = true }
         )
+        if (showSms) androidx.compose.ui.window.Dialog(
+            onDismissRequest = { showSms = false; showSettings = true },
+            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Surface(Modifier.fillMaxSize()) { SmsCompanionRoute(onClose = { showSms = false; showSettings = true }, supplied = smsCompanion) }
+        }
     }
 }
 

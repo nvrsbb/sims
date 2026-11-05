@@ -1,6 +1,6 @@
 # FoldSMS — private Android SMS replacement prototype
 
-Version 0.1 is a sample inbox for a Samsung Galaxy Z Fold6. It cannot read, send, receive, modify, or delete real messages. It has no SMS or network permissions and does not request the default SMS role.
+FoldSMS includes a fabricated preview and an optional SMS companion for a Samsung Galaxy Z Fold6. Sample sending stays disabled. Settings → Open SMS companion offers permission-gated device SMS reading and explicitly confirmed SIM-specific sending. Access starts disabled; Android and the installer may refuse restricted SMS permissions. Keep Google Messages or another capable messaging app default for MMS, notifications and message storage. FoldSMS does not request the default SMS role and is not yet a dependable replacement. No network permission or backend. See [SMS transport behavior and validation limits](docs/SMS_TRANSPORT.md).
 
 ## Current preview
 
@@ -31,16 +31,16 @@ This session's temporary build tools live in the originating Codex chat's `work/
 
 The configured repository is `https://github.com/nvrsbb/sims.git`. The **Android debug APK** workflow runs unit tests, Android lint, and debug assembly on pull requests and pushes to `main`, with JDK 17 and the wrapper. Its **FoldSMS-debug-apk** artifact contains the APK. Local build success does not verify a GitHub Actions run. A unit-test task reporting `NO-SOURCE` means no unit tests ran.
 
-CI also compiles the Android UI-test APK (`:app:assembleDebugAndroidTest`). This does not execute UI tests; use `:app:connectedDebugAndroidTest` on a dedicated test emulator/device for that. UI tests use fabricated data.
+CI compiles the Android test APK and runs isolated API 35 interaction/storage tests on a disposable emulator. A separate guarded smoke injects a fabricated inbound SMS through the emulator console and checks the native provider reader. Outgoing tests use a fake platform; they never call native carrier sending. Local assembly alone does not execute Android tests.
 
 See [the working agreements](AGENTS.md) for development, review, merge, and phone update practices. Features can be checked individually, then installed on the phone as a batch.
 
-## First Fold6 check
+## Planned Fold6 check (owner authorization required)
 
 1. Keep Google Messages as the default SMS app.
 2. Install only the preview APK and open **FoldSMS Preview**.
 3. Check search, filters, opening a conversation, and the in-app Back button on the cover screen.
 4. Unfold and check that the inbox and conversation fit side by side. Also check text at your normal font size and in multi-window mode.
-5. Confirm that sending stays disabled and that no SMS permission or default-app prompt appears.
+5. Confirm sample sending stays disabled and preview launch requests no SMS permissions or default role. Do not enable the companion or send carrier messages as part of this preview check; arrange a separately authorized test window.
 
 Device launch and fold behavior require a physical-device check. Do not treat this prototype as a functioning messenger. Before any future default-app trial, complete the backup, restore, two-way SMS/MMS, notification, and rollback gates in the specification.
