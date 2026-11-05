@@ -3,6 +3,10 @@
 ## Product intent
 Private, local-first SMS/MMS replacement for a single Samsung Galaxy Z Fold6. Phase 1 is a **non-invasive demonstrator**. No SMS permissions, no role change, no real message access, no account, no server and no telemetry.
 
+## Authorized incremental milestone — 2026-11-05
+
+Owner prioritized real SMS receive/send before preview restore. Add an opt-in nondefault SMS companion, preserving Google Messages for MMS, notification and provider ownership. Require runtime permissions, explicit active-SIM selection and reviewed send confirmation. All tests remain fabricated with fake sending; no owner-phone installation. This intermediate milestone does not complete P2/P3 or establish replacement readiness. See `SMS_TRANSPORT.md`.
+
 ## UI direction
 
 Owner preference: use Telegram as a design reference for its straightforward, no-nonsense interface. Favor a clean conversation list, clear typography and hierarchy, restrained chrome, readable message bubbles, and direct, discoverable actions. Adapt these principles to native Android navigation and the Fold6 cover and expanded layouts while retaining the shared semantic palette, flat fills, accessibility, and light/dark themes. This is visual and interaction inspiration; it does not expand the SMS/MMS product scope.
