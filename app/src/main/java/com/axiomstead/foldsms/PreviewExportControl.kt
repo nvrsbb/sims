@@ -9,6 +9,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.Saver
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -16,6 +17,11 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+
+// Save a value, not a MutableState reference that cancellation cleanup can still change.
+private val writingCheckpointSaver = Saver<MutableState<Boolean>, Boolean>(
+    save = { it.value }, restore = { mutableStateOf(it) }
+)
 
 @Composable
 internal fun PreviewExportSection(
@@ -25,7 +31,7 @@ internal fun PreviewExportSection(
     val context = LocalContext.current.applicationContext
     val scope = rememberCoroutineScope()
     var busy by remember { mutableStateOf(false) }
-    var writing by rememberSaveable { mutableStateOf(false) }
+    var writing by rememberSaveable(saver = writingCheckpointSaver) { mutableStateOf(false) }
     var status by rememberSaveable { mutableStateOf<String?>(null) }
     val interrupted = remember { writing }
     LaunchedEffect(Unit) {
