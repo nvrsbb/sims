@@ -75,7 +75,10 @@ class NavigationRestorationTest {
         compose.onNodeWithTag("category-filter-Finance").performScrollTo().performClick()
         compose.onNodeWithTag("inbox-search").performTextInput("Bank")
         compose.runOnIdle { dismissKeyboard() }
-        compose.onNodeWithTag("thread_2").performClick()
+        // Keyboard dismissal animates the list bounds; tap only after the IME is hidden.
+        compose.waitUntil(5_000) { !keyboardVisible }
+        compose.waitForIdle()
+        compose.onNodeWithTag("thread_2").assertIsDisplayed().performClick()
         compose.onNodeWithTag("conversation-history-2").assertExists()
         restoration.emulateSavedInstanceStateRestore()
         compose.onNodeWithTag("conversation-history-2").assertExists()
