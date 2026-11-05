@@ -28,6 +28,34 @@ class NewSampleConversationUiTest {
         preferences.edit().clear().commit()
     }
 
+    @Test fun recoveryCanBeCancelledThenRestoresTheOriginalDraft() {
+        val text = "Fabricated saved recovery draft"
+        drafts.saveInitial(-8, text)
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent {
+            MaterialTheme { FoldSmsApp(store = drafts, wide = false, metadataStore = metadata,
+                customStore = custom, deletionStore = SampleDeletionStore(preferences)) }
+        }
+        compose.waitUntil(timeoutMillis = 5_000) { compose.onAllNodesWithText("Recover saved drafts (1)").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText("Recover saved drafts (1)").performClick()
+        compose.onNodeWithTag("recover-draft--8").performScrollTo().performClick()
+        compose.onNodeWithText("Cancel").performClick()
+        compose.runOnIdle { org.junit.Assert.assertEquals(text, drafts.get(-8)) }
+        compose.onNodeWithText("Recover saved drafts (1)").performClick()
+        compose.onNodeWithTag("recover-draft--8").performScrollTo().performClick()
+        compose.onNodeWithText("Sample name").performScrollTo().performTextInput("Recovered sample")
+        restoration.emulateSavedInstanceStateRestore()
+        compose.waitUntil(timeoutMillis = 5_000) { compose.onAllNodesWithText("Recover saved draft").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText("Sample name").assertTextContains("Recovered sample")
+        compose.onNodeWithText("Initial draft (optional)").assertTextContains(text)
+        compose.onNodeWithText("Fabricated address").performScrollTo().performTextInput("202-555-0197")
+        compose.onNodeWithText("Recover draft").performClick()
+        compose.waitUntil { compose.onAllNodesWithTag("conversation-history--8").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText(text).assertExists()
+        compose.onNodeWithText("Local sample · Unsent draft only").assertExists()
+        compose.runOnIdle { org.junit.Assert.assertEquals(text, drafts.get(-8)) }
+    }
+
     @Test fun creationOpensAnUnsentDraftAndRestoresItsConversationAndCategory() {
         val restoration = StateRestorationTester(compose)
         restoration.setContent {

@@ -9,6 +9,12 @@ internal class DraftStore(private val preferences: SharedPreferences) {
 
     fun get(threadId: Int): String = preferences.getString("thread_$threadId", "") ?: ""
 
+    fun customDrafts(): Map<Int, String> = preferences.all.mapNotNull { (key, value) ->
+        val id = key.takeIf { it.startsWith("thread_") }?.removePrefix("thread_")?.toIntOrNull()
+        val text = value as? String
+        if (id != null && id < 0 && !text.isNullOrEmpty()) id to text else null
+    }.toMap()
+
     fun lowestCustomThreadId(): Int? = preferences.all.keys.mapNotNull { key ->
         key.takeIf { it.startsWith("thread_") }?.removePrefix("thread_")?.toIntOrNull()?.takeIf { it < 0 }
     }.minOrNull()
