@@ -1,0 +1,131 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "c5d92e7a686f5c60c5ad6d47b7610507",
+    "entities": [
+      {
+        "tableName": "sms_attempts",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `draftRevision` INTEGER NOT NULL, `recipient` TEXT NOT NULL, `bodyDigest` TEXT NOT NULL, `subscriptionId` INTEGER NOT NULL, `partCount` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `stage` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "draftRevision",
+            "columnName": "draftRevision",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "recipient",
+            "columnName": "recipient",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bodyDigest",
+            "columnName": "bodyDigest",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "subscriptionId",
+            "columnName": "subscriptionId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "partCount",
+            "columnName": "partCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stage",
+            "columnName": "stage",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_sms_attempts_draftRevision",
+            "unique": false,
+            "columnNames": [
+              "draftRevision"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_sms_attempts_draftRevision` ON `${TABLE_NAME}` (`draftRevision`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "sms_parts",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`operationId` TEXT NOT NULL, `partIndex` INTEGER NOT NULL, `resultCode` INTEGER, PRIMARY KEY(`operationId`, `partIndex`), FOREIGN KEY(`operationId`) REFERENCES `sms_attempts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "operationId",
+            "columnName": "operationId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "partIndex",
+            "columnName": "partIndex",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "resultCode",
+            "columnName": "resultCode",
+            "affinity": "INTEGER",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "operationId",
+            "partIndex"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": [
+          {
+            "table": "sms_attempts",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "operationId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'c5d92e7a686f5c60c5ad6d47b7610507')"
+    ]
+  }
+}

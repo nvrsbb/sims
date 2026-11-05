@@ -1,25 +1,26 @@
-# FoldSMS handoff — 2026-11-04
+# FoldSMS handoff — 2026-11-05
 
 ## Current state
 
-- Owner merged PRs #15–#17. Main baseline is `4a3d57f`, with green merged-main CI. F-01–F-06 and F-11/F-12 are on main.
-- F-07–F-10 were previously merged into stacked feature branches without reaching main. The integration branch `feature/integrate-preview-features` brings pins, archive/restore, custom local sample conversations and remembered appearance/settings together with current deletion behavior. Await owner review/merge; do not mark those features delivered to main yet.
+- Owner merged #18, #19, #22 and #23. Main baseline is `a03c7ac`, including F-01–F-13, opt-in SMS companion F-15 and hosted emulator CI.
+- Follow-ups #20 (Room KSP) and #21 (interrupted draft recovery) remain open, unmerged. Their earlier CI passed; #21 ran 28 Android tests before the latest main refresh. Refreshed-head results are in the respective PR checks. Do not duplicate them.
+- F-15 opt-in SMS receiving/sending reached main through owner-merged #23. Preview restore F-14 is postponed. F-13 preview export remains fabricated-data only and excludes all SMS companion storage.
 - Create focused PRs into main; the owner performs every merge. Do not use agents unless requested. Keep updates about outcomes, blockers and verification rather than file-change or agent activity details.
 - Telegram is the UI reference: clean conversation lists, readable hierarchy, restrained chrome and direct actions, adapted to native Android/Fold layouts and the shared semantic palette.
-- Fabricated data only, sending disabled, no SMS/contact/network permissions or role requests. Google Messages remains the intended default. No phone installation is authorized in this batch. Replacement gates: `docs/REPLACEMENT_PLAN.md`.
+- Tests use fabricated data and fake sending only. Sample sending stays disabled. Companion access is opt-in and permission-gated; no default-role prompt or phone installation. Google Messages remains default. Replacement gates: `docs/REPLACEMENT_PLAN.md`.
 
 ## Implemented behavior
 
 Histories/details/copy, durable per-conversation drafts, draft indicators/confirmed clearing, saved navigation, full-history search, category overrides, and selected/conversation/app-wide sample-message deletion with persistent latest-operation undo. Confirmations preserve explicit scopes and counts; a new deletion replaces the previous undo. Empty conversation shells and drafts remain.
 
-The pending integration adds deterministic pin ordering, reversible archive, custom conversations with fabricated addresses and unsent drafts, and Light/Dark/Device settings. App-wide deletion includes archived histories and leaves pins, archive flags, custom conversation rows and all drafts intact. Compact scrolling action rows keep controls reachable.
+Main includes deterministic pin ordering, reversible archive, custom conversations with fabricated addresses and unsent drafts, and Light/Dark/Device settings. App-wide deletion includes archived histories and leaves pins, archive flags, custom conversation rows and all drafts intact. Compact scrolling action rows keep controls reachable.
 
 ## Storage
 
 - Keep application ID `com.axiomstead.foldsms`, signing identity and legacy `sample_drafts` / `thread_<id>` preference keys.
-- Main uses Room metadata schema 1; integration includes explicit 1→2→3→4 migrations for nullable category/pins, archive and custom conversations. Migration and reopen tests run on isolated databases. No destructive fallback.
+- Main uses Room metadata schema 4, with explicit 1→2→3→4 migrations for nullable category/pins, archive and custom conversations. Migration and reopen tests run on isolated databases. No destructive fallback.
 - Sample deletion stores hidden fixture IDs and latest undo IDs together in a separate preference file. It does not touch Telephony or custom drafts.
-- Custom conversations use reserved negative IDs. E-03 remains a known recovery follow-up: initial draft preferences and the Room row cannot commit atomically. Reserving negative draft IDs prevents later creation from overwriting an orphan draft.
+- Custom conversations use reserved negative IDs. E-03 is addressed in open PR #21: initial draft preferences and the Room row cannot commit atomically. Reserving negative draft IDs prevents later creation from overwriting an orphan draft.
 
 ## Actual verification
 
@@ -47,8 +48,26 @@ Confirm the emulator serial before tests; never target the owner's phone or clea
 
 ## Next work
 
-Local verification is complete. Open the integration PR; wait for green CI and owner merge. Then address E-03 interrupted initial draft recovery and E-02 kapt/KSP separately. Agree on a useful phone-check batch. SMS/MMS transport and default-role implementation require a separately authorized milestone with carrier and backup/restore verification; no automatic scope expansion.
+Review refreshed open PRs #20 (KSP) and #21 (interrupted sample draft recovery). Do not install on the owner phone or perform real carrier sends. Preserve existing worktrees. The owner performs every PR merge; never merge or enable auto-merge. Resume F-14 restore after SMS priority; export alone does not complete the backup/restore gate. See `SMS_TRANSPORT.md` for transport limits and follow-ups.
 
-## Current follow-up batch
+## F-13 verification
 
-Owner merged integration #18; pins, archive, custom samples and settings are now on main with deletion support. This request authorizes three further PRs; never merge. E-02 replaces kapt with Kotlin-compatible KSP without changing Room versions or schema JSON. Local JVM/lint/debug/Android-test APK checks pass; no cloud emulator/KVM. Other follow-ups: E-03 interrupted-draft recovery and E-04 hosted emulator CI. Sending disabled; fabricated data only.
+Local full wrapper checks passed: 27 JVM tests, lint, debug APK and Android-test APK. The Unicode regression reproduced a lossy isolated-code-unit write and now passes with JSON escapes. Three local baseline lint warnings remain: backup rules, application icon and kapt (addressed separately by #20). No Room schema change. Initial hosted execution passed 29/30 tests and exposed a mutable-reference writing checkpoint during Compose restoration. An explicit Boolean saver now freezes that checkpoint before cancellation cleanup; the unchanged regression then passed in hosted CI (30 Android tests total). Hosted checks use the #19 stack; the current cloud host has no KVM. Document streams report success only after close, chooser cancellation does not capture/open data, and interrupted UI state permits retry. Source preferences and Room data are read-only during export. Actual activity/process death and physical Fold6 behavior remain separate from Compose saved-state tests.
+
+## F-15 implementation handoff
+
+Feature branch `feature/sms-companion`, isolated worktree, based on owner-merged main `83f7663`. Settings exposes opt-in inbox/composer without requesting default role. Separate composer preferences and Room journal schema 1 leave preview metadata schema 4 and draft keys intact. Consent/permission/default/SIM gates are rechecked at handoff; no default-SIM fallback. No outgoing body copies in journal. Pending or partial attempts never resend automatically. Restricted SMS grants depend on installer allowlisting; fail closed without a bypass. Hosted checkpoints are recorded below and in PR checks; do not claim carrier or device readiness. No native carrier-send API is used by tests.
+
+F-15 local checks passed: 31 JVM tests, lint (three existing warnings), debug and Android-test APK assembly. Initial hosted Android execution ran 47 tests: 45 passed, one failed at the first simulated-commit assertion, and the dedicated smoke was skipped in the ordinary suite. Fluent delegation in the test wrapper returned the real editor, bypassing simulated failure; the wrapper now retains chaining and returns failure after a memory update. Assertions remain unchanged. Current rerun and dedicated smoke results are in PR #23 checks. #21 was retargeted from the merged #19 branch to main; its implementation was not duplicated.
+
+The owner requested conflict resolution for all open PRs. Existing branches #20 and #21 were refreshed from main `a03c7ac` without rewriting history. Only tracker/handoff documents conflicted; preserve the current SMS milestone alongside each original feature. KSP stays in #20 and recovery stays in #21. No PR is merged by the agent.
+
+F-15 code head `262b90d`: hosted build and all 46 ordinary Android tests passed (guarded smoke skipped in that phase). Dedicated smoke stopped before permission granting because Gradle had uninstalled the packages; CI setup now reinstalls the matching build APKs on its disposable emulator. Rerun results are in PR checks.
+
+## Open PR conflict refresh — 2026-11-05
+
+F-15 head `3c00024` passed build, all 46 ordinary Android tests and the separate native-provider synthetic inbound SMS smoke before owner merge. Carrier sends remain untested; all outgoing tests use fakes.
+
+#20 retains Kotlin 2.0.21 / KSP 2.0.21-1.0.28 / Room 2.6.1. Compare all exported preview schemas and the new SMS journal schema against main; no migration or identity change is intended. #21 retains cancellation-after-draft-commit recovery, original reserved negative IDs/text, duplicate/missing-draft guards and restored-form tests. No Room migration or ordinary typing change is intended. The refreshed branches retain preview export and opt-in SMS unchanged. Local and hosted refresh verification is tracked in each PR; prior-head results alone do not verify the refresh. Physical Fold6 and actual process-death checks remain separate.
+
+Conflict-refresh local verification: both branches passed 31 JVM tests, lint, debug APK and Android-test APK assembly. Exported preview schemas 1–4 and SMS journal schema 1 match main exactly. #20 has two existing lint warnings (backup rules and icon); #21 retains those plus the separate kapt advisory. Hosted refreshed-head Android execution is tracked in the PR checks; no phone or carrier send was performed.

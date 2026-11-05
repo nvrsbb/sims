@@ -23,3 +23,14 @@ The owner-provided `argon-grok-backlog.md` is a planning input, not an override 
 ## Efficient verification
 
 Run relevant local checks before pushing; push once per reviewable revision. GitHub Actions builds PRs and main, with superseded runs cancelled per PR/ref. Keep emulator interaction tests local for now. Never mark compiled instrumentation tests as executed or equate assembly with restoration/fold verification.
+
+## First data-preservation features
+
+- F-13: versioned preview export through Android CreateDocument, explicit unencrypted-file confirmation, read-only snapshot and write/close failure handling. No SMS/provider access or new permissions.
+- F-14: validated preview import/restore, with preview/confirmation, no-write cancellation, collision checks, cross-store interruption journal and complete round-trip tests. Export alone does not satisfy backup AND restoration.
+
+These features advance local data preservation within the fabricated-data milestone. They do not authorize role requests, real messages, transport, phone installation or a default-app trial. The transport queue and physical/carrier gates above remain separate.
+
+## Authorized SMS companion increment — 2026-11-05
+
+Owner prioritized opt-in SMS receipt/send before F-14 preview restore. F-15 keeps an external app default, reads SMS provider rows without writes, and confirms each subscription-specific send with per-part results. This does not complete the default-role/MMS/notification or backup/restore gates. All development sends are fake; no owner-phone installation or carrier send has been performed. Restricted permission grants remain installer-dependent. See `SMS_TRANSPORT.md`.
