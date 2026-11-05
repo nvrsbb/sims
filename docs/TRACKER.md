@@ -20,7 +20,7 @@ Status: **Planned → In progress → PR open → Merged**. Close an item only a
 | F-12 | Delete all messages | Merged | [#17](https://github.com/nvrsbb/sims/pull/17) | Pending |
 | F-13 | Export local preview data | Merged | [#22](https://github.com/nvrsbb/sims/pull/22) | Pending |
 | F-14 | Validate and restore a preview export | Postponed: owner prioritized SMS | — | Pending |
-| F-15 | Opt-in SMS receiving and sending companion | PR open (Android CI pending) | [#23](https://github.com/nvrsbb/sims/pull/23) | Pending |
+| F-15 | Opt-in SMS receiving and sending companion | PR open | [#23](https://github.com/nvrsbb/sims/pull/23) | Pending |
 
 F-07–F-10 reached main through merged integration #18. Its 22 JVM tests and 25 emulator tests passed. No new phone checks are implied. #19 (hosted CI) and #22 (export) reached main at `83f7663`. #20 KSP and #21 interrupted-draft recovery remain separate; do not duplicate them.
 
@@ -162,10 +162,12 @@ Status: **Merged** — [#19](https://github.com/nvrsbb/sims/pull/19). Hosted bui
 
 ## F-15 — Opt-in SMS receiving and sending companion
 
-Status: **PR open**, [#23](https://github.com/nvrsbb/sims/pull/23); Android execution pending. Owner authorized this priority on 2026-11-05. Settings opens a separate permission-gated device SMS inbox and durable composer. Read the latest 200 provider rows without inserts, mark-read writes or body/time deduplication; observe changes and refresh after incoming SMS. Keep an external default app for MMS, notifications and system persistence. No default-role request.
+Status: **PR open**, [#23](https://github.com/nvrsbb/sims/pull/23). Owner authorized this priority on 2026-11-05. Settings opens a separate permission-gated device SMS inbox and durable composer. Read the latest 200 provider rows without inserts, mark-read writes or body/time deduplication; observe changes and refresh after incoming SMS. Keep an external default app for MMS, notifications and system persistence. No default-role request.
 
 Sending requires an active explicit SIM, valid number, intact multipart encoding (maximum ten parts), and confirmation of recipient, body, SIM and carrier charges. Separate durable per-part journal prevents duplicate dispatch per draft revision and automatic retries. Uncertain/partial outcomes retain text; another attempt requires an explicit duplicate-charge warning and review. Late callbacks cannot clear newer edits. All test sends use a fake platform. Preview export excludes real SMS, its composer and journal.
 
-Remaining gates: hosted Android execution, installer-dependent restricted permission grants, native-provider receive smoke, real SIM/carrier send callbacks, process death and Fold6 checks. Carrier and owner-phone tests are not authorized here. See `SMS_TRANSPORT.md` for limits and follow-ups.
+Verification checkpoints and current hosted results are in PR #23. Remaining device gates: installer-dependent restricted permission grants, real SIM/carrier send callbacks, process death and Fold6 checks. Carrier and owner-phone tests are not authorized here. See `SMS_TRANSPORT.md` for limits and follow-ups.
 
-F-15 local verification: 31 JVM tests, lint, debug APK and Android-test APK assembly passed. Only three baseline lint warnings (backup rules, icon, kapt) remain. Existing preview schemas are unchanged; new SMS journal schema 1 is separate. Android tests compile; hosted execution pending.
+F-15 local verification: 31 JVM tests, lint, debug APK and Android-test APK assembly passed. Only three baseline lint warnings (backup rules, icon, kapt) remain. Existing preview schemas are unchanged; new SMS journal schema 1 is separate. Android tests compile; initial hosted execution ran 47 tests (45 passed, one failed in the fluent fault-injection wrapper, one guarded smoke skipped). The wrapper is corrected; the assertions remain unchanged. See PR checks for the rerun and dedicated native receive smoke results.
+
+Follow-up blocker: #21 was retargeted to main after #19 merged; GitHub reports merge conflicts against `83f7663`. Resolve on its existing branch and rerun checks before owner review; do not recreate recovery or mix it into SMS.

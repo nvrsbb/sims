@@ -178,7 +178,11 @@ class SmsSendControllerTest {
         val failing = object : SharedPreferences by consentPreferences {
             override fun edit(): SharedPreferences.Editor {
                 val editor = consentPreferences.edit()
-                return object : SharedPreferences.Editor by editor { override fun commit() = false }
+                return object : SharedPreferences.Editor by editor {
+                    override fun putBoolean(key: String?, value: Boolean): SharedPreferences.Editor = apply { editor.putBoolean(key, value) }
+                    override fun putString(key: String?, value: String?): SharedPreferences.Editor = apply { editor.putString(key, value) }
+                    override fun commit(): Boolean { editor.apply(); return false }
+                }
             }
         }
         val store = SmsConsentStore(failing)
