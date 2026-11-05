@@ -129,11 +129,11 @@ Completion: run `:app:connectedDebugAndroidTest` successfully, including the mes
 
 ### E-02 — Replace Room kapt processing with compatible KSP
 
-Status: **Planned**. F-06 introduces the `KaptUsageInsteadOfKsp` lint advisory; the existing backup-extraction and application-icon warnings remain separate. Keep the current verified Kotlin/Room versions stable for this batch, then evaluate a compatible KSP setup and compare generated schemas before changing processors. No runtime failure was observed.
+Status: **PR open**. Kotlin-compatible KSP 2.0.21-1.0.28 replaces kapt for Room 2.6.1; exported schema versions 1–4 and identity hashes are unchanged. JVM tests, lint, debug and Android-test APK builds pass. Android tests compile locally; cloud KVM is unavailable. F-06 introduced the `KaptUsageInsteadOfKsp` lint advisory; the existing backup-extraction and application-icon warnings remain separate. Keep the current verified Kotlin/Room versions stable for this batch, then evaluate a compatible KSP setup and compare generated schemas before changing processors. No runtime failure was observed.
 
 ### E-03 — Recover interrupted sample-conversation drafts
 
-Status: **Planned**. F-09 writes the initial draft durably before committing its Room conversation row. Cancellation or database commit failure between those stores can leave an unattached draft; reserved negative IDs prevent later creation from overwriting it. Add a targeted cancellation regression and a deliberate recovery path. Ordinary typing retains the existing draft preference keys and behavior.
+Status: **PR open**. Recovery lists unattached negative-ID drafts and reattaches the original ID/text to an explicitly named fabricated conversation. Cancellation, duplicate addresses and missing/already-attached drafts preserve saved text. Added cancellation-after-preference-commit and form restoration regression tests. Local JVM/lint/APK checks pass; hosted interaction execution is pending. F-09 writes the initial draft durably before committing its Room conversation row. Cancellation or database commit failure between those stores can leave an unattached draft; reserved negative IDs prevent later creation from overwriting it. Add a targeted cancellation regression and a deliberate recovery path. Ordinary typing retains the existing draft preference keys and behavior.
 
 ## Batch phone check results
 
@@ -143,4 +143,6 @@ Existing baseline: the owner reported draft isolation, fold/unfold, and relaunch
 
 ### E-04 — Run Android interaction tests in CI
 
-Status: **In progress**. Add a disposable API 35 emulator job after build checks, with isolated storage, report artifacts, bounded runtime and cancellation. CI execution is the acceptance gate; local cloud KVM is unavailable. No phone data or sending.
+Status: **PR open** — [#19](https://github.com/nvrsbb/sims/pull/19). Disposable API 35 emulator CI passed its build and complete interaction/storage suite. Reports upload on failure, runtime is bounded and obsolete runs cancel. Local cloud KVM remains unavailable. No phone data or sending.
+
+Current follow-up PRs: [#19 hosted interaction CI](https://github.com/nvrsbb/sims/pull/19), [#20 Room KSP](https://github.com/nvrsbb/sims/pull/20), and E-03 recovery stacked on #19. Earlier feature integration #18 is merged to main; no new agent merges.

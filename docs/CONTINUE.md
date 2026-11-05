@@ -48,3 +48,7 @@ Confirm the emulator serial before tests; never target the owner's phone or clea
 ## Next work
 
 Local verification is complete. Open the integration PR; wait for green CI and owner merge. Then address E-03 interrupted initial draft recovery and E-02 kapt/KSP separately. Agree on a useful phone-check batch. SMS/MMS transport and default-role implementation require a separately authorized milestone with carrier and backup/restore verification; no automatic scope expansion.
+
+## New follow-up batch
+
+Integration #18 is confirmed merged into main. This batch opens exactly three focused PRs: #19 disposable hosted emulator tests (CI passed), #20 Kotlin-compatible Room KSP (local and CI builds passed; schemas unchanged), and E-03 unattached-draft recovery stacked on #19. Recovery keeps the original negative ID and exact text, adds no Room migration, and preserves drafts on cancellation/duplicate input. Local full checks pass; hosted recovery-specific interaction tests are the remaining gate. Sending stays disabled, data fabricated, no phone installation or merge.
