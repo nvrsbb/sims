@@ -18,7 +18,7 @@ Status: **Planned → In progress → PR open → Merged**. Close an item only a
 | F-10 | Preview settings and safety information | Merged | [#18](https://github.com/nvrsbb/sims/pull/18) | Pending |
 | F-11 | Select individual messages and delete selected | Merged | [#16](https://github.com/nvrsbb/sims/pull/16) | Pending |
 | F-12 | Delete all messages | Merged | [#17](https://github.com/nvrsbb/sims/pull/17) | Pending |
-| F-13 | Export local preview data | PR open | Review branch | Pending |
+| F-13 | Export local preview data | PR open | [#22](https://github.com/nvrsbb/sims/pull/22) | Pending |
 | F-14 | Validate and restore a preview export | Planned | — | Pending |
 
 F-07–F-10 reached main through merged integration #18. Its 22 JVM tests and 25 emulator tests passed. No new phone checks are implied. Open follow-ups #19–#21 add hosted interaction CI, KSP and interrupted-draft recovery; their source remains unmerged.

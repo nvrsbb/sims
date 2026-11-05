@@ -48,7 +48,7 @@ Confirm the emulator serial before tests; never target the owner's phone or clea
 
 ## Next work
 
-Finish F-13 preview export and open its tested PR, stacked on #19 for hosted Android checks. The owner performs every merge. Then implement F-14 validated import/restore with preview/confirmation, no-write cancellation, interrupted-operation recovery and end-to-end round-trip tests. F-13 export alone does not complete the backup/restore replacement gate.
+F-13 preview export is open as [#22](https://github.com/nvrsbb/sims/pull/22), stacked on #19 for hosted Android checks. Await green CI and owner review. The owner performs every merge. Then implement F-14 validated import/restore with preview/confirmation, no-write cancellation, interrupted-operation recovery and end-to-end round-trip tests. F-13 export alone does not complete the backup/restore replacement gate.
 
 Real SMS access, default-role prompts and transport still require a separately authorized milestone. Keep Google Messages default, sending disabled, fixtures fabricated, and phone installation unrequested.
 
