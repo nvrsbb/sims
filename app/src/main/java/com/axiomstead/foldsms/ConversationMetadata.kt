@@ -21,6 +21,9 @@ interface ConversationMetadataDao {
     @Query("SELECT * FROM conversation_metadata")
     fun observeCategories(): Flow<List<ConversationMetadata>>
 
+    @Query("SELECT * FROM conversation_metadata ORDER BY threadId")
+    suspend fun getAll(): List<ConversationMetadata>
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertIfAbsent(value: ConversationMetadata)
 
