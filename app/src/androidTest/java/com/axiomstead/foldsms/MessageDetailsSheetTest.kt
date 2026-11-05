@@ -29,12 +29,20 @@ class MessageDetailsSheetTest {
         compose.onNodeWithText("Time: ${selected.fullTimestamp}").assertExists()
         compose.onNodeWithText(selected.body).assertExists()
         compose.onNodeWithText("Copy text").performScrollTo().performClick()
-        compose.runOnIdle {
-            val context = InstrumentationRegistry.getInstrumentation().targetContext
-            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-            assertEquals(selected.body, clipboard.primaryClip?.getItemAt(0)?.text?.toString())
-            clipboard.clearPrimaryClip()
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        // Clipboard reads can lag behind the click on a freshly focused emulator window, so poll briefly.
+        var copied: String? = null
+        val deadline = System.currentTimeMillis() + 5_000
+        while (copied == null && System.currentTimeMillis() < deadline) {
+            compose.waitForIdle()
+            InstrumentationRegistry.getInstrumentation().runOnMainSync {
+                copied = clipboard.primaryClip?.getItemAt(0)?.text?.toString()
+            }
+            if (copied == null) Thread.sleep(100)
         }
+        assertEquals(selected.body, copied)
+        InstrumentationRegistry.getInstrumentation().runOnMainSync { clipboard.clearPrimaryClip() }
         compose.onNodeWithText("Close").performScrollTo().performClick()
         compose.onNodeWithText("Message details").assertDoesNotExist()
         compose.onNodeWithText("Unsent test draft").assertExists()
