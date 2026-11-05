@@ -23,3 +23,10 @@ The owner-provided `argon-grok-backlog.md` is a planning input, not an override 
 ## Efficient verification
 
 Run relevant local checks before pushing; push once per reviewable revision. GitHub Actions builds PRs and main, with superseded runs cancelled per PR/ref. Keep emulator interaction tests local for now. Never mark compiled instrumentation tests as executed or equate assembly with restoration/fold verification.
+
+## First data-preservation features
+
+- F-13: versioned preview export through Android CreateDocument, explicit unencrypted-file confirmation, read-only snapshot and write/close failure handling. No SMS/provider access or new permissions.
+- F-14: validated preview import/restore, with preview/confirmation, no-write cancellation, collision checks, cross-store interruption journal and complete round-trip tests. Export alone does not satisfy backup AND restoration.
+
+These features advance local data preservation within the fabricated-data milestone. They do not authorize role requests, real messages, transport, phone installation or a default-app trial. The transport queue and physical/carrier gates above remain separate.

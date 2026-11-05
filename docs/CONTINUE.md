@@ -1,9 +1,10 @@
-# FoldSMS handoff — 2026-11-04
+# FoldSMS handoff — 2026-11-05
 
 ## Current state
 
-- Owner merged PRs #15–#17. Main baseline is `4a3d57f`, with green merged-main CI. F-01–F-06 and F-11/F-12 are on main.
-- F-07–F-10 were previously merged into stacked feature branches without reaching main. The integration branch `feature/integrate-preview-features` brings pins, archive/restore, custom local sample conversations and remembered appearance/settings together with current deletion behavior. Await owner review/merge; do not mark those features delivered to main yet.
+- Owner merged integration #18. Main baseline is `948c2d6`, including F-01–F-12, pins/archive, custom samples and settings with deletion support.
+- Follow-ups #19 (hosted emulator CI), #20 (Room KSP), and #21 (interrupted draft recovery) are open, unmerged. Their CI passed; #21 ran 28 Android tests. Do not duplicate them.
+- Current feature F-13 is versioned local preview export through Android’s document picker. It does not read real SMS/MMS or enable sending. Import/restore remains F-14 and must be tested before calling backup/restore complete.
 - Create focused PRs into main; the owner performs every merge. Do not use agents unless requested. Keep updates about outcomes, blockers and verification rather than file-change or agent activity details.
 - Telegram is the UI reference: clean conversation lists, readable hierarchy, restrained chrome and direct actions, adapted to native Android/Fold layouts and the shared semantic palette.
 - Fabricated data only, sending disabled, no SMS/contact/network permissions or role requests. Google Messages remains the intended default. No phone installation is authorized in this batch. Replacement gates: `docs/REPLACEMENT_PLAN.md`.
@@ -12,14 +13,14 @@
 
 Histories/details/copy, durable per-conversation drafts, draft indicators/confirmed clearing, saved navigation, full-history search, category overrides, and selected/conversation/app-wide sample-message deletion with persistent latest-operation undo. Confirmations preserve explicit scopes and counts; a new deletion replaces the previous undo. Empty conversation shells and drafts remain.
 
-The pending integration adds deterministic pin ordering, reversible archive, custom conversations with fabricated addresses and unsent drafts, and Light/Dark/Device settings. App-wide deletion includes archived histories and leaves pins, archive flags, custom conversation rows and all drafts intact. Compact scrolling action rows keep controls reachable.
+Main includes deterministic pin ordering, reversible archive, custom conversations with fabricated addresses and unsent drafts, and Light/Dark/Device settings. App-wide deletion includes archived histories and leaves pins, archive flags, custom conversation rows and all drafts intact. Compact scrolling action rows keep controls reachable.
 
 ## Storage
 
 - Keep application ID `com.axiomstead.foldsms`, signing identity and legacy `sample_drafts` / `thread_<id>` preference keys.
-- Main uses Room metadata schema 1; integration includes explicit 1→2→3→4 migrations for nullable category/pins, archive and custom conversations. Migration and reopen tests run on isolated databases. No destructive fallback.
+- Main uses Room metadata schema 4, with explicit 1→2→3→4 migrations for nullable category/pins, archive and custom conversations. Migration and reopen tests run on isolated databases. No destructive fallback.
 - Sample deletion stores hidden fixture IDs and latest undo IDs together in a separate preference file. It does not touch Telephony or custom drafts.
-- Custom conversations use reserved negative IDs. E-03 remains a known recovery follow-up: initial draft preferences and the Room row cannot commit atomically. Reserving negative draft IDs prevents later creation from overwriting an orphan draft.
+- Custom conversations use reserved negative IDs. E-03 is addressed in open PR #21: initial draft preferences and the Room row cannot commit atomically. Reserving negative draft IDs prevents later creation from overwriting an orphan draft.
 
 ## Actual verification
 
@@ -47,4 +48,10 @@ Confirm the emulator serial before tests; never target the owner's phone or clea
 
 ## Next work
 
-Local verification is complete. Open the integration PR; wait for green CI and owner merge. Then address E-03 interrupted initial draft recovery and E-02 kapt/KSP separately. Agree on a useful phone-check batch. SMS/MMS transport and default-role implementation require a separately authorized milestone with carrier and backup/restore verification; no automatic scope expansion.
+Finish F-13 preview export and open its tested PR, stacked on #19 for hosted Android checks. The owner performs every merge. Then implement F-14 validated import/restore with preview/confirmation, no-write cancellation, interrupted-operation recovery and end-to-end round-trip tests. F-13 export alone does not complete the backup/restore replacement gate.
+
+Real SMS access, default-role prompts and transport still require a separately authorized milestone. Keep Google Messages default, sending disabled, fixtures fabricated, and phone installation unrequested.
+
+## F-13 verification
+
+Local full wrapper checks passed: 27 JVM tests, lint, debug APK and Android-test APK. The Unicode regression reproduced a lossy isolated-code-unit write and now passes with JSON escapes. Three local baseline lint warnings remain: backup rules, application icon and kapt (addressed separately by #20). No Room schema change. Hosted interaction checks will run through the #19 stack; the current cloud host has no KVM. Document streams report success only after close, chooser cancellation does not capture/open data, and interrupted UI state permits retry. Source preferences and Room data are read-only during export. Actual activity/process death and physical Fold6 behavior remain separate from Compose saved-state tests.
