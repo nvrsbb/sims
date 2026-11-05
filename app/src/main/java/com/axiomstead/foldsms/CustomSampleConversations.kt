@@ -4,6 +4,8 @@ import androidx.room.*
 import androidx.room.withTransaction
 import kotlinx.coroutines.flow.Flow
 import java.io.IOException
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 
 @Entity(tableName = "custom_sample_conversations", indices = [Index(value = ["normalizedAddress"], unique = true)])
 data class CustomSampleConversation(
@@ -33,6 +35,14 @@ abstract class CustomSampleConversationDao {
         insert(conversation)
         return conversation to input.draft
     }
+
+    @Transaction
+    open suspend fun recover(id: Int, name: String, address: String, draft: String, fixtureAddresses: List<String>): CustomSampleConversation {
+        val existing = getConversations()
+        require(id < 0 && existing.none { it.id == id }) { "This draft already belongs to a conversation." }
+        val input = validateNewSampleConversation(name, address, draft, fixtureAddresses + existing.map { it.address })
+        return CustomSampleConversation(id, input.name, input.address, input.normalizedAddress).also { insert(it) }
+    }
 }
 
 /** Keep creation and initial draft together before making the new row visible. */
@@ -46,6 +56,14 @@ internal class CustomSampleConversationStore(
         database.withTransaction {
             val (conversation, initialDraft) = database.customConversations().create(name, address, draft, fixtureAddresses, drafts.lowestCustomThreadId())
             if (!drafts.saveInitial(conversation.id, initialDraft)) throw IOException("Could not save the initial draft.")
+            currentCoroutineContext().ensureActive()
             conversation
+        }
+
+    suspend fun recover(id: Int, name: String, address: String, fixtureAddresses: List<String>): CustomSampleConversation =
+        database.withTransaction {
+            val text = drafts.customDrafts()[id]
+            require(text != null) { "This saved draft is no longer available." }
+            database.customConversations().recover(id, name, address, text, fixtureAddresses)
         }
 }

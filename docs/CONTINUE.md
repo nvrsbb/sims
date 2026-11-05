@@ -2,9 +2,9 @@
 
 ## Current state
 
-- Owner merged #18, #19 and #22. Main baseline is `83f7663`, including F-01–F-13 and hosted emulator CI.
-- Follow-ups #20 (Room KSP) and #21 (interrupted draft recovery) remain open, unmerged. Their CI passed; #21 ran 28 Android tests. Do not duplicate them.
-- Current feature F-15 is opt-in SMS receiving/sending, prioritized explicitly by the owner. Preview restore F-14 is postponed. F-13 preview export remains fabricated-data only and excludes all SMS companion storage.
+- Owner merged #18, #19, #22 and #23. Main baseline is `a03c7ac`, including F-01–F-13, opt-in SMS companion F-15 and hosted emulator CI.
+- Follow-ups #20 (Room KSP) and #21 (interrupted draft recovery) remain open, unmerged. Their earlier CI passed; #21 ran 28 Android tests before the latest main refresh. Refreshed-head results are in the respective PR checks. Do not duplicate them.
+- F-15 opt-in SMS receiving/sending reached main through owner-merged #23. Preview restore F-14 is postponed. F-13 preview export remains fabricated-data only and excludes all SMS companion storage.
 - Create focused PRs into main; the owner performs every merge. Do not use agents unless requested. Keep updates about outcomes, blockers and verification rather than file-change or agent activity details.
 - Telegram is the UI reference: clean conversation lists, readable hierarchy, restrained chrome and direct actions, adapted to native Android/Fold layouts and the shared semantic palette.
 - Tests use fabricated data and fake sending only. Sample sending stays disabled. Companion access is opt-in and permission-gated; no default-role prompt or phone installation. Google Messages remains default. Replacement gates: `docs/REPLACEMENT_PLAN.md`.
@@ -48,7 +48,7 @@ Confirm the emulator serial before tests; never target the owner's phone or clea
 
 ## Next work
 
-Complete F-15 opt-in SMS companion checks and open its focused PR into main. Do not install on the owner phone or perform real carrier sends. Preserve existing worktrees and open #20/#21. Never merge. Resume F-14 restore after SMS priority; export alone does not complete the backup/restore gate. See `SMS_TRANSPORT.md` for transport limits and follow-ups.
+Review refreshed open PRs #20 (KSP) and #21 (interrupted sample draft recovery). Do not install on the owner phone or perform real carrier sends. Preserve existing worktrees. The owner performs every PR merge; never merge or enable auto-merge. Resume F-14 restore after SMS priority; export alone does not complete the backup/restore gate. See `SMS_TRANSPORT.md` for transport limits and follow-ups.
 
 ## F-13 verification
 
@@ -60,6 +60,14 @@ Feature branch `feature/sms-companion`, isolated worktree, based on owner-merged
 
 F-15 local checks passed: 31 JVM tests, lint (three existing warnings), debug and Android-test APK assembly. Initial hosted Android execution ran 47 tests: 45 passed, one failed at the first simulated-commit assertion, and the dedicated smoke was skipped in the ordinary suite. Fluent delegation in the test wrapper returned the real editor, bypassing simulated failure; the wrapper now retains chaining and returns failure after a memory update. Assertions remain unchanged. Current rerun and dedicated smoke results are in PR #23 checks. #21 was retargeted from the merged #19 branch to main; its implementation was not duplicated.
 
-Follow-up blocker: GitHub reports #21 merge conflicts after retargeting to main. Preserve its existing worktree/branch, reconcile current documentation and any source conflicts, then rerun checks. Keep that work separate from F-15.
+The owner requested conflict resolution for all open PRs. Existing branches #20 and #21 were refreshed from main `a03c7ac` without rewriting history. Only tracker/handoff documents conflicted; preserve the current SMS milestone alongside each original feature. KSP stays in #20 and recovery stays in #21. No PR is merged by the agent.
 
 F-15 code head `262b90d`: hosted build and all 46 ordinary Android tests passed (guarded smoke skipped in that phase). Dedicated smoke stopped before permission granting because Gradle had uninstalled the packages; CI setup now reinstalls the matching build APKs on its disposable emulator. Rerun results are in PR checks.
+
+## Open PR conflict refresh — 2026-11-05
+
+F-15 head `3c00024` passed build, all 46 ordinary Android tests and the separate native-provider synthetic inbound SMS smoke before owner merge. Carrier sends remain untested; all outgoing tests use fakes.
+
+#20 retains Kotlin 2.0.21 / KSP 2.0.21-1.0.28 / Room 2.6.1. Compare all exported preview schemas and the new SMS journal schema against main; no migration or identity change is intended. #21 retains cancellation-after-draft-commit recovery, original reserved negative IDs/text, duplicate/missing-draft guards and restored-form tests. No Room migration or ordinary typing change is intended. The refreshed branches retain preview export and opt-in SMS unchanged. Local and hosted refresh verification is tracked in each PR; prior-head results alone do not verify the refresh. Physical Fold6 and actual process-death checks remain separate.
+
+Conflict-refresh local verification: both branches passed 31 JVM tests, lint, debug APK and Android-test APK assembly. Exported preview schemas 1–4 and SMS journal schema 1 match main exactly. #20 has two existing lint warnings (backup rules and icon); #21 retains those plus the separate kapt advisory. Hosted refreshed-head Android execution is tracked in the PR checks; no phone or carrier send was performed.

@@ -20,7 +20,7 @@ Status: **Planned → In progress → PR open → Merged**. Close an item only a
 | F-12 | Delete all messages | Merged | [#17](https://github.com/nvrsbb/sims/pull/17) | Pending |
 | F-13 | Export local preview data | Merged | [#22](https://github.com/nvrsbb/sims/pull/22) | Pending |
 | F-14 | Validate and restore a preview export | Postponed: owner prioritized SMS | — | Pending |
-| F-15 | Opt-in SMS receiving and sending companion | PR open | [#23](https://github.com/nvrsbb/sims/pull/23) | Pending |
+| F-15 | Opt-in SMS receiving and sending companion | Merged | [#23](https://github.com/nvrsbb/sims/pull/23) | Pending |
 
 F-07–F-10 reached main through merged integration #18. Its 22 JVM tests and 25 emulator tests passed. No new phone checks are implied. #19 (hosted CI) and #22 (export) reached main at `83f7663`. #20 KSP and #21 interrupted-draft recovery remain separate; do not duplicate them.
 
@@ -162,7 +162,7 @@ Status: **Merged** — [#19](https://github.com/nvrsbb/sims/pull/19). Hosted bui
 
 ## F-15 — Opt-in SMS receiving and sending companion
 
-Status: **PR open**, [#23](https://github.com/nvrsbb/sims/pull/23). Owner authorized this priority on 2026-11-05. Settings opens a separate permission-gated device SMS inbox and durable composer. Read the latest 200 provider rows without inserts, mark-read writes or body/time deduplication; observe changes and refresh after incoming SMS. Keep an external default app for MMS, notifications and system persistence. No default-role request.
+Status: **Merged** through owner-merged [#23](https://github.com/nvrsbb/sims/pull/23), main `a03c7ac`. Owner authorized this priority on 2026-11-05. Settings opens a separate permission-gated device SMS inbox and durable composer. Read the latest 200 provider rows without inserts, mark-read writes or body/time deduplication; observe changes and refresh after incoming SMS. Keep an external default app for MMS, notifications and system persistence. No default-role request.
 
 Sending requires an active explicit SIM, valid number, intact multipart encoding (maximum ten parts), and confirmation of recipient, body, SIM and carrier charges. Separate durable per-part journal prevents duplicate dispatch per draft revision and automatic retries. Uncertain/partial outcomes retain text; another attempt requires an explicit duplicate-charge warning and review. Late callbacks cannot clear newer edits. All test sends use a fake platform. Preview export excludes real SMS, its composer and journal.
 
@@ -170,4 +170,10 @@ Verification checkpoints and current hosted results are in PR #23. Remaining dev
 
 F-15 local verification: 31 JVM tests, lint, debug APK and Android-test APK assembly passed. Only three baseline lint warnings (backup rules, icon, kapt) remain. Existing preview schemas are unchanged; new SMS journal schema 1 is separate. Android tests compile; initial hosted execution ran 47 tests (45 passed, one failed in the fluent fault-injection wrapper, one guarded smoke skipped). The wrapper is corrected; the assertions remain unchanged. See PR checks for the rerun and dedicated native receive smoke results.
 
-Follow-up blocker: #21 was retargeted to main after #19 merged; GitHub reports merge conflicts against `83f7663`. Resolve on its existing branch and rerun checks before owner review; do not recreate recovery or mix it into SMS.
+Conflict refresh: existing PRs #20 and #21 incorporate main `a03c7ac` without rewriting shared history. Only tracker/handoff documentation conflicted. Preserve KSP in #20, recovery in #21, and main’s preview export/SMS behavior in both. Review refreshed-head checks on each PR; the owner performs all PR merges.
+
+E-02 implementation: Kotlin-compatible KSP 2.0.21-1.0.28 processes Room 2.6.1; preview schema versions 1–4 and SMS journal schema 1 must remain identical to main. E-03 implementation: list unattached negative-ID drafts and recover their original ID/text after explicit fabricated name/address entry; cancellation, duplicates and missing/already-attached drafts preserve text. Its original 28 Android tests passed; current refresh results are recorded on #21. Both statuses remain PR open until owner merge.
+
+F-15 final pre-merge verification: 31 JVM tests, build/lint, 46 ordinary Android tests and the separate synthetic inbound provider smoke passed at `3c00024`. The guarded smoke is skipped in the ordinary phase and executed separately. Real carrier sends, phone installation and replacement readiness are not implied.
+
+Conflict-refresh local verification: both branches passed 31 JVM tests, lint, debug APK and Android-test APK assembly. Exported preview schemas 1–4 and SMS journal schema 1 match main exactly. #20 has two existing lint warnings (backup rules and icon); #21 retains those plus the separate kapt advisory. Hosted refreshed-head Android execution is tracked in the PR checks; no phone or carrier send was performed.

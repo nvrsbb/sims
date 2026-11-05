@@ -5,6 +5,8 @@ import android.content.SharedPreferences
 import android.database.sqlite.SQLiteDatabase
 import androidx.room.Room
 import androidx.test.platform.app.InstrumentationRegistry
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.first
@@ -78,6 +80,57 @@ class CustomSampleConversationsTest {
             database.close()
             preferences.edit().clear().commit()
         }
+    }
+
+    @Test fun interruptionAfterDraftCommitCanBeRecoveredWithoutCopyingOrOverwritingText() = runBlocking {
+        val database = Room.inMemoryDatabaseBuilder(context, ConversationMetadataDatabase::class.java).build()
+        val preferences = context.getSharedPreferences("recover-cancel-${UUID.randomUUID()}", Context.MODE_PRIVATE)
+        val exactText = "  Fabricated recovery\nsecond line  "
+        lateinit var creation: Job
+        val interrupting = object : SharedPreferences by preferences {
+            override fun edit(): SharedPreferences.Editor {
+                val edit = preferences.edit()
+                return object : SharedPreferences.Editor by edit {
+                    override fun commit(): Boolean {
+                        val saved = edit.commit()
+                        creation.cancel()
+                        return saved
+                    }
+                }
+            }
+        }
+        try {
+            preferences.edit().putString("thread_1", "Existing sample draft").commit()
+            creation = launch { CustomSampleConversationStore(database, DraftStore(interrupting))
+                .create("Sample interrupted", "202-555-0199", exactText, emptyList()) }
+            creation.join()
+            assertTrue(creation.isCancelled)
+            assertTrue(database.customConversations().getConversations().isEmpty())
+            val reopenedDrafts = DraftStore(preferences)
+            assertEquals(exactText, reopenedDrafts.customDrafts()[-1])
+            val store = CustomSampleConversationStore(database, reopenedDrafts)
+            val restored = store.recover(-1, "Recovered sample", "202-555-0199", emptyList())
+            assertEquals(-1, restored.id)
+            assertEquals(exactText, DraftStore(preferences).get(-1))
+            assertEquals("Existing sample draft", reopenedDrafts.get(1))
+            assertEquals(listOf(restored), database.customConversations().getConversations())
+            assertTrue(runCatching { store.recover(-1, "Again", "202-555-0198", emptyList()) }.isFailure)
+            assertEquals(exactText, reopenedDrafts.get(-1))
+        } finally { database.close(); preferences.edit().clear().commit() }
+    }
+
+    @Test fun duplicateRecoveryAddressPreservesTheUnattachedDraft() = runBlocking {
+        val database = Room.inMemoryDatabaseBuilder(context, ConversationMetadataDatabase::class.java).build()
+        val preferences = context.getSharedPreferences("recover-duplicate-${UUID.randomUUID()}", Context.MODE_PRIVATE)
+        try {
+            val drafts = DraftStore(preferences)
+            drafts.saveInitial(-7, "Fabricated saved draft")
+            val store = CustomSampleConversationStore(database, drafts)
+            assertTrue(runCatching { store.recover(-7, "Sample", "1 (202) 555-0101", listOf("+1 202-555-0101")) }.isFailure)
+            assertTrue(database.customConversations().getConversations().isEmpty())
+            assertEquals("Fabricated saved draft", drafts.get(-7))
+            assertTrue(runCatching { store.recover(-8, "Missing", "202-555-0199", emptyList()) }.isFailure)
+        } finally { database.close(); preferences.edit().clear().commit() }
     }
 
     @Test fun concurrentFormattedDuplicatesProduceOneConversation() = runBlocking {

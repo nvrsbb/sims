@@ -24,6 +24,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -142,6 +143,27 @@ internal fun FoldSmsApp(
         pendingDeleteIds = ids.toList()
         pendingDeleteScope = scopeLabel
     }
+    var recoveryId by rememberSaveable { mutableStateOf<Int?>(null) }
+    var showRecovery by rememberSaveable { mutableStateOf(false) }
+    var recoveryRevision by remember { mutableIntStateOf(0) }
+    val recoverable = remember(customRows, draftStore, recoveryRevision) {
+        if (customRows == null) emptyMap() else draftStore.customDrafts().filterKeys { id -> customRows.orEmpty().none { it.id == id } }
+    }
+    if (showRecovery) AlertDialog(
+        onDismissRequest = { showRecovery = false },
+        title = { Text("Saved drafts to recover") },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                Text("These drafts were saved before their sample conversations finished creating. Choose one to recover. Nothing is sent or removed.")
+                recoverable.toSortedMap(reverseOrder()).entries.forEachIndexed { index, (id, text) ->
+                    TextButton(modifier = Modifier.testTag("recover-draft-$id"), onClick = { recoveryId = id; showRecovery = false }) {
+                        Column { Text("Saved draft ${index + 1}"); Text(text.take(120)) }
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = { showRecovery = false }) { Text("Close") } }
+    )
     var showNewSample by rememberSaveable { mutableStateOf(false) }
     var creatingSample by remember { mutableStateOf(false) }
     var createError by remember { mutableStateOf<String?>(null) }
@@ -162,16 +184,21 @@ internal fun FoldSmsApp(
     val activeVisible = (selected in archivedIds) == showArchive
     val filtered = searchConversations(orderedConversations(available, pinnedIds), search, filter)
     val active = threads.firstOrNull { it.id == selected }
-    if (showNewSample) NewSampleConversationDialog(
+    LaunchedEffect(customRows, recoveryId, creatingSample) {
+        if (customRows != null && !creatingSample && recoveryId?.let { it !in recoverable } == true) recoveryId = null
+    }
+    if (showNewSample || recoveryId?.let { it in recoverable } == true) key(recoveryId) { NewSampleConversationDialog(
         saving = creatingSample,
         error = createError,
-        onDismiss = { showNewSample = false; createError = null },
+        recoveryDraft = recoveryId?.let { recoverable[it] },
+        onDismiss = { showNewSample = false; recoveryId = null; createError = null },
         onCreate = { name, address, initialDraft ->
             creatingSample = true
             createError = null
             scope.launch {
                 try {
-                    val created = custom.create(name, address, initialDraft, exampleThreads.map { it.address })
+                    val created = recoveryId?.let { custom.recover(it, name, address, exampleThreads.map { thread -> thread.address }) }
+                        ?: custom.create(name, address, initialDraft, exampleThreads.map { it.address })
                     drafts[created.id] = draftStore.get(created.id)
                     selected = created.id
                     showConversation = true
@@ -179,6 +206,7 @@ internal fun FoldSmsApp(
                     filter = "All"
                     search = ""
                     showNewSample = false
+                    recoveryId = null
                 } catch (failure: IllegalArgumentException) {
                     createError = failure.message
                 } catch (_: android.database.sqlite.SQLiteConstraintException) {
@@ -186,11 +214,12 @@ internal fun FoldSmsApp(
                 } catch (_: java.io.IOException) {
                     createError = "The sample conversation could not be saved. Your existing drafts are unchanged."
                 } finally {
+                    recoveryRevision++
                     creatingSample = false
                 }
             }
         }
-    )
+    ) }
     if (active == null) {
         Surface(Modifier.fillMaxSize()) { Text("Loading local sample conversation…", Modifier.padding(20.dp)) }
         return
@@ -234,6 +263,7 @@ internal fun FoldSmsApp(
         Row {
             if (wide || !showConversation) {
                 Column(Modifier.weight(1f).fillMaxHeight().padding(horizontal = 18.dp, vertical = 20.dp)) {
+                    if (recoverable.isNotEmpty()) TextButton(onClick = { showRecovery = true }) { Text("Recover saved drafts (${recoverable.size})") }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("FoldSMS", modifier = Modifier.weight(1f), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                         SampleDeletionMenu("inbox", "Delete all messages in app", sampleMessageIds(threads).isNotEmpty() && !deletionBusy) {
