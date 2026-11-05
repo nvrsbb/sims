@@ -48,3 +48,7 @@ Confirm the emulator serial before tests; never target the owner's phone or clea
 ## Next work
 
 Local verification is complete. Open the integration PR; wait for green CI and owner merge. Then address E-03 interrupted initial draft recovery and E-02 kapt/KSP separately. Agree on a useful phone-check batch. SMS/MMS transport and default-role implementation require a separately authorized milestone with carrier and backup/restore verification; no automatic scope expansion.
+
+## Current follow-up batch
+
+Owner merged integration #18; pins, archive, custom samples and settings are now on main with deletion support. This request authorizes three further PRs; never merge. E-02 replaces kapt with Kotlin-compatible KSP without changing Room versions or schema JSON. Local JVM/lint/debug/Android-test APK checks pass; no cloud emulator/KVM. Other follow-ups: E-03 interrupted-draft recovery and E-04 hosted emulator CI. Sending disabled; fabricated data only.

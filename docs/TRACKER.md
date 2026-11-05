@@ -129,7 +129,7 @@ Completion: run `:app:connectedDebugAndroidTest` successfully, including the mes
 
 ### E-02 — Replace Room kapt processing with compatible KSP
 
-Status: **Planned**. F-06 introduces the `KaptUsageInsteadOfKsp` lint advisory; the existing backup-extraction and application-icon warnings remain separate. Keep the current verified Kotlin/Room versions stable for this batch, then evaluate a compatible KSP setup and compare generated schemas before changing processors. No runtime failure was observed.
+Status: **PR open**. Kotlin-compatible KSP 2.0.21-1.0.28 replaces kapt for Room 2.6.1; exported schema versions 1–4 and identity hashes are unchanged. JVM tests, lint, debug and Android-test APK builds pass. Android tests compile locally; cloud KVM is unavailable. F-06 introduced the `KaptUsageInsteadOfKsp` lint advisory; the existing backup-extraction and application-icon warnings remain separate. Keep the current verified Kotlin/Room versions stable for this batch, then evaluate a compatible KSP setup and compare generated schemas before changing processors. No runtime failure was observed.
 
 ### E-03 — Recover interrupted sample-conversation drafts
 
