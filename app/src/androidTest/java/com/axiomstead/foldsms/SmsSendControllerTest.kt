@@ -149,6 +149,31 @@ class SmsSendControllerTest {
         assertEquals(1, platform.requests.size)
     }
 
+    @Test fun journalReopenRetainsPartialResultsAndReconcilesWithoutResending() = runBlocking {
+        val saved = draft()
+        val file = "sms-journal-${UUID.randomUUID()}.db"
+        val id = UUID.randomUUID().toString()
+        try {
+            val first = Room.databaseBuilder(context, SmsSendDatabase::class.java, file).build()
+            try {
+                first.sends().prepare(SmsSendAttempt(id, saved.revision, "+12025550199", smsBodyDigest(saved.body), 7, 2, 0))
+                first.sends().beginDispatch(id)
+                first.sends().recordResult(id, 1, SMS_NETWORK_SENT)
+            } finally { first.close() }
+            val reopened = Room.databaseBuilder(context, SmsSendDatabase::class.java, file).build()
+            try {
+                assertEquals("SUBMITTED", reopened.sends().attempt(id)!!.stage)
+                assertEquals(SMS_NETWORK_SENT, reopened.sends().parts(id)[1].resultCode)
+                val resumed = SmsSendController(platform, consent, SmsDraftStore(draftPreferences), reopened.sends())
+                resumed.reconcileCompletedDraft()
+                assertEquals(saved, drafts.read())
+                resumed.result(id, 0, SMS_NETWORK_SENT)
+                assertEquals("", drafts.read().body)
+                assertTrue(platform.requests.isEmpty())
+            } finally { reopened.close() }
+        } finally { context.deleteDatabase(file) }
+    }
+
     @Test fun failedConsentCommitIsFailClosedForThisProcess() {
         val failing = object : SharedPreferences by consentPreferences {
             override fun edit(): SharedPreferences.Editor {
