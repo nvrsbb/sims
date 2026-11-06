@@ -95,6 +95,7 @@ internal fun PreviewApp(
         onDispose {}
     }
     var conversationOpen by remember { mutableStateOf(false) }
+    val deviceState = rememberDeviceMessagesState(smsServices)
     val keyboardVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
     MaterialTheme(colorScheme = colors) {
         Scaffold(
@@ -122,13 +123,15 @@ internal fun PreviewApp(
         ) { padding ->
             Box(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
                 if (messageView == "Samples") viewStates.SaveableStateProvider("samples") {
-                    FoldSmsApp(
-                        store = draftStore, wide = wide, metadataStore = metadataStore, customStore = customStore,
-                        onOpenSettings = { showSettings = true }, deletionStore = deletionStore,
-                        onConversationOpen = { conversationOpen = it }
-                    )
+                    ChatsTab(deviceState, onOpenSettings = { showSettings = true }) { useDeviceMessages ->
+                        FoldSmsApp(
+                            store = draftStore, wide = wide, metadataStore = metadataStore, customStore = customStore,
+                            onOpenSettings = { showSettings = true }, deletionStore = deletionStore,
+                            onConversationOpen = { conversationOpen = it }, onUseDeviceMessages = useDeviceMessages
+                        )
+                    }
                 } else viewStates.SaveableStateProvider("device") {
-                    DeviceMessagesPane(supplied = smsServices)
+                    DeviceMessagesPane(state = deviceState)
                 }
             }
         }
@@ -148,7 +151,8 @@ internal fun FoldSmsApp(
     deletionStore: SampleDeletionStore? = null,
     customStore: CustomSampleConversationStore? = null,
     onOpenSettings: () -> Unit = {},
-    onConversationOpen: (Boolean) -> Unit = {}
+    onConversationOpen: (Boolean) -> Unit = {},
+    onUseDeviceMessages: (() -> Unit)? = null
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val draftStore = store ?: remember(context) { DraftStore(context.applicationContext) }
@@ -234,6 +238,7 @@ internal fun FoldSmsApp(
     BackHandler(enabled = !wide && showConversation && !keyboardVisible) { showConversation = false }
     val conversationFullScreen = !wide && showConversation
     SideEffect { onConversationOpen(conversationFullScreen) }
+    DisposableEffect(Unit) { onDispose { onConversationOpen(false) } }
     val pinnedIds = overrides.filter { it.pinned }.map { it.threadId }.toSet()
     val archivedIds = overrides.filter { it.archived }.map { it.threadId }.toSet()
     val available = archiveConversations(threads, archivedIds, showArchive)
@@ -329,7 +334,8 @@ internal fun FoldSmsApp(
                             MenuAction(if (showArchive) "Inbox" else "Archive") {
                                 showArchive = !showArchive; showConversation = false; selecting = false; selectedMessages = emptyList(); detailMessageId = null
                             },
-                            MenuAction("Settings", onClick = onOpenSettings),
+                            MenuAction("Settings", onClick = onOpenSettings)
+                        ) + listOfNotNull(onUseDeviceMessages?.let { MenuAction("Real messages", onClick = it) }) + listOf(
                             MenuAction("Delete all messages in app", sampleMessageIds(threads).isNotEmpty() && !deletionBusy) {
                                 requestDelete(sampleMessageIds(threads), "across the entire app, including conversations outside this search or category")
                             }

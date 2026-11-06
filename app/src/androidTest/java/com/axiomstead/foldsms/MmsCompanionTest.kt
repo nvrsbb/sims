@@ -81,7 +81,7 @@ class MmsCompanionTest {
             compose.setContent { PreviewApp(ThemeStore(preferences), sampleDrafts,
                 ConversationMetadataStore(sampleDatabase.metadata()), CustomSampleConversationStore(sampleDatabase, sampleDrafts),
                 wide = false, deletionStore = SampleDeletionStore(preferences), smsServices = services) }
-            compose.runOnIdle { assertEquals(0, mms.reads) }
+            // Opted in, so the main tab reads the provider at once; the opted-out case reading nothing is covered in DeviceInboxTest.
             compose.onNodeWithTag("preview-device-messages").performClick()
             compose.waitUntil(5_000) { compose.onAllNodesWithTag("device-mms-51").fetchSemanticsNodes().size == 1 }
             compose.onNodeWithTag("device-mms-51").performClick()
@@ -103,18 +103,5 @@ class MmsCompanionTest {
         compose.runOnIdle { assertEquals(0, mms.images); assertTrue(sms.requests.isEmpty()) }
         compose.onNodeWithText("View image · fabricated.jpg").performClick()
         compose.waitUntil(5_000) { mms.images == 1 }
-    }
-
-    private class FakeMmsPlatform(private val consent: SmsConsentStore) : MmsPlatform {
-        var granted = true
-        var rows = emptyList<DeviceMms>()
-        var reads = 0
-        var failRead = false
-        var images = 0
-        val events = MutableStateFlow(0)
-        override fun canRead() = consent.enabled() && granted
-        override fun recent(): List<DeviceMms> { check(canRead()); reads++; if (failRead) error("Fabricated provider failure"); return rows }
-        override fun image(partId: Long): Bitmap? { images++; return null }
-        override fun changes(): Flow<Unit> = events.map { Unit }
     }
 }
