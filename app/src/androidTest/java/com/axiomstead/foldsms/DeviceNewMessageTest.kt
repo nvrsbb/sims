@@ -43,10 +43,17 @@ class DeviceNewMessageTest {
     private fun start(number: String) {
         compose.onNodeWithTag("device-new-message").performClick()
         compose.onNodeWithTag("new-message-number").performTextInput(number)
-        compose.onNodeWithTag("new-message-continue").performClick()
+        // The keyboard opens with the text field; a semantic click avoids tapping a position it now covers.
+        compose.onNodeWithTag("new-message-continue").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
     }
 
     private fun waitInbox() = compose.waitUntil(5_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
+
+    @Test fun theButtonIsNotCoveredByTheListAndOpensTheDialogWithATapAtItsPosition() {
+        show(); waitInbox()
+        compose.onNodeWithTag("device-new-message").performClick() // a real touch, so a list drawn on top of it would swallow it
+        compose.onNodeWithTag("new-message-number").assertExists()
+    }
 
     @Test fun theButtonExistsOnlyForTheRealInboxWhenSendingIsAvailable() {
         show(optIn = false)
