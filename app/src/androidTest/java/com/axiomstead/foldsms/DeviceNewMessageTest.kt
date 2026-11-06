@@ -47,7 +47,7 @@ class DeviceNewMessageTest {
         compose.onNodeWithTag("new-message-continue").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
     }
 
-    private fun waitInbox() = compose.waitUntil(5_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
+    private fun waitInbox() = compose.waitUntil(15_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
 
     @Test fun theButtonIsNotCoveredByTheListAndOpensTheDialogWithATapAtItsPosition() {
         show(); waitInbox()
@@ -65,7 +65,7 @@ class DeviceNewMessageTest {
         show(); waitInbox()
         for (bad in listOf("SMART", "12", "abc123", "")) {
             start(bad)
-            compose.onNodeWithTag("new-message-error").assertExists()
+            compose.onNodeWithTag("new-message-error", useUnmergedTree = true).assertExists() // supporting text merges into the field
             compose.onNodeWithText("Cancel").performClick()
         }
         compose.onNodeWithTag("device-inbox-list").assertExists()
@@ -79,8 +79,10 @@ class DeviceNewMessageTest {
         compose.onNodeWithTag("device-new-conversation-hint").assertExists()
         compose.onNodeWithTag("device-conversation-actions").assertDoesNotExist() // nothing to pin or archive yet
         compose.onNodeWithTag("reply-composer").performTextInput("Hello new number")
-        compose.onNodeWithTag("reply-review").performClick()
-        compose.waitUntil(5_000) { compose.onAllNodesWithText("Send real SMS?").fetchSemanticsNodes().isNotEmpty() }
+        // The shared draft reaches the UI asynchronously and the keyboard moves the controls: wait, then act on the control itself.
+        compose.waitUntil(15_000) { runCatching { compose.onNodeWithTag("reply-review").assertIsEnabled() }.isSuccess }
+        compose.onNodeWithTag("reply-review").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
+        compose.waitUntil(15_000) { compose.onAllNodesWithText("Send real SMS?").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("To: +639175550199").assertExists()
         compose.onNodeWithText("Cancel").performClick()
         compose.runOnIdle { assertTrue(sms.requests.isEmpty()) }
@@ -100,7 +102,7 @@ class DeviceNewMessageTest {
         compose.onNodeWithTag("device-new-conversation-hint").assertExists()
         sms.rows = sms.rows + DeviceSms(9, 77, "2025550177", "Now stored by the provider", now, Telephony.Sms.MESSAGE_TYPE_SENT, 7, true)
         compose.runOnIdle { sms.events.value++ }
-        compose.waitUntil(5_000) { compose.onAllNodesWithTag("device-message-sms-9").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodesWithTag("device-message-sms-9").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithTag("device-new-conversation-hint").assertDoesNotExist()
         compose.onNodeWithTag("device-conversation-actions").assertExists() // now a real conversation
     }

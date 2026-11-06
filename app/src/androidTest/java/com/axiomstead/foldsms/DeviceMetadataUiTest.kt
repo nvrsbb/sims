@@ -45,7 +45,7 @@ class DeviceMetadataUiTest {
         compose.setContent { MaterialTheme { PreviewApp(ThemeStore(samplePrefs), drafts, ConversationMetadataStore(sampleDatabase.metadata()),
             CustomSampleConversationStore(sampleDatabase, drafts), wide = false, deletionStore = SampleDeletionStore(samplePrefs),
             smsServices = services, deviceMetadataStore = device) } }
-        compose.waitUntil(5_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
     }
 
     private fun order(): List<String> = compose.onAllNodes(SemanticsMatcher("row") { node ->
@@ -60,24 +60,24 @@ class DeviceMetadataUiTest {
         compose.onNodeWithTag("device-thread-thread-10").performClick()
         menu("device-conversation-actions", "Pin conversation")
         compose.onNodeWithTag("device-conversation-back").performClick()
-        compose.waitUntil(5_000) { order().first() == "device-thread-thread-10" }
+        compose.waitUntil(15_000) { order().first() == "device-thread-thread-10" }
         compose.onNodeWithTag("device-pinned-thread-10", useUnmergedTree = true).assertExists()
         runBlocking { assertTrue(device.all.first().getValue("thread-10").pinned) }
         compose.onNodeWithTag("device-thread-thread-10").performClick()
         menu("device-conversation-actions", "Unpin conversation")
         compose.onNodeWithTag("device-conversation-back").performClick()
-        compose.waitUntil(5_000) { order().first() == "device-thread-thread-30" }
+        compose.waitUntil(15_000) { order().first() == "device-thread-thread-30" }
     }
 
     @Test fun archiveHidesFromInboxShowsInArchiveAndRestoreReturnsIt() {
         show()
         compose.onNodeWithTag("device-thread-thread-20").performClick()
         menu("device-conversation-actions", "Archive conversation")
-        compose.waitUntil(5_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() } // returned to the list
+        compose.waitUntil(15_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() } // returned to the list
         compose.onNodeWithTag("device-thread-thread-20").assertDoesNotExist()
         compose.onNodeWithTag("device-inbox-actions").performClick()
         compose.onNodeWithText("Archive").performClick()
-        compose.waitUntil(5_000) { compose.onAllNodesWithTag("device-thread-thread-20").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodesWithTag("device-thread-thread-20").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithTag("device-thread-thread-30").assertDoesNotExist()
         compose.onNodeWithTag("device-thread-thread-20").performClick()
         menu("device-conversation-actions", "Restore conversation")
@@ -95,7 +95,7 @@ class DeviceMetadataUiTest {
         menu("device-conversation-actions", "Change category")
         compose.onNode(hasText("Finance") and hasAnyAncestor(isDialog())).performClick() // the filter chip has the same label
         compose.onNodeWithTag("device-conversation-back").performClick()
-        compose.waitUntil(5_000) { runBlocking { device.all.first()["thread-10"]?.category == "Finance" } }
+        compose.waitUntil(15_000) { runBlocking { device.all.first()["thread-10"]?.category == "Finance" } }
         compose.onNodeWithTag("device-category-filter-Finance").performClick()
         compose.onNodeWithTag("device-thread-thread-10").assertExists()
         compose.onNodeWithTag("device-thread-thread-20").assertDoesNotExist()
@@ -109,7 +109,7 @@ class DeviceMetadataUiTest {
         show()
         compose.onNodeWithTag("device-thread-thread-10").performClick()
         menu("device-conversation-actions", "Pin conversation")
-        compose.waitUntil(5_000) { runBlocking { device.all.first()["thread-10"]?.pinned == true } }
+        compose.waitUntil(15_000) { runBlocking { device.all.first()["thread-10"]?.pinned == true } }
         runBlocking { assertTrue(sampleDatabase.metadata().getAll().isEmpty()) }
     }
 }

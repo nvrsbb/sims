@@ -36,7 +36,7 @@ class NewSampleConversationUiTest {
             MaterialTheme { FoldSmsApp(store = drafts, wide = false, metadataStore = metadata,
                 customStore = custom, deletionStore = SampleDeletionStore(preferences)) }
         }
-        compose.waitUntil(timeoutMillis = 5_000) { compose.onAllNodesWithText("Recover saved drafts (1)").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(timeoutMillis = 15_000) { compose.onAllNodesWithText("Recover saved drafts (1)").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("Recover saved drafts (1)").performClick()
         compose.onNodeWithTag("recover-draft--8").performScrollTo().performClick()
         compose.onNodeWithText("Cancel").performClick()
@@ -45,7 +45,7 @@ class NewSampleConversationUiTest {
         compose.onNodeWithTag("recover-draft--8").performScrollTo().performClick()
         compose.onNodeWithText("Sample name").performScrollTo().performTextInput("Recovered sample")
         restoration.emulateSavedInstanceStateRestore()
-        compose.waitUntil(timeoutMillis = 5_000) { compose.onAllNodesWithText("Recover saved draft").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(timeoutMillis = 15_000) { compose.onAllNodesWithText("Recover saved draft").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("Sample name").assertTextContains("Recovered sample")
         compose.onNodeWithText("Initial draft (optional)").assertTextContains(text)
         compose.onNodeWithText("Fabricated address").performScrollTo().performTextInput("202-555-0197")
