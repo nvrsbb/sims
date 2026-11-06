@@ -24,7 +24,7 @@ internal val SampleMessage.fullTimestamp: String
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun MessageDetailsSheet(message: SampleMessage, sender: String, onDismiss: () -> Unit) {
+internal fun MessageDetailsSheet(message: SampleMessage, sender: String, onDismiss: () -> Unit, onCopy: ((String) -> Unit)? = null) {
     val context = LocalContext.current
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp).padding(bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -37,8 +37,11 @@ internal fun MessageDetailsSheet(message: SampleMessage, sender: String, onDismi
             Text("Fabricated sample · No real delivery or SIM information", color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Button(onClick = {
-                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                    clipboard.setPrimaryClip(ClipData.newPlainText("Sample message", message.body))
+                    // The seam lets tests check what is copied without reading the system clipboard, which Android only allows for the focused window.
+                    if (onCopy != null) onCopy(message.body) else {
+                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        clipboard.setPrimaryClip(ClipData.newPlainText("Sample message", message.body))
+                    }
                 }) { Text("Copy text") }
                 TextButton(onClick = onDismiss) { Text("Close") }
             }
