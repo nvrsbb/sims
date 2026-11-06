@@ -5,7 +5,9 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -20,6 +22,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -28,7 +32,9 @@ import androidx.compose.ui.unit.dp
 import java.time.Instant
 import java.time.ZoneId
 import java.util.Locale
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * The main tab. Real device conversations when the owner has opted in; otherwise (or by choice) the fabricated sample
@@ -37,7 +43,8 @@ import kotlinx.coroutines.launch
 @Composable
 internal fun ChatsTab(
     state: DeviceMessagesState,
-    onOpenSettings: () -> Unit,
+    wide: Boolean,
+    onConversationOpen: (Boolean) -> Unit,
     samples: @Composable (onUseDeviceMessages: () -> Unit) -> Unit
 ) {
     val scope = rememberCoroutineScope()
@@ -60,8 +67,8 @@ internal fun ChatsTab(
         }) { Text("Continue") } },
         dismissButton = { TextButton(onClick = { enablePrompt = false }) { Text("Cancel") } }
     )
-    if (state.access.enabled && !showSamples) DeviceInboxScreen(
-        state = state,
+    if (state.access.enabled && !showSamples) DeviceInboxHost(
+        state = state, wide = wide, onConversationOpen = onConversationOpen,
         onShowSamples = { showSamples = true },
         onRequestPermissions = { permissionRequest.launch(smsPermissions) }
     ) else samples {
@@ -69,9 +76,47 @@ internal fun ChatsTab(
     }
 }
 
+/** List plus conversation: side by side when wide, one at a time on a phone-width screen. */
+@Composable
+internal fun DeviceInboxHost(
+    state: DeviceMessagesState,
+    wide: Boolean,
+    onConversationOpen: (Boolean) -> Unit,
+    onShowSamples: () -> Unit,
+    onRequestPermissions: () -> Unit,
+    now: () -> Instant = { Instant.now() },
+    zone: ZoneId = ZoneId.systemDefault()
+) {
+    var openKey by rememberSaveable { mutableStateOf<String?>(null) }
+    val open = state.conversations.firstOrNull { it.key == openKey }
+    val fullScreen = !wide && open != null
+    BackHandler(enabled = fullScreen) { openKey = null }
+    SideEffect { onConversationOpen(fullScreen) }
+    DisposableEffect(Unit) { onDispose { onConversationOpen(false) } }
+    val simLabel = { message: DeviceMessage ->
+        if (state.subscriptions.size > 1) state.subscriptions.firstOrNull { it.id == message.subscriptionId }?.let { "SIM ${it.slot + 1}" } else null
+    }
+    val loadImage: suspend (Long) -> ImageBitmap? = { id -> withContext(Dispatchers.IO) { state.services.mms?.image(id)?.asImageBitmap() } }
+    Row(Modifier.fillMaxSize()) {
+        if (wide || !fullScreen) Box(Modifier.weight(1f).fillMaxHeight()) {
+            DeviceInboxScreen(state, openKey, { openKey = it }, onShowSamples, onRequestPermissions, now, zone)
+        }
+        if (wide) VerticalDivider()
+        if (open != null) Box(Modifier.weight(1f).fillMaxHeight()) {
+            DeviceConversationScreen(open, simLabel, loadImage, onBack = if (wide) null else ({ openKey = null }), now = now, zone = zone)
+        } else if (wide) Box(Modifier.weight(1f).fillMaxHeight().background(chatBackground()), contentAlignment = Alignment.Center) {
+            Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)) {
+                Text("Choose a conversation", Modifier.padding(horizontal = 14.dp, vertical = 6.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
 @Composable
 internal fun DeviceInboxScreen(
     state: DeviceMessagesState,
+    selectedKey: String?,
+    onOpen: (String) -> Unit,
     onShowSamples: () -> Unit,
     onRequestPermissions: () -> Unit,
     now: () -> Instant = { Instant.now() },
@@ -136,7 +181,8 @@ internal fun DeviceInboxScreen(
                 conversations.isEmpty() -> Text("No conversations match", Modifier.padding(20.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 else -> LazyColumn(Modifier.fillMaxSize().testTag("device-inbox-list"), contentPadding = PaddingValues(bottom = 24.dp)) {
                     items(conversations, key = { it.key }) { conversation ->
-                        DeviceConversationRow(conversation, formatConversationTime(conversation.last.date, now(), zone, Locale.getDefault()))
+                        DeviceConversationRow(conversation, formatConversationTime(conversation.last.date, now(), zone, Locale.getDefault()),
+                            selected = conversation.key == selectedKey, onClick = { onOpen(conversation.key) })
                         HorizontalDivider(Modifier.padding(start = 76.dp), color = MaterialTheme.colorScheme.outlineVariant)
                     }
                 }
@@ -146,11 +192,14 @@ internal fun DeviceInboxScreen(
 }
 
 @Composable
-internal fun DeviceConversationRow(conversation: DeviceConversation, time: String) {
+internal fun DeviceConversationRow(conversation: DeviceConversation, time: String, selected: Boolean, onClick: () -> Unit) {
     val last = conversation.last
     val unread = conversation.unreadCount
     Row(
-        Modifier.fillMaxWidth().testTag("device-thread-${conversation.key}").padding(horizontal = 12.dp, vertical = 9.dp),
+        Modifier.fillMaxWidth()
+            .background(if (selected) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent)
+            .clickable(onClick = onClick)
+            .testTag("device-thread-${conversation.key}").padding(horizontal = 12.dp, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         ConversationAvatar(conversation.title, conversation.key.hashCode(), 52.dp)
