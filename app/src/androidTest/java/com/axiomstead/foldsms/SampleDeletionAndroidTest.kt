@@ -56,6 +56,7 @@ class SampleDeletionAndroidTest {
             MaterialTheme { FoldSmsApp(drafts, wide = false, metadataStore = metadata, deletionStore = deletions, customStore = custom) }
         }
         compose.onNodeWithTag("thread_1").performClick()
+        compose.onNodeWithTag("conversation-actions").performClick()
         compose.onNodeWithText("Select messages").performClick()
         select(102)
         select(103)
@@ -77,10 +78,12 @@ class SampleDeletionAndroidTest {
         compose.waitUntil(5_000) { deletions.state.value.deletedIds.isEmpty() }
         selectVisible(103)
         compose.onNodeWithText("See you this evening!").assertExists()
+        compose.onNodeWithTag("conversation-actions").performClick()
         compose.onNodeWithText("Select messages").performClick()
         select(101)
-        compose.onNodeWithText("‹ Back").performClick()
+        compose.onNodeWithContentDescription("Back").performClick()
         compose.onNodeWithTag("thread_2").performClick()
+        compose.onNodeWithTag("conversation-actions").performClick()
         compose.onNodeWithText("Select messages").performClick()
         compose.onNodeWithTag("delete-selected").assertTextEquals("Delete selected (0)").assertIsNotEnabled()
     }
@@ -124,7 +127,7 @@ class SampleDeletionAndroidTest {
         compose.waitUntil(5_000) { deletions.state.value.deletedIds.size == 3 }
         compose.onNodeWithTag("empty-history").assertExists()
         compose.onNodeWithText("Fabricated Alex draft").assertExists()
-        compose.onNodeWithText("‹ Back").performClick()
+        compose.onNodeWithContentDescription("Back").performClick()
         compose.onNodeWithTag("category-filter-Finance").performScrollTo().performClick()
         compose.onNodeWithTag("inbox-search").performTextReplacement("Bank")
         compose.onNodeWithTag("thread_1").assertDoesNotExist()
@@ -179,6 +182,7 @@ class SampleDeletionAndroidTest {
         }
         compose.onNodeWithTag("undo-inbox").performClick()
         compose.waitUntil(5_000) { deletions.state.value.deletedIds.isEmpty() }
+        compose.onNodeWithTag("inbox-actions").performClick()
         compose.onNodeWithText("Archive", substring = false).performClick()
         compose.waitUntil { compose.onAllNodesWithTag("thread_1").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithTag("thread_1").performClick()

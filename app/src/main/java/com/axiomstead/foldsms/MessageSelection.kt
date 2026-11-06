@@ -8,47 +8,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 
+/** Shown in place of the conversation menu while messages are being selected. */
 @Composable
-internal fun MessageSelectionActions(
-    selecting: Boolean,
-    selectedCount: Int,
-    hasMessages: Boolean,
-    busy: Boolean,
-    onCategory: () -> Unit,
-    onSelect: () -> Unit,
-    onCancel: () -> Unit,
-    onDelete: () -> Unit,
-    onDeleteAll: () -> Unit,
-    extraActions: @Composable RowScope.() -> Unit = {}
-) {
-    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
-        if (selecting) {
+internal fun MessageSelectionActions(selectedCount: Int, busy: Boolean, onCancel: () -> Unit, onDelete: () -> Unit) {
+    Surface(color = MaterialTheme.colorScheme.surface) {
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 4.dp)) {
             TextButton(onClick = onCancel, enabled = !busy) { Text("Cancel selection") }
             TextButton(onClick = onDelete, enabled = selectedCount > 0 && !busy,
                 modifier = Modifier.testTag("delete-selected")) { Text("Delete selected ($selectedCount)") }
-        } else {
-            TextButton(onClick = onCategory) { Text("Change category") }
-            TextButton(onClick = onSelect, enabled = hasMessages && !busy) { Text("Select messages") }
-            SampleDeletionMenu("conversation", "Delete all in conversation", hasMessages && !busy, onDeleteAll)
-            extraActions()
-        }
-    }
-}
-
-@Composable
-internal fun SampleDeletionMenu(scope: String, action: String, enabled: Boolean, onDelete: () -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    Box {
-        TextButton(onClick = { expanded = true }, modifier = Modifier.testTag("$scope-actions")
-            .semantics { contentDescription = "$scope actions" }) { Text("More") }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            DropdownMenuItem(text = { Text(action) }, enabled = enabled, onClick = {
-                expanded = false
-                onDelete()
-            })
         }
     }
 }

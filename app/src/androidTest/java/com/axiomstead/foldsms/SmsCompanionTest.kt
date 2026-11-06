@@ -59,10 +59,15 @@ class SmsCompanionTest {
                 ConversationMetadataStore(sampleDatabase.metadata()), CustomSampleConversationStore(sampleDatabase, sampleDrafts),
                 wide = false, deletionStore = SampleDeletionStore(samplePreferences), smsServices = services) }
             compose.onAllNodesWithText("Alex").onFirst().performClick()
-            compose.onNodeWithText("Draft message").performTextInput("Fabricated sample draft")
+            compose.onNodeWithTag("draft-composer").performTextInput("Fabricated sample draft")
+            // The tab bar hides inside a phone-width conversation and while typing; return to the list first.
+            compose.onNodeWithContentDescription("Back").performClick()
+            compose.waitUntil(5_000) { compose.onAllNodesWithTag("preview-device-messages").fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithTag("preview-device-messages").performClick()
             compose.onNodeWithText("Enable device messages").assertExists()
             compose.onNodeWithTag("preview-samples").performClick()
+            compose.onNodeWithTag("draft_indicator_1").assertTextContains("Fabricated sample draft", substring = true)
+            compose.onNodeWithTag("thread_1").performClick()
             compose.onNodeWithText("Fabricated sample draft").assertExists()
             compose.runOnIdle { assertTrue(platform.requests.isEmpty()); assertEquals(0, platform.reads) }
         } finally { sampleDatabase.close(); samplePreferences.edit().clear().commit() }

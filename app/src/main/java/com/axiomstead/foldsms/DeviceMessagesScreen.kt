@@ -228,7 +228,7 @@ internal fun DeviceMessagesPane(supplied: SmsServices? = null) {
     }
 
     Column(Modifier.fillMaxSize().safeDrawingPadding().imePadding().padding(16.dp)) {
-        Text("Device messages", style = MaterialTheme.typography.titleLarge)
+        Text("Device messages", style = MaterialTheme.typography.titleLarge, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
         Text("Google Messages stays default for MMS download, notifications and storage.", style = MaterialTheme.typography.labelMedium)
         if (!access.enabled) {
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {

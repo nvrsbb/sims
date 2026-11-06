@@ -36,14 +36,16 @@ class PreviewSettingsTest {
         val custom = CustomSampleConversationStore(database, drafts)
         compose.setContent { PreviewApp(ThemeStore(preferences), drafts, metadata, custom, wide = false, deletionStore = SampleDeletionStore(draftPreferences)) }
         compose.onAllNodesWithText("Alex").onFirst().performClick()
-        compose.onNodeWithText("Draft message").performTextInput("Fabricated settings draft")
-        compose.onAllNodesWithText("Settings").onLast().performClick()
+        compose.onNodeWithTag("draft-composer").performTextInput("Fabricated settings draft")
+        compose.onNodeWithTag("conversation-actions").performClick()
+        compose.onNodeWithText("Settings").performClick()
         compose.onNodeWithText("Dark", useUnmergedTree = true).performClick()
         compose.onNodeWithText("Done").performClick()
-        compose.onNodeWithText("Draft message").assertExists()
+        compose.onNodeWithTag("draft-composer").assertExists()
         compose.onNodeWithText("Fabricated settings draft").assertExists()
         compose.onNodeWithText("Sample conversation · Personal").assertExists()
-        compose.onAllNodesWithText("Settings").onLast().performClick()
+        compose.onNodeWithTag("conversation-actions").performClick()
+        compose.onNodeWithText("Settings").performClick()
         compose.onNodeWithText("Dark").assertIsSelected()
         compose.runOnIdle { assertEquals(ThemeChoice.DARK, ThemeStore(preferences).get()) }
     }
