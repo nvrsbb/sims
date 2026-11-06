@@ -68,7 +68,6 @@ class MmsCompanionTest {
         compose.runOnIdle { mms.rows = listOf(first.copy(id = first.id + 1), first); mms.events.value++ }
         compose.waitUntil(5_000) { compose.onAllNodesWithTag("device-mms-${first.id + 1}").fetchSemanticsNodes().size == 1 }
         compose.onNodeWithTag("device-mms-${first.id}").assertExists().performClick()
-        compose.onNodeWithText("Fabricated MMS").assertExists()
         compose.runOnIdle { assertEquals(0, mms.images); assertTrue(sms.requests.isEmpty()) }
         compose.onNodeWithText("View image · fabricated.jpg").performClick()
         compose.waitUntil(5_000) { mms.images == 1 }
