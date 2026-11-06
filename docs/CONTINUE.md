@@ -2,9 +2,9 @@
 
 ## Current state
 
-- Owner merged #18, #19, #22 and #23. Main baseline is `a03c7ac`, including F-01–F-13, opt-in SMS companion F-15 and hosted emulator CI.
-- Follow-ups #20 (Room KSP) and #21 (interrupted draft recovery) remain open, unmerged. Their earlier CI passed; #21 ran 28 Android tests before the latest main refresh. Refreshed-head results are in the respective PR checks. Do not duplicate them.
-- F-15 opt-in SMS receiving/sending reached main through owner-merged #23. Preview restore F-14 is postponed. F-13 preview export remains fabricated-data only and excludes all SMS companion storage.
+- Owner merged #18–#23. Main baseline is `7f83db9`, including F-01–F-13, SMS companion F-15, KSP and interrupted sample-draft recovery.
+- #20 and #21 were owner-merged after their refreshed checks passed. Do not duplicate them.
+- The owner reported SMS receiving and sending on the Fold. F-16 MMS receiving/sending is the next priority; this increment covers provider-backed MMS viewing. Preview restore F-14 remains postponed. F-13 preview export remains fabricated-data only and excludes all SMS companion storage.
 - Create focused PRs into main; the owner performs every merge. Do not use agents unless requested. Keep updates about outcomes, blockers and verification rather than file-change or agent activity details.
 - Telegram is the UI reference: clean conversation lists, readable hierarchy, restrained chrome and direct actions, adapted to native Android/Fold layouts and the shared semantic palette.
 - Tests use fabricated data and fake sending only. Sample sending stays disabled. Companion access is opt-in and permission-gated; no default-role prompt or phone installation. Google Messages remains default. Replacement gates: `docs/REPLACEMENT_PLAN.md`.
@@ -48,7 +48,7 @@ Confirm the emulator serial before tests; never target the owner's phone or clea
 
 ## Next work
 
-Review refreshed open PRs #20 (KSP) and #21 (interrupted sample draft recovery). Do not install on the owner phone or perform real carrier sends. Preserve existing worktrees. The owner performs every PR merge; never merge or enable auto-merge. Resume F-14 restore after SMS priority; export alone does not complete the backup/restore gate. See `SMS_TRANSPORT.md` for transport limits and follow-ups.
+Build F-16 MMS receiving and sending in focused reviewed steps, beginning with provider-backed reading, then a validated PDU composer/send journal. Do not install on the owner phone or perform real carrier sends. Preserve existing worktrees. The owner performs every PR merge; never merge or enable auto-merge. Resume F-14 restore after SMS priority; export alone does not complete the backup/restore gate. See `SMS_TRANSPORT.md` for transport limits and follow-ups.
 
 ## F-13 verification
 
@@ -71,3 +71,9 @@ F-15 head `3c00024` passed build, all 46 ordinary Android tests and the separate
 #20 retains Kotlin 2.0.21 / KSP 2.0.21-1.0.28 / Room 2.6.1. Compare all exported preview schemas and the new SMS journal schema against main; no migration or identity change is intended. #21 retains cancellation-after-draft-commit recovery, original reserved negative IDs/text, duplicate/missing-draft guards and restored-form tests. No Room migration or ordinary typing change is intended. The refreshed branches retain preview export and opt-in SMS unchanged. Local and hosted refresh verification is tracked in each PR; prior-head results alone do not verify the refresh. Physical Fold6 and actual process-death checks remain separate.
 
 Conflict-refresh local verification: both branches passed 31 JVM tests, lint, debug APK and Android-test APK assembly. Exported preview schemas 1–4 and SMS journal schema 1 match main exactly. #20 has two existing lint warnings (backup rules and icon); #21 retains those plus the separate kapt advisory. Hosted refreshed-head Android execution is tracked in the PR checks; no phone or carrier send was performed.
+
+## F-16 MMS handoff — 2026-11-06
+
+The owner reported live SMS receive/send. MMS is the next authorized milestone, with Google Messages remaining default. See `MMS_TRANSPORT.md`. The current receive branch adds a permission-gated, read-only provider view and image preview; the send path is not implemented in this slice. Full MMS readiness requires text/image/video/audio send and receive, a maintained licensed PDU composer, explicit SIM, durable callbacks, native provider checks, carrier two-number trial, backup/restore and fallback testing. No phone installation or carrier send was performed during development.
+
+Receive slice PR [#24](https://github.com/nvrsbb/sims/pull/24) is open. Local checks passed: 31 JVM tests, lint, debug APK, Android-test APK and diff whitespace. Hosted API 35 interaction checks remain pending; do not mark F-16 merged or fully received. The next focused step is PDU composer feasibility and outbound MMS design, preserving explicit SIM and nonautomatic retries.

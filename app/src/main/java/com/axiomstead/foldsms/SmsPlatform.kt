@@ -137,7 +137,7 @@ internal class AndroidSmsPlatform(private val context: Context, private val cons
     }.conflate()
 }
 
-internal data class SmsServices(val platform: SmsPlatform, val consent: SmsConsentStore, val drafts: SmsDraftStore, val journal: SmsSendDao) {
+internal data class SmsServices(val platform: SmsPlatform, val consent: SmsConsentStore, val drafts: SmsDraftStore, val journal: SmsSendDao, val mms: MmsPlatform? = null) {
     val controller = SmsSendController(platform, consent, drafts, journal)
 }
 
@@ -145,5 +145,6 @@ internal fun smsServices(context: Context): SmsServices {
     val app = context.applicationContext
     val consent = SmsConsentStore(app.getSharedPreferences("sms_companion_access", Context.MODE_PRIVATE))
     return SmsServices(AndroidSmsPlatform(app, consent), consent,
-        SmsDraftStore(app.getSharedPreferences("sms_compose_v1", Context.MODE_PRIVATE)), SmsJournalProvider.get(app).sends())
+        SmsDraftStore(app.getSharedPreferences("sms_compose_v1", Context.MODE_PRIVATE)), SmsJournalProvider.get(app).sends(),
+        AndroidMmsPlatform(app, consent))
 }
