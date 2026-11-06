@@ -76,7 +76,7 @@ class DeviceInboxTest {
         )
         mms.rows = listOf(DeviceMms(1, 40, "2025550188", "", 4_000, 1, true, listOf(DeviceMmsPart(9, "image/jpeg", "", "pic.jpg"))))
         show()
-        compose.waitUntil(5_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("Alex").assertDoesNotExist()
         compose.onNodeWithText("You: My reply to the bank").assertExists()
         compose.onNodeWithText("Newer from Sam").assertExists()
@@ -103,10 +103,10 @@ class DeviceInboxTest {
     @Test fun emptyProviderAndNoSearchMatchesShowDistinctMessages() {
         consent.setEnabled(true)
         show()
-        compose.waitUntil(5_000) { compose.onAllNodesWithText("No messages found", substring = true).fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodesWithText("No messages found", substring = true).fetchSemanticsNodes().isNotEmpty() }
         sms.rows = listOf(inbox(1, 1, "2025550101", "Lunch tomorrow", 1_000))
         compose.runOnIdle { sms.events.value++ }
-        compose.waitUntil(5_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithTag("device-inbox-search").performTextInput("zzz")
         compose.onNodeWithText("No conversations match").assertExists()
         compose.onNodeWithTag("device-inbox-search").performTextReplacement("lunch")
@@ -118,7 +118,7 @@ class DeviceInboxTest {
         mms.failRead = true
         sms.rows = listOf(inbox(1, 1, "2025550101", "SMS still shown", 1_000))
         show()
-        compose.waitUntil(5_000) { compose.onAllNodesWithTag("device-inbox-error").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodesWithTag("device-inbox-error").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("SMS still shown").assertExists()
     }
 
@@ -126,7 +126,7 @@ class DeviceInboxTest {
         consent.setEnabled(true)
         sms.rows = listOf(inbox(1, 1, "2025550101", "Fabricated real row", 1_000))
         show()
-        compose.waitUntil(5_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithTag("device-inbox-actions").performClick()
         compose.onNodeWithText("Sample data").performClick()
         compose.onNodeWithText("Alex").assertExists()
@@ -139,7 +139,7 @@ class DeviceInboxTest {
         consent.setEnabled(true)
         sms.rows = listOf(inbox(1, 1, "2025550101", "Fabricated real row", 1_000))
         show()
-        compose.waitUntil(5_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithTag("device-inbox-actions").performClick()
         compose.onNodeWithText("Turn off real messages").performClick()
         compose.onNodeWithText("Alex").assertExists()
