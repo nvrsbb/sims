@@ -12,8 +12,8 @@ android {
         applicationId = "com.axiomstead.foldsms"
         minSdk = 29
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.2.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     // CI signs debug APKs with one stored key so phone updates keep the same signature.

@@ -2,6 +2,7 @@
 
 ## Current state
 
+- Owner merged MMS read-only receive PR #24. PR #25 fixes its one ambiguous API 35 test assertion; the rerun passed 55 interaction/storage tests and the separate fabricated inbound SMS smoke. #25 remains open and is the base for the device-preview UI stack. The owner now wants SMS/MMS in the main preview screen and the separate companion entry removed. F-16 outbound MMS is still pending.
 - Owner merged #18–#23. Main baseline is `7f83db9`, including F-01–F-13, SMS companion F-15, KSP and interrupted sample-draft recovery.
 - #20 and #21 were owner-merged after their refreshed checks passed. Do not duplicate them.
 - The owner reported SMS receiving and sending on the Fold. F-16 MMS receiving/sending is the next priority; this increment covers provider-backed MMS viewing. Preview restore F-14 remains postponed. F-13 preview export remains fabricated-data only and excludes all SMS companion storage.
@@ -78,4 +79,16 @@ Conflict-refresh local verification: both branches passed 31 JVM tests, lint, de
 
 The owner reported live SMS receive/send. MMS is the next authorized milestone, with Google Messages remaining default. See `MMS_TRANSPORT.md`. The current receive branch adds a permission-gated, read-only provider view and image preview; the send path is not implemented in this slice. Full MMS readiness requires text/image/video/audio send and receive, a maintained licensed PDU composer, explicit SIM, durable callbacks, native provider checks, carrier two-number trial, backup/restore and fallback testing. No phone installation or carrier send was performed during development.
 
-The owner merged receive slice PR [#24](https://github.com/nvrsbb/sims/pull/24). Local checks passed: 31 JVM tests, lint, debug APK, Android-test APK and diff whitespace. Its hosted build passed, but API 35 ran 55 tests with one test failure: the duplicate-body test used a singular text matcher after two cards and a dialog correctly exposed three matching nodes. PR #25 removes only that ambiguous assertion and retains the unique image-on-tap assertion; its hosted rerun must pass before considering this check complete. Do not mark F-16 fully complete. The next focused step is PDU composer feasibility and outbound MMS design, preserving explicit SIM and nonautomatic retries.
+The owner merged receive slice PR [#24](https://github.com/nvrsbb/sims/pull/24). Local checks passed: 31 JVM tests, lint, debug APK, Android-test APK and diff whitespace. Its hosted build passed, but API 35 ran 55 tests with one test failure: the duplicate-body test used a singular text matcher after two cards and a dialog correctly exposed three matching nodes. PR #25 removes only that ambiguous assertion and retains the unique image-on-tap assertion; its hosted rerun passed all 55 tests plus the separate fabricated inbound SMS smoke. Do not mark F-16 fully complete. The next focused step is PDU composer feasibility and outbound MMS design, preserving explicit SIM and nonautomatic retries.
+
+## F-17 device messages in preview — 2026-11-06
+
+The requested UX is a Device messages tab beside Samples in the main screen, with no separate settings-launched companion dialog. Stored SMS and MMS appear in separate recent sections with transport-specific provider IDs. The existing opt-in, permission, explicit-SIM confirmation, draft and send-journal safeguards remain. Switching tabs must preserve the selected sample conversation and unsent sample draft. Google Messages remains default for MMS download, storage and notifications; MMS sending remains unavailable. This UI increment does not perform phone installation or carrier sends.
+
+PR [#26](https://github.com/nvrsbb/sims/pull/26) was stacked on #25. Local checks passed: 31 JVM tests, lint, debug APK, Android-test APK and diff whitespace. Native MMS reading on the owner Fold is pending. Do not merge on the owner's behalf.
+
+The owner merged #25 to main and then #26 to the old stack branch, so #26 did not bring the Device messages tab to main. PR [#27](https://github.com/nvrsbb/sims/pull/27) carries the tested feature into main. Its feature head passed 57 API 35 interaction/storage tests and the separate synthetic SMS smoke. Keep F-17 PR open until #27 reaches main; the owner performs the merge.
+
+The requested phone-build batch advances versionCode to 2 and versionName to 0.2.0. A local debug APK uses the cloud workspace's debug keystore; GitHub Actions uses its own debug signing identity. Neither is verified against the owner's installed FoldSMS APK, so do not assume an in-place update will install. Preserve drafts and app data; never advise uninstalling on a signature mismatch. The owner must verify signing compatibility before installing the linked artifact.
+
+Initial #26 hosted build passed but six API 35 tests timed out waiting for SMS/MMS cards after the new mixed-list renderer. The device tab now keeps the previously tested per-transport lazy sections; the final hosted run passed all 57 tests plus synthetic inbound SMS smoke. No carrier send occurred.

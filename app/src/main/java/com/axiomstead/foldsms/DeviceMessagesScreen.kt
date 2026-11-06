@@ -41,7 +41,7 @@ internal val smsPermissions = arrayOf(Manifest.permission.READ_SMS, Manifest.per
     Manifest.permission.SEND_SMS, Manifest.permission.READ_PHONE_STATE, Manifest.permission.RECEIVE_MMS)
 
 @Composable
-internal fun SmsCompanionRoute(onClose: () -> Unit, supplied: SmsServices? = null) {
+internal fun DeviceMessagesPane(supplied: SmsServices? = null) {
     val context = LocalContext.current
     val services = remember(context, supplied) { supplied ?: smsServices(context) }
     val scope = rememberCoroutineScope()
@@ -133,7 +133,7 @@ internal fun SmsCompanionRoute(onClose: () -> Unit, supplied: SmsServices? = nul
         detail = null
     }
     if (enablePrompt) AlertDialog(
-        onDismissRequest = { enablePrompt = false }, title = { Text("Enable SMS and MMS companion?") },
+        onDismissRequest = { enablePrompt = false }, title = { Text("Enable device messages?") },
         text = { Text("This mode can read device SMS and MMS, including MMS images, and send chargeable SMS through your chosen SIM. Android will ask for SMS, MMS and Phone/SIM permissions. Google Messages stays default for MMS download, message storage and notifications. This is not yet a replacement. No messages are sent automatically.", Modifier.verticalScroll(rememberScrollState())) },
         confirmButton = { TextButton(onClick = {
             enablePrompt = false
@@ -228,17 +228,14 @@ internal fun SmsCompanionRoute(onClose: () -> Unit, supplied: SmsServices? = nul
     }
 
     Column(Modifier.fillMaxSize().safeDrawingPadding().imePadding().padding(16.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("SMS companion", style = MaterialTheme.typography.titleLarge)
-            TextButton(onClick = onClose) { Text("Back to preview") }
-        }
+        Text("Device messages", style = MaterialTheme.typography.titleLarge)
         Text("Google Messages stays default for MMS download, notifications and storage.", style = MaterialTheme.typography.labelMedium)
         if (!access.enabled) {
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
                 Text("Opt-in device SMS and MMS access", style = MaterialTheme.typography.titleMedium)
                 Text("Read recent device SMS and MMS and send SMS through an explicitly chosen SIM. Sample conversations remain separate and their sending stays disabled. SMS permission availability depends on Android and the installer. This mode does not request the default SMS role.")
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-                Button(onClick = { enablePrompt = true }) { Text("Enable SMS companion") }
+                Button(onClick = { enablePrompt = true }) { Text("Enable device messages") }
             }
             return@Column
         }
@@ -247,13 +244,13 @@ internal fun SmsCompanionRoute(onClose: () -> Unit, supplied: SmsServices? = nul
                 val saved = services.consent.setEnabled(false)
                 access = services.platform.access(); messages = emptyList(); mmsMessages = emptyList(); subscriptions = emptyList(); confirmation = null
                 if (!saved) error = "Disabled for this session, but Android could not save the preference. Revoke SMS permissions in Android settings before restarting."
-            }) { Text("Disable SMS access") }
+            }) { Text("Disable device access") }
             TextButton(onClick = { permissionRequest.launch(smsPermissions) }) { Text("Request permissions") }
             TextButton(onClick = { context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}"))) }) { Text("Android permissions") }
-            TextButton(enabled = !refreshing, onClick = { scope.launch { refresh() } }) { Text("Refresh SMS") }
+            TextButton(enabled = !refreshing, onClick = { scope.launch { refresh() } }) { Text("Refresh messages") }
         }
         if (!access.messagingSupported) Text("This device has no supported SMS service.", color = MaterialTheme.colorScheme.error)
-        if (!access.externalDefault) Text("Choose Google Messages or another capable default messaging app in Android settings before using this companion.", color = MaterialTheme.colorScheme.error)
+        if (!access.externalDefault) Text("Choose Google Messages or another capable default messaging app in Android settings before using device messages.", color = MaterialTheme.colorScheme.error)
         if (!access.canRead) Text("Receiving/display needs SMS read and receive access. Android or the installer may refuse restricted permissions; no bypass is attempted.")
         if (!access.canSend) Text("Sending needs SMS and Phone/SIM permissions, and an external default messaging app.")
         if (services.mms != null && !mmsCanRead) Text("MMS display needs MMS receive access in addition to SMS read/receive. Android or the installer may refuse the restricted permission.")

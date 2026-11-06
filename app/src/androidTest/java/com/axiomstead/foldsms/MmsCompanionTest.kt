@@ -29,11 +29,11 @@ class MmsCompanionTest {
     private val services = SmsServices(sms, consent, SmsDraftStore(draftPrefs), database.sends(), mms)
 
     @After fun clean() { database.close(); consentPrefs.edit().clear().commit(); draftPrefs.edit().clear().commit() }
-    private fun show() { compose.setContent { MaterialTheme { SmsCompanionRoute({}, services) } } }
+    private fun show() { compose.setContent { MaterialTheme { DeviceMessagesPane(services) } } }
 
     @Test fun accessDeniedAndCanceledConsentDoNotReadMms() {
         show()
-        compose.onNodeWithText("Enable SMS companion").performClick()
+        compose.onNodeWithText("Enable device messages").performClick()
         compose.onNodeWithText("Cancel").performClick()
         compose.runOnIdle { assertEquals(0, mms.reads); assertTrue(sms.requests.isEmpty()) }
     }
@@ -55,6 +55,38 @@ class MmsCompanionTest {
         show()
         compose.waitUntil(5_000) { compose.onAllNodesWithTag("device-sms-31").fetchSemanticsNodes().size == 1 }
         compose.onNodeWithText("MMS provider could not be read", substring = true).assertExists()
+    }
+
+    @Test fun smsAndMmsAppearInDeviceTab() {
+        consent.setEnabled(true)
+        sms.rows = listOf(DeviceSms(40, 1, "2025550199", "Older fabricated SMS", 1000,
+            android.provider.Telephony.Sms.MESSAGE_TYPE_INBOX, 7, false))
+        mms.rows = listOf(DeviceMms(41, 1, "2025550188", "Newer fabricated MMS", 2000, 1, false,
+            listOf(DeviceMmsPart(42, "text/plain", "MMS body", ""))))
+        show()
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithTag("device-mms-41").fetchSemanticsNodes().size == 1 &&
+                compose.onAllNodesWithTag("device-sms-40").fetchSemanticsNodes().size == 1
+        }
+    }
+
+    @Test fun mainPreviewOpensStoredMmsWithoutACompanionDialog() {
+        consent.setEnabled(true)
+        mms.rows = listOf(DeviceMms(51, 1, "2025550188", "Fabricated picture", 2000, 1, false,
+            listOf(DeviceMmsPart(52, "text/plain", "Fabricated caption", ""))))
+        val preferences = context.getSharedPreferences("$prefix-preview", Context.MODE_PRIVATE)
+        val sampleDatabase = Room.inMemoryDatabaseBuilder(context, ConversationMetadataDatabase::class.java).build()
+        val sampleDrafts = DraftStore(preferences)
+        try {
+            compose.setContent { PreviewApp(ThemeStore(preferences), sampleDrafts,
+                ConversationMetadataStore(sampleDatabase.metadata()), CustomSampleConversationStore(sampleDatabase, sampleDrafts),
+                wide = false, deletionStore = SampleDeletionStore(preferences), smsServices = services) }
+            compose.runOnIdle { assertEquals(0, mms.reads) }
+            compose.onNodeWithTag("preview-device-messages").performClick()
+            compose.waitUntil(5_000) { compose.onAllNodesWithTag("device-mms-51").fetchSemanticsNodes().size == 1 }
+            compose.onNodeWithTag("device-mms-51").performClick()
+            compose.onNodeWithText("Device MMS · Google Messages remains responsible for download and notification.").assertExists()
+        } finally { sampleDatabase.close(); preferences.edit().clear().commit() }
     }
 
     @Test fun providerIdsPreserveIdenticalMmsAndImageOpensOnlyAfterTap() {
