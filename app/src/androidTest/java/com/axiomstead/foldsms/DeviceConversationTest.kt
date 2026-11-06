@@ -149,7 +149,24 @@ class DeviceConversationTest {
         waitForInbox()
         compose.onNodeWithTag("device-thread-thread-10").performClick()
         compose.waitUntil(5_000) { compose.onAllNodesWithText("SIM 2", substring = true).fetchSemanticsNodes().isNotEmpty() }
-        compose.onAllNodesWithText("SIM 1", substring = true).assertCountEquals(3) // rows 1-3 on SIM 1, row 5 on SIM 2
+        // Only labels inside bubbles count: rows 1-3 are on SIM 1, row 5 on SIM 2 (a composer SIM chip may also say "SIM 1").
+        compose.onAllNodes(hasText("SIM 1", substring = true) and hasAnyAncestor(hasTestTagStartingWith("device-message-"))).assertCountEquals(3)
+    }
+
+    @Test fun listScrollPositionSurvivesOpeningAConversationAndGoingBack() {
+        consent.setEnabled(true)
+        sms.rows = (1L..40L).map { row(it, it, "20255501%02d".format(it), "Message $it", now - it * 1_000) }
+        compose.setContent(content(wide = false))
+        waitForInbox()
+        compose.onNodeWithTag("device-inbox-list").performScrollToIndex(25)
+        val before = compose.onNodeWithTag("device-inbox-list").fetchSemanticsNode().config[androidx.compose.ui.semantics.SemanticsProperties.VerticalScrollAxisRange].value()
+        assertTrue(before > 0f)
+        compose.onNodeWithTag("device-thread-thread-26").performClick()
+        compose.onNodeWithTag("device-conversation-title").assertExists()
+        compose.onNodeWithTag("device-conversation-back").performClick()
+        compose.waitUntil(5_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
+        val after = compose.onNodeWithTag("device-inbox-list").fetchSemanticsNode().config[androidx.compose.ui.semantics.SemanticsProperties.VerticalScrollAxisRange].value()
+        assertEquals(before, after, 0.5f)
     }
 
     @Test fun deletedConversationFallsBackToTheList() {
