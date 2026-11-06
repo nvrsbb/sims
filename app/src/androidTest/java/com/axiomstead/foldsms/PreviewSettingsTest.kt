@@ -19,8 +19,14 @@ class PreviewSettingsTest {
     private val database = Room.inMemoryDatabaseBuilder(context, ConversationMetadataDatabase::class.java).build()
     private val metadata = ConversationMetadataStore(database.metadata())
     private val draftPreferences get() = context.getSharedPreferences("test_settings_drafts", Context.MODE_PRIVATE)
-    @Before fun clearBefore() { preferences.edit().clear().commit(); draftPreferences.edit().clear().commit() }
-    @After fun clearAfter() { database.close(); preferences.edit().clear().commit(); draftPreferences.edit().clear().commit() }
+    private val smsPreferences get() = context.getSharedPreferences("test_settings_sms", Context.MODE_PRIVATE)
+    private val smsDatabase = Room.inMemoryDatabaseBuilder(context, SmsSendDatabase::class.java).build()
+    private fun isolatedSms(): SmsServices {
+        val consent = SmsConsentStore(smsPreferences)
+        return SmsServices(FakeSmsPlatform(consent), consent, SmsDraftStore(smsPreferences), smsDatabase.sends())
+    }
+    @Before fun clearBefore() { smsPreferences.edit().clear().commit();  preferences.edit().clear().commit(); draftPreferences.edit().clear().commit() }
+    @After fun clearAfter() { database.close(); smsDatabase.close(); smsPreferences.edit().clear().commit(); preferences.edit().clear().commit(); draftPreferences.edit().clear().commit() }
 
     @Test fun themeSurvivesReopeningStorage() {
         val store = ThemeStore(preferences)
@@ -34,7 +40,7 @@ class PreviewSettingsTest {
     @Test fun settingsReturnToSelectedConversationAndRememberTheme() {
         val drafts = DraftStore(draftPreferences)
         val custom = CustomSampleConversationStore(database, drafts)
-        compose.setContent { PreviewApp(ThemeStore(preferences), drafts, metadata, custom, wide = false, deletionStore = SampleDeletionStore(draftPreferences)) }
+        compose.setContent { PreviewApp(ThemeStore(preferences), drafts, metadata, custom, wide = false, deletionStore = SampleDeletionStore(draftPreferences), smsServices = isolatedSms()) }
         compose.onAllNodesWithText("Alex").onFirst().performClick()
         compose.onNodeWithTag("draft-composer").performTextInput("Fabricated settings draft")
         compose.onNodeWithTag("conversation-actions").performClick()

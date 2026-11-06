@@ -41,23 +41,21 @@ internal val smsPermissions = arrayOf(Manifest.permission.READ_SMS, Manifest.per
     Manifest.permission.SEND_SMS, Manifest.permission.READ_PHONE_STATE, Manifest.permission.RECEIVE_MMS)
 
 @Composable
-internal fun DeviceMessagesPane(supplied: SmsServices? = null) {
+internal fun DeviceMessagesPane(supplied: SmsServices? = null, state: DeviceMessagesState = rememberDeviceMessagesState(supplied)) {
     val context = LocalContext.current
-    val services = remember(context, supplied) { supplied ?: smsServices(context) }
+    val services = state.services
     val scope = rememberCoroutineScope()
-    val owner = LocalLifecycleOwner.current
-    var access by remember { mutableStateOf(services.platform.access()) }
-    var subscriptions by remember { mutableStateOf(emptyList<SmsSubscription>()) }
-    var messages by remember { mutableStateOf(emptyList<DeviceSms>()) }
-    var mmsMessages by remember { mutableStateOf(emptyList<DeviceMms>()) }
-    var mmsCanRead by remember { mutableStateOf(services.mms?.canRead() == true) }
+    val access = state.access
+    val subscriptions = state.subscriptions
+    val messages = state.messages
+    val mmsMessages = state.mmsMessages
+    val mmsCanRead = state.mmsCanRead
+    val refreshing = state.refreshing
+    var error by state::error
     var mmsDetail by remember { mutableStateOf<DeviceMms?>(null) }
     var imagePart by remember { mutableStateOf<DeviceMmsPart?>(null) }
     var imageBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
     var imageLoadDone by remember { mutableStateOf(false) }
-    var error by remember { mutableStateOf<String?>(null) }
-    val refreshLock = remember { kotlinx.coroutines.sync.Mutex() }
-    var refreshing by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
     var enablePrompt by rememberSaveable { mutableStateOf(false) }
     var clearPrompt by rememberSaveable { mutableStateOf(false) }
@@ -70,54 +68,10 @@ internal fun DeviceMessagesPane(supplied: SmsServices? = null) {
     val draft by draftFlow.collectAsState(initial = services.drafts.read())
     val attempts by attemptFlow.collectAsState(initial = emptyList())
 
-    suspend fun refresh() {
-        refreshLock.lock()
-        try {
-        refreshing = true
-        try {
-            val next = services.platform.access()
-            access = next
-            if (!next.canRead) messages = emptyList()
-            if (services.mms?.canRead() != true) mmsMessages = emptyList()
-            if (!next.canSend) subscriptions = emptyList()
-            withContext(Dispatchers.IO) {
-                val rows = if (next.canRead) services.platform.recent() else emptyList()
-                val sims = if (next.canSend) services.platform.subscriptions() else emptyList()
-                val mmsResult: Result<List<DeviceMms>> = try { Result.success(if (services.mms?.canRead() == true) services.mms.recent() else emptyList()) }
-                    catch (cancelled: CancellationException) { throw cancelled }
-                    catch (failure: Exception) { Result.failure(failure) }
-                withContext(Dispatchers.Main) {
-                    val current = services.platform.access()
-                    access = current
-                    messages = if (current.canRead) rows else emptyList()
-                    subscriptions = if (current.canSend) sims else emptyList()
-                    mmsCanRead = services.mms?.canRead() == true
-                    mmsMessages = if (mmsCanRead) mmsResult.getOrDefault(emptyList()) else emptyList()
-                    if (mmsResult.isFailure) error = "MMS provider could not be read. SMS remains available; check MMS permission and refresh."
-                }
-            }
-            services.controller.reconcileCompletedDraft()
-        } catch (cancelled: CancellationException) { throw cancelled }
-        catch (_: Exception) {
-            messages = emptyList(); mmsMessages = emptyList(); subscriptions = emptyList()
-            mmsCanRead = services.mms?.canRead() == true
-            access = services.platform.access()
-            error = "SMS access changed or the provider could not be read. Review permissions and refresh."
-        } finally { refreshing = false }
-        } finally { refreshLock.unlock() }
-    }
+    suspend fun refresh() = state.refresh()
     val permissionRequest = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         scope.launch { refresh() }
     }
-    DisposableEffect(owner, services) {
-        val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_RESUME) scope.launch { refresh() } }
-        owner.lifecycle.addObserver(observer)
-        onDispose { owner.lifecycle.removeObserver(observer) }
-    }
-    LaunchedEffect(services, access.canRead, access.canSend, access.enabled) {
-        services.platform.changes().collect { refresh() }
-    }
-    LaunchedEffect(services, mmsCanRead) { services.mms?.changes()?.collect { refresh() } }
     LaunchedEffect(services, imagePart) {
         imageBitmap = null
         imageLoadDone = false
@@ -138,7 +92,7 @@ internal fun DeviceMessagesPane(supplied: SmsServices? = null) {
         confirmButton = { TextButton(onClick = {
             enablePrompt = false
             if (services.consent.setEnabled(true)) {
-                access = services.platform.access()
+                state.access = services.platform.access()
                 permissionRequest.launch(smsPermissions)
             } else error = "Could not save SMS consent. No SMS access was enabled."
         }) { Text("Enable and request access") } },
@@ -242,7 +196,7 @@ internal fun DeviceMessagesPane(supplied: SmsServices? = null) {
         Row(Modifier.horizontalScroll(rememberScrollState())) {
             TextButton(enabled = !busy, onClick = {
                 val saved = services.consent.setEnabled(false)
-                access = services.platform.access(); messages = emptyList(); mmsMessages = emptyList(); subscriptions = emptyList(); confirmation = null
+                state.access = services.platform.access(); state.messages = emptyList(); state.mmsMessages = emptyList(); state.subscriptions = emptyList(); confirmation = null
                 if (!saved) error = "Disabled for this session, but Android could not save the preference. Revoke SMS permissions in Android settings before restarting."
             }) { Text("Disable device access") }
             TextButton(onClick = { permissionRequest.launch(smsPermissions) }) { Text("Request permissions") }
