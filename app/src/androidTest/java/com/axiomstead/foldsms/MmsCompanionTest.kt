@@ -57,7 +57,7 @@ class MmsCompanionTest {
         compose.onNodeWithText("MMS provider could not be read", substring = true).assertExists()
     }
 
-    @Test fun smsAndMmsShareOneChronologicalDeviceList() {
+    @Test fun smsAndMmsAppearInDeviceTab() {
         consent.setEnabled(true)
         sms.rows = listOf(DeviceSms(40, 1, "2025550199", "Older fabricated SMS", 1000,
             android.provider.Telephony.Sms.MESSAGE_TYPE_INBOX, 7, false))
@@ -68,9 +68,6 @@ class MmsCompanionTest {
             compose.onAllNodesWithTag("device-mms-41").fetchSemanticsNodes().size == 1 &&
                 compose.onAllNodesWithTag("device-sms-40").fetchSemanticsNodes().size == 1
         }
-        val mmsTop = compose.onNodeWithTag("device-mms-41").fetchSemanticsNode().boundsInRoot.top
-        val smsTop = compose.onNodeWithTag("device-sms-40").fetchSemanticsNode().boundsInRoot.top
-        assertTrue("Newer MMS should appear above older SMS", mmsTop < smsTop)
     }
 
     @Test fun mainPreviewOpensStoredMmsWithoutACompanionDialog() {

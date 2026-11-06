@@ -37,20 +37,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-private sealed interface DeviceMessageRow {
-    val date: Long
-    val key: String
-
-    data class Sms(val message: DeviceSms) : DeviceMessageRow {
-        override val date get() = message.date
-        override val key get() = "sms-${message.id}"
-    }
-    data class Mms(val message: DeviceMms) : DeviceMessageRow {
-        override val date get() = message.date
-        override val key get() = "mms-${message.id}"
-    }
-}
-
 internal val smsPermissions = arrayOf(Manifest.permission.READ_SMS, Manifest.permission.RECEIVE_SMS,
     Manifest.permission.SEND_SMS, Manifest.permission.READ_PHONE_STATE, Manifest.permission.RECEIVE_MMS)
 
@@ -83,8 +69,6 @@ internal fun DeviceMessagesPane(supplied: SmsServices? = null) {
     val attemptFlow = remember(services) { services.journal.observeRecent() }
     val draft by draftFlow.collectAsState(initial = services.drafts.read())
     val attempts by attemptFlow.collectAsState(initial = emptyList())
-    val deviceRows = (messages.map(DeviceMessageRow::Sms) + mmsMessages.map(DeviceMessageRow::Mms))
-        .sortedWith(compareByDescending<DeviceMessageRow> { it.date }.thenBy { it.key })
 
     suspend fun refresh() {
         refreshLock.lock()
@@ -271,12 +255,22 @@ internal fun DeviceMessagesPane(supplied: SmsServices? = null) {
         if (!access.canSend) Text("Sending needs SMS and Phone/SIM permissions, and an external default messaging app.")
         if (services.mms != null && !mmsCanRead) Text("MMS display needs MMS receive access in addition to SMS read/receive. Android or the installer may refuse the restricted permission.")
         error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        LazyColumn(Modifier.weight(1f).fillMaxWidth().testTag("device-message-list"), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            item { Text("Recent device messages · 200 SMS / 100 MMS", style = MaterialTheme.typography.titleMedium) }
-            if (deviceRows.isEmpty() && (access.canRead || mmsCanRead)) item {
-                Text("No stored device messages found. Refresh after receiving one.")
+        LazyColumn(Modifier.weight(1f).fillMaxWidth().testTag("device-sms-list"), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (services.mms != null) item { Text("Recent device MMS · latest 100", style = MaterialTheme.typography.titleMedium) }
+            if (mmsCanRead && mmsMessages.isEmpty()) item { Text("No device MMS found. Refresh after Google Messages downloads one.") }
+            items(mmsMessages, key = { "mms-${it.id}" }) { mms ->
+                Card(onClick = { mmsDetail = mms }, modifier = Modifier.fillMaxWidth().testTag("device-mms-${mms.id}")) {
+                    Column(Modifier.padding(12.dp)) {
+                        Text(mms.address.ifEmpty { "Unknown sender" }, style = MaterialTheme.typography.titleSmall)
+                        if (mms.subject.isNotEmpty()) Text(mms.subject, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(mms.text.ifEmpty { "${mms.attachments.size} attachment(s)" }, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                        Text("MMS · ${if (mms.box == 1) "Received" else "Provider message"} · ${DateFormat.getDateTimeInstance().format(Date(mms.date))}", style = MaterialTheme.typography.labelSmall)
+                    }
+                }
             }
-            if (attempts.isNotEmpty()) item { Text("Recent SMS send attempts", style = MaterialTheme.typography.titleMedium) }
+            item { Text("Recent device SMS · latest 200", style = MaterialTheme.typography.titleMedium) }
+            if (access.canRead && messages.isEmpty()) item { Text("No device SMS found. Refresh after receiving a message.") }
+            if (attempts.isNotEmpty()) item { Text("Recent send attempts", style = MaterialTheme.typography.titleMedium) }
             items(attempts.take(3), key = { "attempt-${it.attempt.id}" }) { operation ->
                 Column(Modifier.fillMaxWidth().testTag("sms-attempt-${operation.attempt.id}")) {
                     Text(operation.attempt.recipient)
@@ -288,38 +282,23 @@ internal fun DeviceMessagesPane(supplied: SmsServices? = null) {
                     }) { Text("Cancel unsubmitted attempt") }
                 }
             }
-            items(deviceRows, key = { it.key }) { row ->
-                when (row) {
-                    is DeviceMessageRow.Mms -> {
-                        val mms = row.message
-                        Card(onClick = { mmsDetail = mms }, modifier = Modifier.fillMaxWidth().testTag(row.key)) {
-                            Column(Modifier.padding(12.dp)) {
-                                Text(mms.address.ifEmpty { "Unknown sender" }, style = MaterialTheme.typography.titleSmall)
-                                if (mms.subject.isNotEmpty()) Text(mms.subject, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                Text(mms.text.ifEmpty { "${mms.attachments.size} attachment(s)" }, maxLines = 3, overflow = TextOverflow.Ellipsis)
-                                Text("MMS · ${if (mms.box == 1) "Received" else "Provider message"} · ${DateFormat.getDateTimeInstance().format(Date(mms.date))}", style = MaterialTheme.typography.labelSmall)
-                            }
-                        }
-                    }
-                    is DeviceMessageRow.Sms -> {
-                        val sms = row.message
-                        Card(onClick = { detail = sms }, modifier = Modifier.fillMaxWidth().testTag(row.key)) {
-                            Column(Modifier.padding(12.dp)) {
-                                Text(sms.address.ifEmpty { "Unknown sender" }, style = MaterialTheme.typography.titleSmall)
-                                Text(sms.body.ifEmpty { "Empty SMS" }, maxLines = 3, overflow = TextOverflow.Ellipsis)
-                                Text("SMS · " + when (sms.type) {
-                                    Telephony.Sms.MESSAGE_TYPE_INBOX -> if (sms.read) "Received" else "Received · unread in default app"
-                                    Telephony.Sms.MESSAGE_TYPE_SENT -> "Sent (provider)"
-                                    Telephony.Sms.MESSAGE_TYPE_DRAFT -> "Unsent provider draft"
-                                    Telephony.Sms.MESSAGE_TYPE_OUTBOX, Telephony.Sms.MESSAGE_TYPE_QUEUED -> "Queued (provider)"
-                                    Telephony.Sms.MESSAGE_TYPE_FAILED -> "Failed (provider)"
-                                    else -> "Provider message"
-                                } + " · " + DateFormat.getDateTimeInstance().format(Date(sms.date)), style = MaterialTheme.typography.labelSmall)
-                            }
-                        }
+            items(messages, key = { "sms-${it.id}" }) { sms ->
+                Card(onClick = { detail = sms }, modifier = Modifier.fillMaxWidth().testTag("device-sms-${sms.id}")) {
+                    Column(Modifier.padding(12.dp)) {
+                        Text(sms.address.ifEmpty { "Unknown sender" }, style = MaterialTheme.typography.titleSmall)
+                        Text(sms.body.ifEmpty { "Empty SMS" }, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                        Text(when (sms.type) {
+                            Telephony.Sms.MESSAGE_TYPE_INBOX -> if (sms.read) "Received" else "Received · unread in default app"
+                            Telephony.Sms.MESSAGE_TYPE_SENT -> "Sent (provider)"
+                            Telephony.Sms.MESSAGE_TYPE_DRAFT -> "Unsent provider draft"
+                            Telephony.Sms.MESSAGE_TYPE_OUTBOX, Telephony.Sms.MESSAGE_TYPE_QUEUED -> "Queued (provider)"
+                            Telephony.Sms.MESSAGE_TYPE_FAILED -> "Failed (provider)"
+                            else -> "Provider message"
+                        } + " · " + DateFormat.getDateTimeInstance().format(Date(sms.date)), style = MaterialTheme.typography.labelSmall)
                     }
                 }
             }
+
         }
         Column(Modifier.heightIn(max = 260.dp).verticalScroll(rememberScrollState())) {
             Text("Real SMS composer", style = MaterialTheme.typography.titleSmall)
