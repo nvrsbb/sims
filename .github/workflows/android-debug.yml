@@ -78,6 +78,12 @@ jobs:
             adb -s emulator-5554 shell wm density 320
             ANDROID_SERIAL=emulator-5554 ./gradlew --no-daemon :app:connectedDebugAndroidTest
             bash scripts/ci-sms-receive-smoke.sh
+      - name: Print failing test details
+        if: failure()
+        run: |
+          for f in app/build/outputs/androidTest-results/connected/*/*.xml app/build/outputs/androidTest-results/connected/*.xml; do
+            [ -f "$f" ] && grep -h -B1 -A14 '<failure' "$f" | cut -c1-400 | head -400
+          done || true
       - name: Upload interaction results
         if: always()
         uses: actions/upload-artifact@v4

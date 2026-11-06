@@ -10,7 +10,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -94,6 +96,9 @@ internal fun DeviceInboxHost(
     val scope = rememberCoroutineScope()
     val metadata by store.all.collectAsState(initial = emptyMap())
     var openKey by rememberSaveable { mutableStateOf<String?>(null) }
+    // Held here, not in the list screen: the list leaves composition while a phone-width conversation is open.
+    var search by rememberSaveable { mutableStateOf("") }
+    val listState = rememberLazyListState()
     var showArchive by rememberSaveable { mutableStateOf(false) }
     var filter by rememberSaveable { mutableStateOf("All") }
     var showCategories by rememberSaveable { mutableStateOf(false) }
@@ -129,8 +134,8 @@ internal fun DeviceInboxHost(
     Row(Modifier.fillMaxSize()) {
         if (wide || !fullScreen) Box(Modifier.weight(1f).fillMaxHeight()) {
             DeviceInboxScreen(
-                state, arranged, metadata, openKey, { openKey = it }, showArchive, { showArchive = !showArchive; openKey = null },
-                filter, { filter = it }, onShowSamples, onRequestPermissions, now, zone
+                state, arranged, metadata, openKey, { openKey = it }, search, { search = it }, listState,
+                showArchive, { showArchive = !showArchive; openKey = null }, filter, { filter = it }, onShowSamples, onRequestPermissions, now, zone
             )
         }
         if (wide) VerticalDivider()
@@ -152,6 +157,9 @@ internal fun DeviceInboxScreen(
     metadata: Map<String, DeviceConversationMetadata>,
     selectedKey: String?,
     onOpen: (String) -> Unit,
+    search: String,
+    onSearch: (String) -> Unit,
+    listState: LazyListState,
     showArchive: Boolean,
     onToggleArchive: () -> Unit,
     filter: String,
@@ -163,7 +171,6 @@ internal fun DeviceInboxScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var search by rememberSaveable { mutableStateOf("") }
     val conversations = searchDeviceConversations(arranged, search)
     val access = state.access
     Column(Modifier.fillMaxSize()) {
@@ -190,10 +197,10 @@ internal fun DeviceInboxScreen(
         }
         TextField(
             value = search,
-            onValueChange = { search = it },
+            onValueChange = onSearch,
             placeholder = { Text("Search messages") },
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-            trailingIcon = { if (search.isNotEmpty()) IconButton(onClick = { search = "" }) { Icon(Icons.Default.Clear, contentDescription = "Clear search") } },
+            trailingIcon = { if (search.isNotEmpty()) IconButton(onClick = { onSearch("") }) { Icon(Icons.Default.Clear, contentDescription = "Clear search") } },
             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp).testTag("device-inbox-search"),
             singleLine = true,
             shape = RoundedCornerShape(50),
@@ -231,7 +238,7 @@ internal fun DeviceInboxScreen(
                         else -> "Every conversation is archived. Open the archive from the menu."
                     }, Modifier.padding(20.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 conversations.isEmpty() -> Text("No conversations match", Modifier.padding(20.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                else -> LazyColumn(Modifier.fillMaxSize().testTag("device-inbox-list"), contentPadding = PaddingValues(bottom = 24.dp)) {
+                else -> LazyColumn(Modifier.fillMaxSize().testTag("device-inbox-list"), state = listState, contentPadding = PaddingValues(bottom = 24.dp)) {
                     items(conversations, key = { it.key }) { conversation ->
                         DeviceConversationRow(conversation, formatConversationTime(conversation.last.date, now(), zone, Locale.getDefault()),
                             selected = conversation.key == selectedKey, category = deviceCategory(metadata[conversation.key]),
