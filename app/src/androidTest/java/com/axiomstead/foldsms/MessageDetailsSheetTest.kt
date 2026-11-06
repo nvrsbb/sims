@@ -1,13 +1,10 @@
 package com.axiomstead.foldsms
 
-import android.content.ClipboardManager
-import android.content.Context
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -17,11 +14,12 @@ class MessageDetailsSheetTest {
 
     @Test fun detailsCopyAndDismissUseTheSelectedMessage() {
         val selected = exampleThreads.first().history[1]
+        val copied = mutableListOf<String>()
         compose.setContent {
             var open by remember { mutableStateOf(true) }
             MaterialTheme {
                 Text("Unsent test draft")
-                if (open) MessageDetailsSheet(selected, "Alex", onDismiss = { open = false })
+                if (open) MessageDetailsSheet(selected, "Alex", onDismiss = { open = false }, onCopy = { copied += it })
             }
         }
         compose.onNodeWithText("Sender: You").assertExists()
@@ -29,12 +27,7 @@ class MessageDetailsSheetTest {
         compose.onNodeWithText("Time: ${selected.fullTimestamp}").assertExists()
         compose.onNodeWithText(selected.body).assertExists()
         compose.onNodeWithText("Copy text").performScrollTo().performClick()
-        compose.runOnIdle {
-            val context = InstrumentationRegistry.getInstrumentation().targetContext
-            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-            assertEquals(selected.body, clipboard.primaryClip?.getItemAt(0)?.text?.toString())
-            clipboard.clearPrimaryClip()
-        }
+        compose.runOnIdle { assertEquals(listOf(selected.body), copied) }
         compose.onNodeWithText("Close").performScrollTo().performClick()
         compose.onNodeWithText("Message details").assertDoesNotExist()
         compose.onNodeWithText("Unsent test draft").assertExists()

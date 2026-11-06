@@ -38,14 +38,18 @@ class ConversationArchiveUiTest {
                 }
             }
             compose.onNodeWithText("Alex").performClick()
-            compose.onNodeWithText("Archive conversation").performScrollTo().performClick()
+            compose.onNodeWithTag("conversation-actions").performClick()
+            compose.onNodeWithText("Archive conversation").performClick()
             compose.waitUntil { compose.onAllNodesWithText("Alex").fetchSemanticsNodes().isEmpty() }
             compose.onNodeWithText("Alex").assertDoesNotExist()
+            compose.onNodeWithTag("inbox-actions").performClick()
             compose.onNodeWithText("Archive").performClick()
             compose.onNodeWithText("Alex").performClick()
-            compose.onNodeWithText("Restore conversation").performScrollTo().performClick()
+            compose.onNodeWithTag("conversation-actions").performClick()
+            compose.onNodeWithText("Restore conversation").performClick()
             compose.waitUntil { compose.onAllNodesWithText("Archive is empty").fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithText("Archive is empty").assertExists()
+            compose.onNodeWithTag("inbox-actions").performClick()
             compose.onNodeWithText("Inbox").performClick()
             compose.onNodeWithText("Alex").assertExists()
         } finally {

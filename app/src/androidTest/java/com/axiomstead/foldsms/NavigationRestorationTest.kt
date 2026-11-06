@@ -116,7 +116,8 @@ class NavigationRestorationTest {
         val restoration = StateRestorationTester(compose)
         val wide = mutableStateOf(false)
         restoration.setContent {
-            IsolatedApp(wide = wide.value, height = 480)
+            // The compact chat layout fits two bubbles at 480dp, so use a shorter window to force scrolling.
+            IsolatedApp(wide = wide.value, height = 300)
         }
         compose.onNodeWithTag("inbox-list").performScrollToNode(hasTestTag("thread_3"))
         compose.onNodeWithTag("thread_3").performClick()

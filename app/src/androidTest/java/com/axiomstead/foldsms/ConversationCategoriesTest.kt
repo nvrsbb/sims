@@ -70,18 +70,20 @@ class ConversationCategoriesTest {
                 }
             }
             compose.onNodeWithText("Alex").performClick()
-            compose.onNodeWithText("Change category").performScrollTo().performClick()
+            compose.onNodeWithTag("conversation-actions").performClick()
+            compose.onNodeWithText("Change category").performClick()
             compose.onNodeWithText("Unknown", useUnmergedTree = true).performClick()
             compose.waitUntil { runBlocking { store.categories.first().any { it.threadId == 1 && it.category == "Unknown" } } }
-            compose.onNodeWithText("‹ Back").performClick()
+            compose.onNodeWithContentDescription("Back").performClick()
             // Unknown is the last filter in the horizontally scrolling row.
             compose.onNodeWithTag("category-filters").performScrollToNode(hasTestTag("category-filter-Unknown"))
             compose.onNodeWithTag("category-filter-Unknown").performClick()
             compose.onNodeWithText("Alex").assertExists().performClick()
-            compose.onNodeWithText("Change category").performScrollTo().performClick()
+            compose.onNodeWithTag("conversation-actions").performClick()
+            compose.onNodeWithText("Change category").performClick()
             compose.onNodeWithText("Reset to sample default").performScrollTo().performClick()
             compose.waitUntil { runBlocking { store.categories.first().all { it.category == null } } }
-            compose.onNodeWithText("‹ Back").performClick()
+            compose.onNodeWithContentDescription("Back").performClick()
             compose.onNodeWithText("Alex").assertDoesNotExist()
             compose.onNodeWithTag("category-filters").performScrollToNode(hasTestTag("category-filter-Personal"))
             compose.onNodeWithTag("category-filter-Personal").performClick()

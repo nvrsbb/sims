@@ -73,9 +73,9 @@ class DraftsTest {
         compose.onNodeWithTag("draft_indicator_2", useUnmergedTree = true).assertExists()
         compose.onNodeWithTag("thread_2").performClick()
         compose.onNodeWithText("Sample second draft").assertExists()
-        compose.onNodeWithText("Draft message").performTextReplacement("")
+        compose.onNodeWithTag("draft-composer").performTextReplacement("")
         compose.onNodeWithTag("draft_indicator_2", useUnmergedTree = true).assertDoesNotExist()
-        compose.onNodeWithText("Draft message").performTextInput("New fabricated\nmultiline draft")
+        compose.onNodeWithTag("draft-composer").performTextInput("New fabricated\nmultiline draft")
         compose.onNodeWithTag("draft_indicator_2", useUnmergedTree = true).assertExists()
         compose.runOnIdle {
             assertEquals("", DraftStore(preferences).get(1))
