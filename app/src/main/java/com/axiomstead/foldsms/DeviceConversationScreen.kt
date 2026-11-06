@@ -38,6 +38,7 @@ internal fun DeviceConversationScreen(
     loadImage: suspend (Long) -> ImageBitmap?,
     onBack: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    actions: List<MenuAction> = emptyList(),
     composer: @Composable () -> Unit = {},
     now: () -> Instant = { Instant.now() },
     zone: ZoneId = ZoneId.systemDefault()
@@ -72,6 +73,7 @@ internal fun DeviceConversationScreen(
                     val mmsCount = conversation.messages.count { it.kind == DeviceMessageKind.MMS }
                     Text(if (mmsCount > 0) "SMS and MMS" else "SMS", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
                 }
+                if (actions.isNotEmpty()) OverflowMenu("device-conversation-actions", "conversation actions", actions)
             }
         }
         SelectionContainer(Modifier.weight(1f)) {

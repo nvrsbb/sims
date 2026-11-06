@@ -48,7 +48,8 @@ class ReplyComposerTest {
             MaterialTheme {
                 PreviewApp(ThemeStore(samplePrefs), sampleDrafts, ConversationMetadataStore(sampleDatabase.metadata()),
                     CustomSampleConversationStore(sampleDatabase, sampleDrafts), wide = false,
-                    deletionStore = SampleDeletionStore(samplePrefs), smsServices = services)
+                    deletionStore = SampleDeletionStore(samplePrefs), smsServices = services,
+                    deviceMetadataStore = DeviceMetadataStore(sampleDatabase.deviceMetadata()))
             }
         }
         compose.waitUntil(5_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }

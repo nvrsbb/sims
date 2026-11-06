@@ -45,6 +45,7 @@ internal fun ChatsTab(
     state: DeviceMessagesState,
     wide: Boolean,
     onConversationOpen: (Boolean) -> Unit,
+    deviceMetadata: DeviceMetadataStore? = null,
     samples: @Composable (onUseDeviceMessages: () -> Unit) -> Unit
 ) {
     val scope = rememberCoroutineScope()
@@ -68,7 +69,7 @@ internal fun ChatsTab(
         dismissButton = { TextButton(onClick = { enablePrompt = false }) { Text("Cancel") } }
     )
     if (state.access.enabled && !showSamples) DeviceInboxHost(
-        state = state, wide = wide, onConversationOpen = onConversationOpen,
+        state = state, wide = wide, onConversationOpen = onConversationOpen, metadataStore = deviceMetadata,
         onShowSamples = { showSamples = true },
         onRequestPermissions = { permissionRequest.launch(smsPermissions) }
     ) else samples {
@@ -82,13 +83,41 @@ internal fun DeviceInboxHost(
     state: DeviceMessagesState,
     wide: Boolean,
     onConversationOpen: (Boolean) -> Unit,
+    metadataStore: DeviceMetadataStore?,
     onShowSamples: () -> Unit,
     onRequestPermissions: () -> Unit,
     now: () -> Instant = { Instant.now() },
     zone: ZoneId = ZoneId.systemDefault()
 ) {
+    val context = LocalContext.current
+    val store = metadataStore ?: remember(context) { DeviceMetadataStore.get(context) }
+    val scope = rememberCoroutineScope()
+    val metadata by store.all.collectAsState(initial = emptyMap())
     var openKey by rememberSaveable { mutableStateOf<String?>(null) }
+    var showArchive by rememberSaveable { mutableStateOf(false) }
+    var filter by rememberSaveable { mutableStateOf("All") }
+    var showCategories by rememberSaveable { mutableStateOf(false) }
+    val arranged = arrangeDeviceConversations(state.conversations, metadata, showArchive, filter)
     val open = state.conversations.firstOrNull { it.key == openKey }
+    if (showCategories && open != null) CategoryPicker(
+        category = deviceCategory(metadata[open.key]),
+        onChoose = { category -> scope.launch { store.setCategory(open.key, category) }; showCategories = false },
+        onReset = { scope.launch { store.setCategory(open.key, null) }; showCategories = false },
+        onDismiss = { showCategories = false },
+        resetLabel = "Reset category"
+    )
+    val conversationActions = open?.let { thread ->
+        val flags = metadata[thread.key]
+        listOf(
+            MenuAction("Change category") { showCategories = true },
+            MenuAction(if (flags?.pinned == true) "Unpin conversation" else "Pin conversation") {
+                scope.launch { store.setPinned(thread.key, flags?.pinned != true) }
+            },
+            MenuAction(if (flags?.archived == true) "Restore conversation" else "Archive conversation") {
+                scope.launch { store.setArchived(thread.key, flags?.archived != true); openKey = null }
+            }
+        )
+    }
     val fullScreen = !wide && open != null
     BackHandler(enabled = fullScreen) { openKey = null }
     SideEffect { onConversationOpen(fullScreen) }
@@ -99,12 +128,15 @@ internal fun DeviceInboxHost(
     val loadImage: suspend (Long) -> ImageBitmap? = { id -> withContext(Dispatchers.IO) { state.services.mms?.image(id)?.asImageBitmap() } }
     Row(Modifier.fillMaxSize()) {
         if (wide || !fullScreen) Box(Modifier.weight(1f).fillMaxHeight()) {
-            DeviceInboxScreen(state, openKey, { openKey = it }, onShowSamples, onRequestPermissions, now, zone)
+            DeviceInboxScreen(
+                state, arranged, metadata, openKey, { openKey = it }, showArchive, { showArchive = !showArchive; openKey = null },
+                filter, { filter = it }, onShowSamples, onRequestPermissions, now, zone
+            )
         }
         if (wide) VerticalDivider()
         if (open != null) Box(Modifier.weight(1f).fillMaxHeight()) {
             DeviceConversationScreen(open, simLabel, loadImage, onBack = if (wide) null else ({ openKey = null }), now = now, zone = zone,
-                composer = { ReplyComposer(state, open) })
+                actions = conversationActions.orEmpty(), composer = { ReplyComposer(state, open) })
         } else if (wide) Box(Modifier.weight(1f).fillMaxHeight().background(chatBackground()), contentAlignment = Alignment.Center) {
             Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)) {
                 Text("Choose a conversation", Modifier.padding(horizontal = 14.dp, vertical = 6.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -116,8 +148,14 @@ internal fun DeviceInboxHost(
 @Composable
 internal fun DeviceInboxScreen(
     state: DeviceMessagesState,
+    arranged: List<DeviceConversation>,
+    metadata: Map<String, DeviceConversationMetadata>,
     selectedKey: String?,
     onOpen: (String) -> Unit,
+    showArchive: Boolean,
+    onToggleArchive: () -> Unit,
+    filter: String,
+    onFilter: (String) -> Unit,
     onShowSamples: () -> Unit,
     onRequestPermissions: () -> Unit,
     now: () -> Instant = { Instant.now() },
@@ -126,15 +164,16 @@ internal fun DeviceInboxScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var search by rememberSaveable { mutableStateOf("") }
-    val conversations = searchDeviceConversations(state.conversations, search)
+    val conversations = searchDeviceConversations(arranged, search)
     val access = state.access
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text("FoldSMS", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                Text("Messages", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
+                Text(if (showArchive) "Archive" else "Messages", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
             }
             OverflowMenu("device-inbox-actions", "inbox actions", listOf(
+                MenuAction(if (showArchive) "Inbox" else "Archive", onClick = onToggleArchive),
                 MenuAction("Refresh messages", !state.refreshing) { scope.launch { state.refresh() } },
                 MenuAction("Request permissions", onClick = onRequestPermissions),
                 MenuAction("Android permissions") {
@@ -163,6 +202,12 @@ internal fun DeviceInboxScreen(
                 focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent
             )
         )
+        androidx.compose.foundation.lazy.LazyRow(Modifier.testTag("device-category-filters"), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(listOf("All") + conversationCategories) { c ->
+                FilterChip(modifier = Modifier.testTag("device-category-filter-$c"), selected = c == filter, onClick = { onFilter(c) }, label = { Text(c) })
+            }
+        }
         Column(Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
             if (!access.messagingSupported) Text("This device has no supported SMS service.", color = MaterialTheme.colorScheme.error)
             if (access.messagingSupported && !access.externalDefault) Text("Choose Google Messages or another capable default messaging app in Android settings. FoldSMS never takes over as default.", color = MaterialTheme.colorScheme.error)
@@ -179,11 +224,18 @@ internal fun DeviceInboxScreen(
                 !access.canRead -> Unit
                 !state.hasLoaded -> Text("Loading messages…", Modifier.padding(20.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 state.conversations.isEmpty() -> Text("No messages found. Refresh after receiving one.", Modifier.padding(20.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                arranged.isEmpty() -> Text(
+                    when {
+                        showArchive && filter == "All" -> "Archive is empty"
+                        filter != "All" -> "No conversations in this category"
+                        else -> "Every conversation is archived. Open the archive from the menu."
+                    }, Modifier.padding(20.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 conversations.isEmpty() -> Text("No conversations match", Modifier.padding(20.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 else -> LazyColumn(Modifier.fillMaxSize().testTag("device-inbox-list"), contentPadding = PaddingValues(bottom = 24.dp)) {
                     items(conversations, key = { it.key }) { conversation ->
                         DeviceConversationRow(conversation, formatConversationTime(conversation.last.date, now(), zone, Locale.getDefault()),
-                            selected = conversation.key == selectedKey, onClick = { onOpen(conversation.key) })
+                            selected = conversation.key == selectedKey, category = deviceCategory(metadata[conversation.key]),
+                            pinned = metadata[conversation.key]?.pinned == true, onClick = { onOpen(conversation.key) })
                         HorizontalDivider(Modifier.padding(start = 76.dp), color = MaterialTheme.colorScheme.outlineVariant)
                     }
                 }
@@ -193,7 +245,7 @@ internal fun DeviceInboxScreen(
 }
 
 @Composable
-internal fun DeviceConversationRow(conversation: DeviceConversation, time: String, selected: Boolean, onClick: () -> Unit) {
+internal fun DeviceConversationRow(conversation: DeviceConversation, time: String, selected: Boolean, category: String, pinned: Boolean, onClick: () -> Unit) {
     val last = conversation.last
     val unread = conversation.unreadCount
     Row(
@@ -217,6 +269,7 @@ internal fun DeviceConversationRow(conversation: DeviceConversation, time: Strin
                 val prefix = if (last.outgoing) "You: " else ""
                 Text(prefix + last.preview.lineSequence().first(), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (pinned) Text("Pinned", Modifier.padding(start = 6.dp).testTag("device-pinned-${conversation.key}"), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                 if (last.failed) Text("Failed", Modifier.padding(start = 6.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
                 if (unread > 0) Box(
                     Modifier.padding(start = 8.dp).defaultMinSize(minWidth = 22.dp).background(MaterialTheme.colorScheme.primary, CircleShape)
@@ -225,6 +278,8 @@ internal fun DeviceConversationRow(conversation: DeviceConversation, time: Strin
                 ) { Text(if (unread > 99) "99+" else unread.toString(), Modifier.padding(horizontal = 6.dp, vertical = 1.dp),
                     style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimary) }
             }
+            Text(category, Modifier.testTag("device-category-${conversation.key}"), style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
         }
     }
 }

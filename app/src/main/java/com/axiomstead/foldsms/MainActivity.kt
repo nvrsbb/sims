@@ -66,7 +66,8 @@ internal fun PreviewApp(
     customStore: CustomSampleConversationStore? = null,
     wide: Boolean = LocalConfiguration.current.screenWidthDp >= 600,
     deletionStore: SampleDeletionStore? = null,
-    smsServices: SmsServices? = null
+    smsServices: SmsServices? = null,
+    deviceMetadataStore: DeviceMetadataStore? = null
 ) {
     var theme by remember { mutableStateOf(themeStore.get()) }
     var showSettings by rememberSaveable { mutableStateOf(false) }
@@ -123,7 +124,7 @@ internal fun PreviewApp(
         ) { padding ->
             Box(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
                 if (messageView == "Samples") viewStates.SaveableStateProvider("samples") {
-                    ChatsTab(deviceState, wide = wide, onConversationOpen = { conversationOpen = it }) { useDeviceMessages ->
+                    ChatsTab(deviceState, wide = wide, onConversationOpen = { conversationOpen = it }, deviceMetadata = deviceMetadataStore) { useDeviceMessages ->
                         FoldSmsApp(
                             store = draftStore, wide = wide, metadataStore = metadataStore, customStore = customStore,
                             onOpenSettings = { showSettings = true }, deletionStore = deletionStore,
