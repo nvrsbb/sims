@@ -82,3 +82,5 @@ The owner merged receive slice PR [#24](https://github.com/nvrsbb/sims/pull/24).
 ## F-17 device messages in preview — 2026-11-06
 
 The requested UX is a Device messages tab beside Samples in the main screen, with no separate settings-launched companion dialog. Stored SMS and MMS share one newest-first list with transport-specific provider IDs. The existing opt-in, permission, explicit-SIM confirmation, draft and send-journal safeguards remain. Switching tabs must preserve the selected sample conversation and unsent sample draft. Google Messages remains default for MMS download, storage and notifications; MMS sending remains unavailable. This UI increment does not perform phone installation or carrier sends.
+
+PR [#26](https://github.com/nvrsbb/sims/pull/26) is open on #25. Local checks passed: 31 JVM tests, lint, debug APK, Android-test APK and diff whitespace. Hosted API 35 interaction tests remain pending; native MMS reading on the owner Fold is also pending. Retarget #26 to main after the owner merges #25. Do not merge on the owner's behalf.
