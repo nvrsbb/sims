@@ -1,10 +1,10 @@
 # FoldSMS — private Android SMS replacement prototype
 
-FoldSMS includes a fabricated preview and an optional SMS companion for a Samsung Galaxy Z Fold6. Sample sending stays disabled. Settings → Open SMS companion offers permission-gated device SMS and MMS reading and explicitly confirmed SIM-specific sending. Access starts disabled; Android and the installer may refuse restricted SMS permissions. Keep Google Messages or another capable messaging app default for MMS download, notifications and message storage. FoldSMS does not request the default SMS role and is not yet a dependable replacement. No network permission or backend. See [SMS transport behavior and validation limits](docs/SMS_TRANSPORT.md).
+FoldSMS shows fabricated samples and an opt-in Device messages tab for a Samsung Galaxy Z Fold6. Sample sending stays disabled. The Device messages tab shows stored SMS and MMS together and offers explicitly confirmed SIM-specific SMS sending. Access starts disabled; Android and the installer may refuse restricted permissions. Keep Google Messages or another capable messaging app default for MMS download, notifications and message storage. FoldSMS does not request the default SMS role, cannot send MMS yet, and is not yet a dependable replacement. No network permission or backend. See [SMS transport behavior and validation limits](docs/SMS_TRANSPORT.md).
 
 ## Current preview
 
-- Fabricated conversations, search, and category filters.
+- Fabricated conversations, search, and category filters in Samples; stored device SMS and MMS in Device messages after opt-in.
 - Conversation selection and editable drafts saved per conversation; sending disabled.
 - Single pane below 600dp available width and split pane at 600dp or wider.
 - No backend, account, analytics, or cloud backup.
@@ -41,6 +41,6 @@ See [the working agreements](AGENTS.md) for development, review, merge, and phon
 2. Install only the preview APK and open **FoldSMS Preview**.
 3. Check search, filters, opening a conversation, and the in-app Back button on the cover screen.
 4. Unfold and check that the inbox and conversation fit side by side. Also check text at your normal font size and in multi-window mode.
-5. Confirm sample sending stays disabled and preview launch requests no SMS permissions or default role. Do not enable the companion or send carrier messages as part of this preview check; arrange a separately authorized test window.
+5. Confirm sample sending stays disabled and preview launch requests no SMS permissions or default role. Do not enable device access or send carrier messages as part of this preview check; arrange a separately authorized test window.
 
 Device launch and fold behavior require a physical-device check. Do not treat this prototype as a functioning messenger. Before any future default-app trial, complete the backup, restore, two-way SMS/MMS, notification, and rollback gates in the specification.

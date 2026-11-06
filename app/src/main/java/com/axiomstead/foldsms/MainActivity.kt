@@ -40,6 +40,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun PreviewApp(
     themeStore: ThemeStore,
@@ -48,11 +49,12 @@ internal fun PreviewApp(
     customStore: CustomSampleConversationStore? = null,
     wide: Boolean = LocalConfiguration.current.screenWidthDp >= 600,
     deletionStore: SampleDeletionStore? = null,
-    smsCompanion: SmsServices? = null
+    smsServices: SmsServices? = null
 ) {
     var theme by remember { mutableStateOf(themeStore.get()) }
     var showSettings by rememberSaveable { mutableStateOf(false) }
-    var showSms by rememberSaveable { mutableStateOf(false) }
+    var messageView by rememberSaveable { mutableStateOf("Samples") }
+    val viewStates = rememberSaveableStateHolder()
     val dark = theme.usesDarkColors(isSystemInDarkTheme())
     val colors = if (dark) darkColorScheme(
         primary = Color(0xFFF2A26A), onPrimary = Color(0xFF112022),
@@ -68,22 +70,31 @@ internal fun PreviewApp(
         outline = Color(0xFFD6C8B4), outlineVariant = Color(0xFFE2D3BF)
     )
     MaterialTheme(colorScheme = colors) {
-        FoldSmsApp(
-            store = draftStore, wide = wide, metadataStore = metadataStore, customStore = customStore,
-            onOpenSettings = { showSettings = true }, deletionStore = deletionStore
-        )
+        Column(Modifier.fillMaxSize()) {
+            PrimaryTabRow(selectedTabIndex = if (messageView == "Samples") 0 else 1) {
+                listOf("Samples", "Device messages").forEachIndexed { index, label ->
+                    Tab(selected = messageView == label,
+                        onClick = { messageView = if (index == 0) "Samples" else "Device messages" },
+                        modifier = Modifier.testTag(if (index == 0) "preview-samples" else "preview-device-messages"),
+                        text = { Text(label) })
+                }
+            }
+            Box(Modifier.weight(1f)) {
+                if (messageView == "Samples") viewStates.SaveableStateProvider("samples") {
+                    FoldSmsApp(
+                        store = draftStore, wide = wide, metadataStore = metadataStore, customStore = customStore,
+                        onOpenSettings = { showSettings = true }, deletionStore = deletionStore
+                    )
+                } else viewStates.SaveableStateProvider("device") {
+                    DeviceMessagesPane(supplied = smsServices)
+                }
+            }
+        }
         if (showSettings) PreviewSettings(
             theme = theme,
             onThemeChange = { theme = it; themeStore.save(it) },
-            onDismiss = { showSettings = false },
-            onOpenSms = { showSettings = false; showSms = true }
+            onDismiss = { showSettings = false }
         )
-        if (showSms) androidx.compose.ui.window.Dialog(
-            onDismissRequest = { showSms = false; showSettings = true },
-            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
-        ) {
-            Surface(Modifier.fillMaxSize()) { SmsCompanionRoute(onClose = { showSms = false; showSettings = true }, supplied = smsCompanion) }
-        }
     }
 }
 
