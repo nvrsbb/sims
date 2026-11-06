@@ -16,7 +16,21 @@ android {
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
-    buildTypes { release { isMinifyEnabled = false } }
+    // CI signs debug APKs with one stored key so phone updates keep the same signature.
+    // Without FOLDSMS_KEYSTORE_FILE (local builds, forks), Android's per-machine debug key is used.
+    val sharedKeystore = System.getenv("FOLDSMS_KEYSTORE_FILE")?.let { file(it) }?.takeIf { it.isFile }
+    signingConfigs {
+        if (sharedKeystore != null) create("sharedDebug") {
+            storeFile = sharedKeystore
+            storePassword = System.getenv("FOLDSMS_KEYSTORE_PASSWORD")
+            keyAlias = System.getenv("FOLDSMS_KEY_ALIAS") ?: "foldsms"
+            keyPassword = System.getenv("FOLDSMS_KEYSTORE_PASSWORD")
+        }
+    }
+    buildTypes {
+        debug { if (sharedKeystore != null) signingConfig = signingConfigs.getByName("sharedDebug") }
+        release { isMinifyEnabled = false }
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

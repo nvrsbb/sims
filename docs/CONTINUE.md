@@ -34,6 +34,8 @@ Main includes deterministic pin ordering, reversible archive, custom conversatio
 
 ## Build and emulator
 
+CI signing: the build job signs `app-debug.apk` with one shared debug key from the repository secrets `FOLDSMS_KEYSTORE_BASE64` and `FOLDSMS_KEYSTORE_PASSWORD` (alias `foldsms`). The job log prints the certificate SHA-256; it must stay `13:EE:DA:20:…:A6:BD` for phone updates to install over each other. Without the secrets, CI warns and falls back to a one-off key. Local builds keep the machine debug key unless `FOLDSMS_KEYSTORE_FILE` and the password are exported. Never commit the keystore or password. The first install of a shared-key build over an older per-run-key build still needs an uninstall, which deletes local app data.
+
 Use JDK 17 and the Gradle wrapper with SDK platform 35. Android Studio is installed; its API 35 Google APIs ARM64 `Samsung_Fold_6` AVD is available. See `docs/EMULATOR.md` for test setup and its folded-height warning.
 
 The ignored `local.properties` still points to the original temporary SDK. Its parent toolchain directory contains the downloaded JDK 17 bundle and `gradle-home`; use that JDK's `Contents/Home`. Keep these tools until a durable JDK 17 / SDK 35 setup replaces them. Do not commit local machine paths or tools.
