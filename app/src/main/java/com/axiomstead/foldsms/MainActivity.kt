@@ -123,7 +123,7 @@ internal fun PreviewApp(
         ) { padding ->
             Box(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
                 if (messageView == "Samples") viewStates.SaveableStateProvider("samples") {
-                    ChatsTab(deviceState, onOpenSettings = { showSettings = true }) { useDeviceMessages ->
+                    ChatsTab(deviceState, wide = wide, onConversationOpen = { conversationOpen = it }) { useDeviceMessages ->
                         FoldSmsApp(
                             store = draftStore, wide = wide, metadataStore = metadataStore, customStore = customStore,
                             onOpenSettings = { showSettings = true }, deletionStore = deletionStore,

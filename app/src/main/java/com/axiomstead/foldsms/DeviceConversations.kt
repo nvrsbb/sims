@@ -6,7 +6,7 @@ internal enum class DeviceMessageKind { SMS, MMS }
 internal data class DeviceMessage(
     val kind: DeviceMessageKind, val id: Long, val address: String, val text: String, val subject: String,
     val date: Long, val outgoing: Boolean, val read: Boolean, val subscriptionId: Int, val attachmentCount: Int,
-    val imageCount: Int, val failed: Boolean
+    val imageCount: Int, val failed: Boolean, val mmsParts: List<DeviceMmsPart> = emptyList()
 ) {
     /** Stable key unique across SMS and MMS, whose provider ids can collide. */
     val key get() = "${kind.name.lowercase()}-$id"
@@ -45,7 +45,7 @@ internal fun DeviceSms.toMessage() = DeviceMessage(
 
 internal fun DeviceMms.toMessage() = DeviceMessage(
     DeviceMessageKind.MMS, id, address, text, subject, date, box != 1, read, -1, attachments.size,
-    attachments.count { it.image }, false
+    attachments.count { it.image }, false, parts
 )
 
 /**
