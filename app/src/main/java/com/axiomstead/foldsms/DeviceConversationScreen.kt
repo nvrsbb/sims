@@ -81,6 +81,10 @@ internal fun DeviceConversationScreen(
                 state = listState, modifier = Modifier.fillMaxSize().testTag("device-conversation-list"),
                 verticalArrangement = Arrangement.spacedBy(6.dp), contentPadding = PaddingValues(horizontal = 10.dp, vertical = 12.dp)
             ) {
+                if (items.isEmpty()) item(key = "empty") {
+                    Text("New message to ${conversation.title}. Nothing is sent until you review and confirm.",
+                        Modifier.fillMaxWidth().padding(16.dp).testTag("device-new-conversation-hint"), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 items(items, key = { it.key }) { item ->
                     when (item) {
                         is ChatItem.Separator -> Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
