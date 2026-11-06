@@ -7,6 +7,10 @@ import android.provider.Settings
 import android.provider.Telephony
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -34,7 +38,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 internal val smsPermissions = arrayOf(Manifest.permission.READ_SMS, Manifest.permission.RECEIVE_SMS,
-    Manifest.permission.SEND_SMS, Manifest.permission.READ_PHONE_STATE)
+    Manifest.permission.SEND_SMS, Manifest.permission.READ_PHONE_STATE, Manifest.permission.RECEIVE_MMS)
 
 @Composable
 internal fun SmsCompanionRoute(onClose: () -> Unit, supplied: SmsServices? = null) {
@@ -45,6 +49,12 @@ internal fun SmsCompanionRoute(onClose: () -> Unit, supplied: SmsServices? = nul
     var access by remember { mutableStateOf(services.platform.access()) }
     var subscriptions by remember { mutableStateOf(emptyList<SmsSubscription>()) }
     var messages by remember { mutableStateOf(emptyList<DeviceSms>()) }
+    var mmsMessages by remember { mutableStateOf(emptyList<DeviceMms>()) }
+    var mmsCanRead by remember { mutableStateOf(services.mms?.canRead() == true) }
+    var mmsDetail by remember { mutableStateOf<DeviceMms?>(null) }
+    var imagePart by remember { mutableStateOf<DeviceMmsPart?>(null) }
+    var imageBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
+    var imageLoadDone by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     val refreshLock = remember { kotlinx.coroutines.sync.Mutex() }
     var refreshing by remember { mutableStateOf(false) }
@@ -68,21 +78,29 @@ internal fun SmsCompanionRoute(onClose: () -> Unit, supplied: SmsServices? = nul
             val next = services.platform.access()
             access = next
             if (!next.canRead) messages = emptyList()
+            if (services.mms?.canRead() != true) mmsMessages = emptyList()
             if (!next.canSend) subscriptions = emptyList()
             withContext(Dispatchers.IO) {
                 val rows = if (next.canRead) services.platform.recent() else emptyList()
                 val sims = if (next.canSend) services.platform.subscriptions() else emptyList()
+                val mmsResult: Result<List<DeviceMms>> = try { Result.success(if (services.mms?.canRead() == true) services.mms.recent() else emptyList()) }
+                    catch (cancelled: CancellationException) { throw cancelled }
+                    catch (failure: Exception) { Result.failure(failure) }
                 withContext(Dispatchers.Main) {
                     val current = services.platform.access()
                     access = current
                     messages = if (current.canRead) rows else emptyList()
                     subscriptions = if (current.canSend) sims else emptyList()
+                    mmsCanRead = services.mms?.canRead() == true
+                    mmsMessages = if (mmsCanRead) mmsResult.getOrDefault(emptyList()) else emptyList()
+                    if (mmsResult.isFailure) error = "MMS provider could not be read. SMS remains available; check MMS permission and refresh."
                 }
             }
             services.controller.reconcileCompletedDraft()
         } catch (cancelled: CancellationException) { throw cancelled }
         catch (_: Exception) {
-            messages = emptyList(); subscriptions = emptyList()
+            messages = emptyList(); mmsMessages = emptyList(); subscriptions = emptyList()
+            mmsCanRead = services.mms?.canRead() == true
             access = services.platform.access()
             error = "SMS access changed or the provider could not be read. Review permissions and refresh."
         } finally { refreshing = false }
@@ -99,6 +117,15 @@ internal fun SmsCompanionRoute(onClose: () -> Unit, supplied: SmsServices? = nul
     LaunchedEffect(services, access.canRead, access.canSend, access.enabled) {
         services.platform.changes().collect { refresh() }
     }
+    LaunchedEffect(services, mmsCanRead) { services.mms?.changes()?.collect { refresh() } }
+    LaunchedEffect(services, imagePart) {
+        imageBitmap = null
+        imageLoadDone = false
+        val part = imagePart ?: return@LaunchedEffect
+        try { imageBitmap = withContext(Dispatchers.IO) { services.mms?.image(part.id)?.asImageBitmap() } }
+        catch (_: Exception) { error = "The MMS image could not be opened. Check permissions and try again." }
+        finally { imageLoadDone = true }
+    }
 
     fun reply(address: String) {
         if (draft.body.isNotBlank() && draft.address != address) replyAddress = address
@@ -106,8 +133,8 @@ internal fun SmsCompanionRoute(onClose: () -> Unit, supplied: SmsServices? = nul
         detail = null
     }
     if (enablePrompt) AlertDialog(
-        onDismissRequest = { enablePrompt = false }, title = { Text("Enable SMS companion?") },
-        text = { Text("This mode can read device SMS and send chargeable SMS through your chosen SIM. Android will ask for SMS and Phone/SIM permissions. Google Messages stays default for MMS, message storage and notifications. This is not yet a replacement. No messages are sent automatically.", Modifier.verticalScroll(rememberScrollState())) },
+        onDismissRequest = { enablePrompt = false }, title = { Text("Enable SMS and MMS companion?") },
+        text = { Text("This mode can read device SMS and MMS, including MMS images, and send chargeable SMS through your chosen SIM. Android will ask for SMS, MMS and Phone/SIM permissions. Google Messages stays default for MMS download, message storage and notifications. This is not yet a replacement. No messages are sent automatically.", Modifier.verticalScroll(rememberScrollState())) },
         confirmButton = { TextButton(onClick = {
             enablePrompt = false
             if (services.consent.setEnabled(true)) {
@@ -145,6 +172,26 @@ internal fun SmsCompanionRoute(onClose: () -> Unit, supplied: SmsServices? = nul
             }
         }) { Text("Review with duplicate risk") } },
         dismissButton = { TextButton(onClick = { retryDraft = null }) { Text("Cancel") } }
+    ) }
+    mmsDetail?.let { mms -> AlertDialog(
+        onDismissRequest = { mmsDetail = null }, title = { Text(mms.address.ifEmpty { "Unknown sender" }) },
+        text = { Column(Modifier.verticalScroll(rememberScrollState())) {
+            Text(DateFormat.getDateTimeInstance().format(Date(mms.date)))
+            if (mms.subject.isNotEmpty()) Text(mms.subject, style = MaterialTheme.typography.titleSmall)
+            Text(mms.text.ifEmpty { "No text in this MMS" })
+            mms.attachments.forEach { part ->
+                if (part.image) TextButton(onClick = { imagePart = part }) { Text("View image · ${part.name.ifEmpty { "attachment" }}") }
+                else Text("${part.mimeType} · ${part.name.ifEmpty { "attachment" }} · open other media in Google Messages")
+            }
+            Text("Device MMS · Google Messages remains responsible for download and notification.")
+        } }, confirmButton = { TextButton(onClick = { mmsDetail = null }) { Text("Close") } }
+    ) }
+    imagePart?.let { part -> AlertDialog(
+        onDismissRequest = { imagePart = null }, title = { Text(part.name.ifEmpty { "MMS image" }) },
+        text = { Column(Modifier.verticalScroll(rememberScrollState())) {
+            imageBitmap?.let { bitmap -> Image(bitmap = bitmap, contentDescription = "MMS image", modifier = Modifier.fillMaxWidth().heightIn(max = 500.dp), contentScale = ContentScale.Fit) }
+                ?: Text(if (imageLoadDone) "Image unavailable. Open it in Google Messages." else "Loading image…")
+        } }, confirmButton = { TextButton(onClick = { imagePart = null }) { Text("Close image") } }
     ) }
     detail?.let { sms -> AlertDialog(
         onDismissRequest = { detail = null }, title = { Text(sms.address.ifEmpty { "Unknown sender" }) },
@@ -185,11 +232,11 @@ internal fun SmsCompanionRoute(onClose: () -> Unit, supplied: SmsServices? = nul
             Text("SMS companion", style = MaterialTheme.typography.titleLarge)
             TextButton(onClick = onClose) { Text("Back to preview") }
         }
-        Text("Google Messages stays default. MMS and notifications remain with your default app.", style = MaterialTheme.typography.labelMedium)
+        Text("Google Messages stays default for MMS download, notifications and storage.", style = MaterialTheme.typography.labelMedium)
         if (!access.enabled) {
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                Text("Opt-in device SMS access", style = MaterialTheme.typography.titleMedium)
-                Text("Read recent device SMS and send through an explicitly chosen SIM. Sample conversations remain separate and their sending stays disabled. SMS permission availability depends on Android and the installer. This mode does not request the default SMS role.")
+                Text("Opt-in device SMS and MMS access", style = MaterialTheme.typography.titleMedium)
+                Text("Read recent device SMS and MMS and send SMS through an explicitly chosen SIM. Sample conversations remain separate and their sending stays disabled. SMS permission availability depends on Android and the installer. This mode does not request the default SMS role.")
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 Button(onClick = { enablePrompt = true }) { Text("Enable SMS companion") }
             }
@@ -198,7 +245,7 @@ internal fun SmsCompanionRoute(onClose: () -> Unit, supplied: SmsServices? = nul
         Row(Modifier.horizontalScroll(rememberScrollState())) {
             TextButton(enabled = !busy, onClick = {
                 val saved = services.consent.setEnabled(false)
-                access = services.platform.access(); messages = emptyList(); subscriptions = emptyList(); confirmation = null
+                access = services.platform.access(); messages = emptyList(); mmsMessages = emptyList(); subscriptions = emptyList(); confirmation = null
                 if (!saved) error = "Disabled for this session, but Android could not save the preference. Revoke SMS permissions in Android settings before restarting."
             }) { Text("Disable SMS access") }
             TextButton(onClick = { permissionRequest.launch(smsPermissions) }) { Text("Request permissions") }
@@ -209,8 +256,21 @@ internal fun SmsCompanionRoute(onClose: () -> Unit, supplied: SmsServices? = nul
         if (!access.externalDefault) Text("Choose Google Messages or another capable default messaging app in Android settings before using this companion.", color = MaterialTheme.colorScheme.error)
         if (!access.canRead) Text("Receiving/display needs SMS read and receive access. Android or the installer may refuse restricted permissions; no bypass is attempted.")
         if (!access.canSend) Text("Sending needs SMS and Phone/SIM permissions, and an external default messaging app.")
+        if (services.mms != null && !mmsCanRead) Text("MMS display needs MMS receive access in addition to SMS read/receive. Android or the installer may refuse the restricted permission.")
         error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         LazyColumn(Modifier.weight(1f).fillMaxWidth().testTag("device-sms-list"), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (services.mms != null) item { Text("Recent device MMS · latest 100", style = MaterialTheme.typography.titleMedium) }
+            if (mmsCanRead && mmsMessages.isEmpty()) item { Text("No device MMS found. Refresh after Google Messages downloads one.") }
+            items(mmsMessages, key = { "mms-${it.id}" }) { mms ->
+                Card(onClick = { mmsDetail = mms }, modifier = Modifier.fillMaxWidth().testTag("device-mms-${mms.id}")) {
+                    Column(Modifier.padding(12.dp)) {
+                        Text(mms.address.ifEmpty { "Unknown sender" }, style = MaterialTheme.typography.titleSmall)
+                        if (mms.subject.isNotEmpty()) Text(mms.subject, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(mms.text.ifEmpty { "${mms.attachments.size} attachment(s)" }, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                        Text("MMS · ${if (mms.box == 1) "Received" else "Provider message"} · ${DateFormat.getDateTimeInstance().format(Date(mms.date))}", style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
             item { Text("Recent device SMS · latest 200", style = MaterialTheme.typography.titleMedium) }
             if (access.canRead && messages.isEmpty()) item { Text("No device SMS found. Refresh after receiving a message.") }
             if (attempts.isNotEmpty()) item { Text("Recent send attempts", style = MaterialTheme.typography.titleMedium) }

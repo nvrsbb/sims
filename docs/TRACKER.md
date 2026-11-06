@@ -20,7 +20,8 @@ Status: **Planned → In progress → PR open → Merged**. Close an item only a
 | F-12 | Delete all messages | Merged | [#17](https://github.com/nvrsbb/sims/pull/17) | Pending |
 | F-13 | Export local preview data | Merged | [#22](https://github.com/nvrsbb/sims/pull/22) | Pending |
 | F-14 | Validate and restore a preview export | Postponed: owner prioritized SMS | — | Pending |
-| F-15 | Opt-in SMS receiving and sending companion | Merged | [#23](https://github.com/nvrsbb/sims/pull/23) | Pending |
+| F-15 | Opt-in SMS receiving and sending companion | Merged | [#23](https://github.com/nvrsbb/sims/pull/23) | Owner reports SMS receive/send; other checks pending |
+| F-16 | Opt-in MMS receiving/sending companion | Receive slice merged; sending pending | [#24](https://github.com/nvrsbb/sims/pull/24) | Pending |
 
 F-07–F-10 reached main through merged integration #18. Its 22 JVM tests and 25 emulator tests passed. No new phone checks are implied. #19 (hosted CI) and #22 (export) reached main at `83f7663`. #20 KSP and #21 interrupted-draft recovery remain separate; do not duplicate them.
 
@@ -144,11 +145,11 @@ Completion: run `:app:connectedDebugAndroidTest` successfully, including the mes
 
 ### E-02 — Replace Room kapt processing with compatible KSP
 
-Status: **PR open** — [#20](https://github.com/nvrsbb/sims/pull/20). F-06 introduced the `KaptUsageInsteadOfKsp` lint advisory; the existing backup-extraction and application-icon warnings remain separate. Keep the current verified Kotlin/Room versions stable for this batch, then evaluate a compatible KSP setup and compare generated schemas before changing processors. No runtime failure was observed.
+Status: **Merged** — [#20](https://github.com/nvrsbb/sims/pull/20). F-06 introduced the `KaptUsageInsteadOfKsp` lint advisory; the existing backup-extraction and application-icon warnings remain separate. Keep the current verified Kotlin/Room versions stable for this batch, then evaluate a compatible KSP setup and compare generated schemas before changing processors. No runtime failure was observed.
 
 ### E-03 — Recover interrupted sample-conversation drafts
 
-Status: **PR open** — [#21](https://github.com/nvrsbb/sims/pull/21), with 28 hosted Android tests passed. F-09 writes the initial draft durably before committing its Room conversation row. Cancellation or database commit failure between those stores can leave an unattached draft; reserved negative IDs prevent later creation from overwriting it. Add a targeted cancellation regression and a deliberate recovery path. Ordinary typing retains the existing draft preference keys and behavior.
+Status: **Merged** — [#21](https://github.com/nvrsbb/sims/pull/21), with 28 hosted Android tests passed. F-09 writes the initial draft durably before committing its Room conversation row. Cancellation or database commit failure between those stores can leave an unattached draft; reserved negative IDs prevent later creation from overwriting it. Add a targeted cancellation regression and a deliberate recovery path. Ordinary typing retains the existing draft preference keys and behavior.
 
 ## Batch phone check results
 
@@ -177,3 +178,7 @@ E-02 implementation: Kotlin-compatible KSP 2.0.21-1.0.28 processes Room 2.6.1; p
 F-15 final pre-merge verification: 31 JVM tests, build/lint, 46 ordinary Android tests and the separate synthetic inbound provider smoke passed at `3c00024`. The guarded smoke is skipped in the ordinary phase and executed separately. Real carrier sends, phone installation and replacement readiness are not implied.
 
 Conflict-refresh local verification: both branches passed 31 JVM tests, lint, debug APK and Android-test APK assembly. Exported preview schemas 1–4 and SMS journal schema 1 match main exactly. #20 has two existing lint warnings (backup rules and icon); #21 retains those plus the separate kapt advisory. Hosted refreshed-head Android execution is tracked in the PR checks; no phone or carrier send was performed.
+
+## F-16 — Opt-in MMS receiving/sending companion
+
+Status: **In progress**; owner authorized on 2026-11-06 after reporting live SMS receive/send. First focused PR reads MMS stored by the external default app, with RECEIVE_MMS gating, notification-only WAP_PUSH_RECEIVED, provider-ID preservation, text/image preview and no provider writes. Google Messages retains download and notifications. Sending follows in a separate focused stack after a maintained, licensed PDU composer is selected and validated. No SMS fallback for failed MMS; all development fixtures are fabricated and carrier sends disabled. See `MMS_TRANSPORT.md`. Do not mark MMS or replacement ready until carrier and Fold checks pass.
