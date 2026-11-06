@@ -6,6 +6,7 @@
 - Native Kotlin / Jetpack Compose app for a Samsung Galaxy Z Fold6. No server, Vercel deployment, account, analytics, or network permission.
 - Owner authorized opt-in SMS receiving/sending on 2026-11-05. The companion reads Telephony and sends only after explicit number/body/SIM/part-count confirmation. Google Messages or another external app stays default for MMS, storage and notifications. Sample sending remains disabled; all development fixtures remain fabricated. Default-role requests, phone installation and carrier sends during tests are not authorized.
 - Owner authorized an opt-in MMS companion on 2026-11-06 while Google Messages remains default. Receive/read can be implemented without becoming default; carrier sends and phone installation remain outside development tests.
+- Owner requested SMS and MMS in the preview screen with the separate companion entry removed. Keep access opt-in from the main Device messages tab, preserve sample drafts and the SMS send journal, and leave MMS sending disabled until validated.
 - Preserve drafts and local metadata through app updates. Never use real messages as fixtures or log private message text.
 
 ## Development

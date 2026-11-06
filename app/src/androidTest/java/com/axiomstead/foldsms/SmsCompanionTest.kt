@@ -26,11 +26,11 @@ class SmsCompanionTest {
     private val database = Room.inMemoryDatabaseBuilder(context, SmsSendDatabase::class.java).build()
     private val services = SmsServices(platform, consent, drafts, database.sends())
     @After fun clean() { database.close(); consentPreferences.edit().clear().commit(); draftPreferences.edit().clear().commit() }
-    private fun show() { compose.setContent { MaterialTheme { SmsCompanionRoute({}, services) } } }
+    private fun show() { compose.setContent { MaterialTheme { DeviceMessagesPane(services) } } }
 
     @Test fun optInCancellationDoesNotReadOrSend() {
         show()
-        compose.onNodeWithText("Enable SMS companion").performClick()
+        compose.onNodeWithText("Enable device messages").performClick()
         compose.onNodeWithText("Cancel").performClick()
         compose.runOnIdle { assertFalse(consent.enabled()); assertEquals(0, platform.reads); assertTrue(platform.requests.isEmpty()) }
     }
@@ -50,21 +50,19 @@ class SmsCompanionTest {
         compose.runOnIdle { assertEquals(first.address, drafts.read().address); assertTrue(platform.requests.isEmpty()) }
     }
 
-    @Test fun settingsRoundTripPreservesTheSelectedSampleDraft() {
+    @Test fun previewDeviceTabPreservesTheSelectedSampleDraft() {
         val samplePreferences = context.getSharedPreferences("$prefix-sample", Context.MODE_PRIVATE)
         val sampleDatabase = Room.inMemoryDatabaseBuilder(context, ConversationMetadataDatabase::class.java).build()
         val sampleDrafts = DraftStore(samplePreferences)
         try {
             compose.setContent { PreviewApp(ThemeStore(samplePreferences), sampleDrafts,
                 ConversationMetadataStore(sampleDatabase.metadata()), CustomSampleConversationStore(sampleDatabase, sampleDrafts),
-                wide = false, deletionStore = SampleDeletionStore(samplePreferences), smsCompanion = services) }
+                wide = false, deletionStore = SampleDeletionStore(samplePreferences), smsServices = services) }
             compose.onAllNodesWithText("Alex").onFirst().performClick()
             compose.onNodeWithText("Draft message").performTextInput("Fabricated sample draft")
-            compose.onAllNodesWithText("Settings").onLast().performClick()
-            compose.onNodeWithText("Open SMS companion").performScrollTo().performClick()
-            compose.onNodeWithText("Enable SMS companion").assertExists()
-            compose.onNodeWithText("Back to preview").performClick()
-            compose.onNodeWithText("Done").performClick()
+            compose.onNodeWithTag("preview-device-messages").performClick()
+            compose.onNodeWithText("Enable device messages").assertExists()
+            compose.onNodeWithTag("preview-samples").performClick()
             compose.onNodeWithText("Fabricated sample draft").assertExists()
             compose.runOnIdle { assertTrue(platform.requests.isEmpty()); assertEquals(0, platform.reads) }
         } finally { sampleDatabase.close(); samplePreferences.edit().clear().commit() }
