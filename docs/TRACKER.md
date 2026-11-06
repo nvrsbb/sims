@@ -22,7 +22,7 @@ Status: **Planned → In progress → PR open → Merged**. Close an item only a
 | F-14 | Validate and restore a preview export | Postponed: owner prioritized SMS | — | Pending |
 | F-15 | Opt-in SMS receiving and sending companion | Merged | [#23](https://github.com/nvrsbb/sims/pull/23) | Owner reports SMS receive/send; other checks pending |
 | F-16 | Opt-in MMS receiving/sending companion | Receive slice merged; sending pending | [#24](https://github.com/nvrsbb/sims/pull/24) | Pending |
-| F-17 | Put device SMS/MMS in main preview; remove companion screen | PR open | [#26](https://github.com/nvrsbb/sims/pull/26) (stacked on #25) | Pending |
+| F-17 | Put device SMS/MMS in main preview; remove companion screen | PR open against main | [#27](https://github.com/nvrsbb/sims/pull/27) ([#26](https://github.com/nvrsbb/sims/pull/26) merged into the stack branch only) | Pending |
 
 F-07–F-10 reached main through merged integration #18. Its 22 JVM tests and 25 emulator tests passed. No new phone checks are implied. #19 (hosted CI) and #22 (export) reached main at `83f7663`. #20 KSP and #21 interrupted-draft recovery remain separate; do not duplicate them.
 
