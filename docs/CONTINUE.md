@@ -87,4 +87,6 @@ PR [#26](https://github.com/nvrsbb/sims/pull/26) was stacked on #25. Local check
 
 The owner merged #25 to main and then #26 to the old stack branch, so #26 did not bring the Device messages tab to main. PR [#27](https://github.com/nvrsbb/sims/pull/27) carries the tested feature into main. Its feature head passed 57 API 35 interaction/storage tests and the separate synthetic SMS smoke. Keep F-17 PR open until #27 reaches main; the owner performs the merge.
 
+The requested phone-build batch advances versionCode to 2 and versionName to 0.2.0. A local debug APK uses the cloud workspace's debug keystore; GitHub Actions uses its own debug signing identity. Neither is verified against the owner's installed FoldSMS APK, so do not assume an in-place update will install. Preserve drafts and app data; never advise uninstalling on a signature mismatch. The owner must verify signing compatibility before installing the linked artifact.
+
 Initial #26 hosted build passed but six API 35 tests timed out waiting for SMS/MMS cards after the new mixed-list renderer. The device tab now keeps the previously tested per-transport lazy sections; the final hosted run passed all 57 tests plus synthetic inbound SMS smoke. No carrier send occurred.
