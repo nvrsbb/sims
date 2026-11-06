@@ -28,3 +28,7 @@ Not part of this plan, because they need the default-SMS role or new authorizati
 ## Verification per PR
 
 Local: JVM tests, lint, debug and Android-test assembly, `git diff --check`. Hosted: the Android workflow with its emulator tests. Fold behavior, large fonts, cover screen and real carrier sending are checked by the owner on the phone and reported separately from automated results.
+
+## Status (2026-11-06)
+
+All eight PRs are open as a stack (#28–#35), each based on the previous branch. Merge in order, retargeting each to `main` first. Deliberate deviations from the plan: replies use the existing single shared SMS draft (one unsent draft app-wide, blocked with a visible reason when it belongs to someone else) instead of per-conversation drafts, because per-conversation drafts would change the revision and journal safeguards; metadata uses a new table instead of an extra column, which makes the 4→5 migration purely additive. Hosted emulator results are in each PR's checks; Fold behavior, large fonts, activity/process death and any real carrier send remain unverified.

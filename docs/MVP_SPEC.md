@@ -7,7 +7,7 @@ Private, local-first SMS/MMS replacement for a single Samsung Galaxy Z Fold6. Ph
 
 Owner prioritized real SMS receive/send before preview restore. Add an opt-in nondefault SMS companion, preserving Google Messages for MMS, notification and provider ownership. Require runtime permissions, explicit active-SIM selection and reviewed send confirmation. All tests remain fabricated with fake sending; no owner-phone installation. This intermediate milestone does not complete P2/P3 or establish replacement readiness. See `SMS_TRANSPORT.md`.
 
-The owner subsequently requested direct access to stored SMS and MMS from the main preview screen and removal of the separate companion screen. The Device messages tab is opt-in and keeps sample data, drafts and deletion controls separate. Google Messages remains default for MMS download, provider writes and notifications; MMS sending remains a later milestone.
+The owner subsequently requested direct access to stored SMS and MMS from the main preview screen and removal of the separate companion screen. Real conversations are opt-in in the main Chats tab (menu: Real messages) and keep sample data, drafts and deletion controls separate; the earlier separate Device tab was removed. Google Messages remains default for MMS download, provider writes and notifications; MMS sending remains a later milestone.
 
 ## UI direction
 

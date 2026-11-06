@@ -71,8 +71,6 @@ internal fun PreviewApp(
 ) {
     var theme by remember { mutableStateOf(themeStore.get()) }
     var showSettings by rememberSaveable { mutableStateOf(false) }
-    var messageView by rememberSaveable { mutableStateOf("Samples") }
-    val viewStates = rememberSaveableStateHolder()
     val dark = theme.usesDarkColors(isSystemInDarkTheme())
     val colors = if (dark) darkColorScheme(
         primary = Color(0xFFF2A26A), onPrimary = Color(0xFF112022),
@@ -103,16 +101,11 @@ internal fun PreviewApp(
             containerColor = MaterialTheme.colorScheme.background,
             bottomBar = {
                 // Like Telegram, the tab bar belongs to lists; it hides inside a phone-width conversation and while typing.
-                if (!keyboardVisible && !(messageView == "Samples" && conversationOpen)) NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
+                if (!keyboardVisible && !conversationOpen) NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                     NavigationBarItem(
-                        selected = messageView == "Samples", onClick = { messageView = "Samples" },
-                        icon = { Icon(Icons.Default.Email, contentDescription = null) }, label = { Text("Samples") },
-                        modifier = Modifier.testTag("preview-samples")
-                    )
-                    NavigationBarItem(
-                        selected = messageView == "Device messages", onClick = { messageView = "Device messages" },
-                        icon = { Icon(Icons.Default.Phone, contentDescription = null) }, label = { Text("Device") },
-                        modifier = Modifier.testTag("preview-device-messages")
+                        selected = true, onClick = {},
+                        icon = { Icon(Icons.Default.Email, contentDescription = null) }, label = { Text("Chats") },
+                        modifier = Modifier.testTag("preview-chats")
                     )
                     NavigationBarItem(
                         selected = false, onClick = { showSettings = true },
@@ -123,16 +116,12 @@ internal fun PreviewApp(
             }
         ) { padding ->
             Box(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
-                if (messageView == "Samples") viewStates.SaveableStateProvider("samples") {
-                    ChatsTab(deviceState, wide = wide, onConversationOpen = { conversationOpen = it }, deviceMetadata = deviceMetadataStore) { useDeviceMessages ->
-                        FoldSmsApp(
-                            store = draftStore, wide = wide, metadataStore = metadataStore, customStore = customStore,
-                            onOpenSettings = { showSettings = true }, deletionStore = deletionStore,
-                            onConversationOpen = { conversationOpen = it }, onUseDeviceMessages = useDeviceMessages
-                        )
-                    }
-                } else viewStates.SaveableStateProvider("device") {
-                    DeviceMessagesPane(state = deviceState)
+                ChatsTab(deviceState, wide = wide, onConversationOpen = { conversationOpen = it }, deviceMetadata = deviceMetadataStore) { useDeviceMessages ->
+                    FoldSmsApp(
+                        store = draftStore, wide = wide, metadataStore = metadataStore, customStore = customStore,
+                        onOpenSettings = { showSettings = true }, deletionStore = deletionStore,
+                        onConversationOpen = { conversationOpen = it }, onUseDeviceMessages = useDeviceMessages
+                    )
                 }
             }
         }

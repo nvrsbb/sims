@@ -154,6 +154,36 @@ class DeviceInboxTest {
     private fun testTagOf(node: androidx.compose.ui.semantics.SemanticsNode): String? =
         if (androidx.compose.ui.semantics.SemanticsProperties.TestTag in node.config) node.config[androidx.compose.ui.semantics.SemanticsProperties.TestTag] else null
 
+    @Test fun deniedMmsPermissionKeepsSmsAvailableAndExplains() {
+        consent.setEnabled(true)
+        mms.granted = false
+        sms.rows = listOf(inbox(30, 1, "2025550199", "Fabricated SMS", 1234))
+        show()
+        compose.waitUntil(5_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText("Photos and other MMS need MMS receive permission", substring = true).assertExists()
+        compose.onNodeWithText("Fabricated SMS").assertExists()
+        compose.runOnIdle { assertEquals(0, mms.reads); assertTrue(sms.requests.isEmpty()) }
+    }
+
+    @Test fun sampleDraftSurvivesSwitchingToRealMessagesAndBack() {
+        consent.setEnabled(true)
+        sms.rows = listOf(inbox(1, 1, "2025550101", "Fabricated real row", 1_000))
+        show()
+        compose.waitUntil(5_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("device-inbox-actions").performClick()
+        compose.onNodeWithText("Sample data").performClick()
+        compose.onNodeWithText("Alex").performClick()
+        compose.onNodeWithTag("draft-composer").performTextInput("Fabricated sample draft")
+        compose.onNodeWithContentDescription("Back").performClick()
+        compose.onNodeWithTag("inbox-actions").performClick()
+        compose.onNodeWithText("Real messages").performClick()
+        compose.onNodeWithText("Fabricated real row").assertExists()
+        compose.onNodeWithTag("device-inbox-actions").performClick()
+        compose.onNodeWithText("Sample data").performClick()
+        compose.onNodeWithTag("draft_indicator_1", useUnmergedTree = true).assertTextContains("Fabricated sample draft", substring = true)
+        compose.runOnIdle { assertTrue(sms.requests.isEmpty()) }
+    }
+
     private fun hasTestTagStartingWith(prefix: String) = SemanticsMatcher("TestTag starts with $prefix") {
         testTagOf(it)?.startsWith(prefix) == true
     }
