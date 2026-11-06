@@ -56,9 +56,15 @@ class ReplyComposerTest {
         compose.onNodeWithTag("device-thread-thread-$thread").performClick()
     }
 
+    // Typing opens the keyboard, which moves the composer after the test last measured it. A semantic click acts on the
+    // control itself instead of tapping a position the keyboard may now cover.
+    private fun SemanticsNodeInteraction.click() = performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
+
     private fun review(text: String) {
         compose.onNodeWithTag("reply-composer").performTextInput(text)
-        compose.onNodeWithTag("reply-review").performClick()
+        // The shared draft reaches the UI asynchronously; do not click while the send button is still disabled.
+        compose.waitUntil(5_000) { runCatching { compose.onNodeWithTag("reply-review").assertIsEnabled() }.isSuccess }
+        compose.onNodeWithTag("reply-review").click()
         compose.waitUntil(5_000) { compose.onAllNodesWithText("Send real SMS?").fetchSemanticsNodes().isNotEmpty() }
     }
 
@@ -77,7 +83,7 @@ class ReplyComposerTest {
         compose.onNodeWithText("SIM 1 · Fabricated SIM").assertExists()
         compose.onNodeWithText("1 SMS part(s).", substring = true).assertExists()
         compose.onNode(hasText("Hello there") and hasAnyAncestor(isDialog())).assertExists() // the composer holds the same text
-        compose.onNodeWithText("Cancel").performClick()
+        compose.onNodeWithText("Cancel").click()
         compose.onNodeWithText("Send real SMS?").assertDoesNotExist()
         compose.runOnIdle { assertTrue(sms.requests.isEmpty()); assertEquals("Hello there", drafts.read().body) }
         compose.onNodeWithTag("reply-composer").assertTextContains("Hello there")
@@ -87,7 +93,7 @@ class ReplyComposerTest {
         seedAndOpen()
         review("Hello there")
         compose.runOnIdle { assertTrue(sms.requests.isEmpty()) } // review alone never sends
-        compose.onNodeWithTag("reply-confirm-send").performClick()
+        compose.onNodeWithTag("reply-confirm-send").click()
         compose.waitUntil(5_000) { sms.requests.size == 1 }
         val request = sms.requests.single()
         assertEquals("2025550101", request.address)
@@ -105,16 +111,16 @@ class ReplyComposerTest {
     @Test fun failedResultKeepsTheDraftAndNeverResendsAutomatically() {
         seedAndOpen()
         review("Hello there")
-        compose.onNodeWithTag("reply-confirm-send").performClick()
+        compose.onNodeWithTag("reply-confirm-send").click()
         compose.waitUntil(5_000) { sms.requests.size == 1 }
         runBlocking { services.controller.result(sms.requests.single().id, 0, 1) }
         compose.waitUntil(5_000) { compose.onAllNodesWithText("Send failed · draft retained").fetchSemanticsNodes().isNotEmpty() }
         compose.runOnIdle { assertEquals("Hello there", drafts.read().body) }
-        compose.onNodeWithTag("reply-another-attempt").performClick()
+        compose.onNodeWithTag("reply-another-attempt").click()
         compose.onNodeWithText("Review another send attempt?").assertExists()
-        compose.onNodeWithText("Review with duplicate risk").performClick()
+        compose.onNodeWithText("Review with duplicate risk").click()
         compose.waitUntil(5_000) { compose.onAllNodesWithText("Send real SMS?").fetchSemanticsNodes().isNotEmpty() }
-        compose.onNodeWithText("Cancel").performClick()
+        compose.onNodeWithText("Cancel").click()
         compose.runOnIdle { assertEquals(1, sms.requests.size) }
     }
 
@@ -125,11 +131,13 @@ class ReplyComposerTest {
         compose.onNodeWithText("An unsent SMS to 2025550999 is waiting", substring = true).assertExists()
         compose.onNodeWithTag("reply-composer").assertDoesNotExist()
         compose.runOnIdle { assertEquals("Unsent for someone else", drafts.read().body) }
-        compose.onNodeWithTag("reply-discard-other").performClick()
-        compose.onNodeWithText("Keep draft").performClick()
+        compose.onNodeWithTag("reply-discard-other").click()
+        compose.waitUntil(5_000) { compose.onAllNodesWithText("Keep draft").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText("Keep draft").click()
         compose.runOnIdle { assertEquals("Unsent for someone else", drafts.read().body) }
-        compose.onNodeWithTag("reply-discard-other").performClick()
-        compose.onNodeWithTag("reply-confirm-discard").performClick()
+        compose.onNodeWithTag("reply-discard-other").click()
+        compose.waitUntil(5_000) { compose.onAllNodesWithTag("reply-confirm-discard").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("reply-confirm-discard").click()
         compose.waitUntil(5_000) { compose.onAllNodesWithTag("reply-composer").fetchSemanticsNodes().isNotEmpty() }
         compose.runOnIdle { assertEquals("", drafts.read().body) }
     }
@@ -145,10 +153,10 @@ class ReplyComposerTest {
     @Test fun simPickerChoosesTheSimShownInReview() {
         sms.sims = listOf(SmsSubscription(7, 0, "First"), SmsSubscription(8, 1, "Second"))
         seedAndOpen()
-        compose.onNodeWithTag("reply-sim-8").performClick()
+        compose.onNodeWithTag("reply-sim-8").click()
         review("Via the second SIM")
         compose.onNodeWithText("SIM 2 · Second").assertExists()
-        compose.onNodeWithTag("reply-confirm-send").performClick()
+        compose.onNodeWithTag("reply-confirm-send").click()
         compose.waitUntil(5_000) { sms.requests.size == 1 }
         assertEquals(8, sms.requests.single().sim)
     }

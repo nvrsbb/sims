@@ -248,11 +248,6 @@ internal fun DeviceInboxScreen(
             state.error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("device-inbox-error")) }
         }
         Box(Modifier.weight(1f).fillMaxWidth()) {
-            if (access.canSend) FloatingActionButton(
-                onClick = onNewMessage,
-                modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp).testTag("device-new-message"),
-                containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary
-            ) { Icon(Icons.Default.Edit, contentDescription = "New message") }
             when {
                 !access.canRead -> Unit
                 !state.hasLoaded -> Text("Loading messages…", Modifier.padding(20.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -273,6 +268,12 @@ internal fun DeviceInboxScreen(
                     }
                 }
             }
+            // Declared after the list so it is drawn, and hit-tested, on top of it.
+            if (access.canSend) FloatingActionButton(
+                onClick = onNewMessage,
+                modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp).testTag("device-new-message"),
+                containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary
+            ) { Icon(Icons.Default.Edit, contentDescription = "New message") }
         }
     }
 }

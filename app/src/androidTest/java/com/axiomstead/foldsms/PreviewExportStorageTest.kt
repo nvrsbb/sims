@@ -42,7 +42,7 @@ class PreviewExportStorageTest {
             val fixed = Instant.parse("2026-11-05T01:00:00Z")
             val snapshot = capturePreviewExport(database, drafts, deletion, settings, fixed)
             assertEquals(fixed, snapshot.capturedAt)
-            assertEquals(4, snapshot.roomSchemaVersion)
+            assertEquals(5, snapshot.roomSchemaVersion) // the live database version; the device metadata table added in v5 is not exported
             assertEquals(savedDraft, snapshot.drafts[created.id])
             assertEquals("Unattached sample draft", snapshot.drafts[-9])
             assertEquals(setOf(1, -1, -9), snapshot.drafts.keys)
