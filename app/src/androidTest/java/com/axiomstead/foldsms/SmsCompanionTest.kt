@@ -66,7 +66,7 @@ class SmsCompanionTest {
             compose.onNodeWithTag("preview-device-messages").performClick()
             compose.onNodeWithText("Enable device messages").assertExists()
             compose.onNodeWithTag("preview-samples").performClick()
-            compose.onNodeWithTag("draft_indicator_1").assertTextContains("Fabricated sample draft", substring = true)
+            compose.onNodeWithTag("draft_indicator_1", useUnmergedTree = true).assertTextContains("Fabricated sample draft", substring = true)
             compose.onNodeWithTag("thread_1").performClick()
             compose.onNodeWithText("Fabricated sample draft").assertExists()
             compose.runOnIdle { assertTrue(platform.requests.isEmpty()); assertEquals(0, platform.reads) }

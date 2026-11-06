@@ -116,7 +116,7 @@ class SampleDeletionAndroidTest {
         }
         compose.onNodeWithTag("inbox-search").performTextInput("meeting")
         compose.onNodeWithTag("thread_1").performClick()
-        compose.onNodeWithTag("conversation-actions").performScrollTo().performClick()
+        compose.onNodeWithTag("conversation-actions").performClick()
         compose.onNodeWithText("Delete all in conversation").performClick()
         compose.onNodeWithText("Delete 3 sample messages in the entire Alex conversation?", substring = true).assertExists()
         compose.onNodeWithText("Keep messages").performClick()
