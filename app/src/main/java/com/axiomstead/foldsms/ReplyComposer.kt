@@ -1,0 +1,159 @@
+package com.axiomstead.foldsms
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+/**
+ * Reply box for a real conversation. It uses the single shared SMS draft and the send journal, so every existing safeguard
+ * applies unchanged: explicit review of number, text, SIM and part count; revision-bound draft; no automatic resend; the
+ * draft clears only after every part is accepted. Nothing is sent until the review dialog is confirmed.
+ */
+@Composable
+internal fun ReplyComposer(state: DeviceMessagesState, conversation: DeviceConversation, modifier: Modifier = Modifier) {
+    val services = state.services
+    val scope = rememberCoroutineScope()
+    val draft by remember(services) { services.drafts.changes }.collectAsState(initial = services.drafts.read())
+    val attempts by remember(services) { services.journal.observeRecent() }.collectAsState(initial = emptyList())
+    var busy by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var confirmation by remember { mutableStateOf<SmsConfirmation?>(null) }
+    var retryFrom by remember { mutableStateOf<SmsDraft?>(null) }
+    var discardPrompt by remember { mutableStateOf(false) }
+
+    val status = replyState(conversation.address, draft, state.access.canSend, state.subscriptions)
+    val sim = preferredSubscription(conversation, draft, state.subscriptions)
+    val current = attempts.firstOrNull { it.attempt.draftRevision == draft.revision && it.attempt.stage != "REJECTED" }
+
+    confirmation?.let { send ->
+        val duplicateRisk = attempts.any { it.attempt.recipient == send.recipient && it.attempt.bodyDigest == smsBodyDigest(send.draft.body)
+            && it.attempt.stage in setOf("SUBMITTED", "PARTIAL") }
+        AlertDialog(onDismissRequest = { if (!busy) confirmation = null }, title = { Text("Send real SMS?") },
+            text = { Column(Modifier.verticalScroll(rememberScrollState())) {
+                Text("To: ${send.recipient}")
+                Text(state.subscriptions.firstOrNull { it.id == send.draft.subscriptionId }?.let { "SIM ${it.slot + 1} · ${it.label}" } ?: "Selected SIM is no longer active")
+                Text("${send.parts.size} SMS part(s). Carrier charges may apply. Submission cannot be cancelled.")
+                if (duplicateRisk) Text("A matching earlier attempt is unconfirmed or partially sent. Check Google Messages first; sending again can duplicate messages and charges.", color = MaterialTheme.colorScheme.error)
+                Text(send.draft.body)
+            } },
+            confirmButton = { TextButton(enabled = !busy, modifier = Modifier.testTag("reply-confirm-send"), onClick = {
+                busy = true; confirmation = null; error = null
+                scope.launch {
+                    try { services.controller.submit(send) }
+                    catch (cancelled: CancellationException) { throw cancelled }
+                    catch (failure: Exception) { error = failure.message ?: "Submission could not be confirmed. Check Google Messages." }
+                    finally { busy = false }
+                }
+            }) { Text("Send ${send.parts.size} part(s)") } },
+            dismissButton = { TextButton(enabled = !busy, onClick = { confirmation = null }) { Text("Cancel") } }
+        )
+    }
+    retryFrom?.let { previous -> AlertDialog(
+        onDismissRequest = { retryFrom = null }, title = { Text("Review another send attempt?") },
+        text = { Text("Check Google Messages first. An earlier attempt may already have sent some or all parts and cannot be cancelled. Another attempt can duplicate messages and charges. Your current draft text will be kept.") },
+        confirmButton = { TextButton(onClick = {
+            retryFrom = null; busy = true; error = null
+            scope.launch {
+                try {
+                    val next = withContext(Dispatchers.IO) { services.drafts.newAttemptIfRevision(previous.revision) }
+                        ?: throw IllegalStateException("The draft changed or could not be saved. Review it again.")
+                    confirmation = services.controller.confirm(next)
+                } catch (cancelled: CancellationException) { throw cancelled }
+                catch (failure: Exception) { error = failure.message ?: "Could not prepare another attempt." }
+                finally { busy = false }
+            }
+        }) { Text("Review with duplicate risk") } },
+        dismissButton = { TextButton(onClick = { retryFrom = null }) { Text("Cancel") } }
+    ) }
+    if (discardPrompt) AlertDialog(
+        onDismissRequest = { discardPrompt = false }, title = { Text("Discard that SMS draft?") },
+        text = { Text("This clears the unsent SMS draft. It does not cancel a message that was already submitted.") },
+        confirmButton = { TextButton(modifier = Modifier.testTag("reply-confirm-discard"), onClick = { services.drafts.clearIfRevision(draft.revision); discardPrompt = false }) { Text("Discard draft") } },
+        dismissButton = { TextButton(onClick = { discardPrompt = false }) { Text("Keep draft") } }
+    )
+
+    Surface(modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surface) {
+        Column(Modifier.padding(start = 10.dp, end = 10.dp, top = 8.dp, bottom = 6.dp)) {
+            when (status) {
+                ReplyState.NotAPhoneNumber -> Note("You can't reply to this sender because it is not a phone number.", "reply-note")
+                ReplyState.NoSendPermission -> Note("Sending needs SMS and Phone/SIM permissions. Use the menu on the message list to request them.", "reply-note")
+                ReplyState.NoActiveSim -> Note("No active SIM is available for sending.", "reply-note")
+                is ReplyState.OtherDraftWaiting -> {
+                    Note(if (status.address.isBlank()) "An unsent SMS draft with no recipient is waiting. Send or discard it before writing here."
+                        else "An unsent SMS to ${status.address} is waiting. Send or discard it before writing here.", "reply-note")
+                    TextButton(onClick = { discardPrompt = true }, modifier = Modifier.testTag("reply-discard-other")) { Text("Discard that draft") }
+                }
+                ReplyState.Ready -> {
+                    if (state.subscriptions.size > 1) Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        state.subscriptions.forEach { option ->
+                            FilterChip(selected = option.id == sim?.id, modifier = Modifier.testTag("reply-sim-${option.id}"),
+                                onClick = { services.drafts.edit(address = conversation.address, subscriptionId = option.id) },
+                                label = { Text("SIM ${option.slot + 1} · ${option.label}") })
+                        }
+                    }
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        TextField(
+                            value = composerText(conversation.address, draft),
+                            onValueChange = { text -> services.drafts.edit(address = conversation.address, body = text, subscriptionId = sim?.id) },
+                            placeholder = { Text("SMS message") },
+                            modifier = Modifier.weight(1f).testTag("reply-composer"),
+                            minLines = 1, maxLines = 5, shape = RoundedCornerShape(24.dp),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant, unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent
+                            )
+                        )
+                        IconButton(
+                            modifier = Modifier.testTag("reply-review"),
+                            enabled = !busy && current == null && draft.body.isNotBlank() && sim != null,
+                            onClick = {
+                                busy = true; error = null
+                                scope.launch {
+                                    try { confirmation = services.controller.confirm(services.drafts.read()) }
+                                    catch (cancelled: CancellationException) { throw cancelled }
+                                    catch (failure: Exception) { error = failure.message ?: "Review the number, message and SIM." }
+                                    finally { busy = false }
+                                }
+                            }
+                        ) { Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Review SMS") }
+                    }
+                    current?.let { operation ->
+                        Text(smsAttemptLabel(operation), Modifier.testTag("reply-status"), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Row {
+                            if (operation.attempt.stage in setOf("SUBMITTED", "FAILED", "PARTIAL"))
+                                TextButton(enabled = !busy, onClick = { retryFrom = draft }, modifier = Modifier.testTag("reply-another-attempt")) { Text("Review another attempt") }
+                            if (operation.attempt.stage == "PREPARED") TextButton(enabled = !busy, onClick = {
+                                scope.launch { services.journal.rejectPrepared(operation.attempt.id) }
+                            }) { Text("Cancel unsubmitted attempt") }
+                        }
+                    }
+                    Text("Real SMS · carrier charges may apply · you review before anything is sent", style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 12.dp))
+                }
+            }
+            error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, modifier = Modifier.testTag("reply-error")) }
+        }
+    }
+}
+
+@Composable
+private fun Note(text: String, tag: String) =
+    Text(text, Modifier.padding(horizontal = 6.dp, vertical = 4.dp).testTag(tag), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

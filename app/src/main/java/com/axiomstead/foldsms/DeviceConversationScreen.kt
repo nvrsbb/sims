@@ -38,6 +38,7 @@ internal fun DeviceConversationScreen(
     loadImage: suspend (Long) -> ImageBitmap?,
     onBack: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    composer: @Composable () -> Unit = {},
     now: () -> Instant = { Instant.now() },
     zone: ZoneId = ZoneId.systemDefault()
 ) {
@@ -56,7 +57,7 @@ internal fun DeviceConversationScreen(
             .collect { following = it }
     }
     LaunchedEffect(items.size) { if (positioned && following && items.isNotEmpty()) listState.scrollToItem(items.lastIndex) }
-    Column(modifier.fillMaxSize().background(chatBackground())) {
+    Column(modifier.fillMaxSize().background(chatBackground()).imePadding()) {
         Surface(color = MaterialTheme.colorScheme.surface) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (onBack != null) IconButton(onClick = onBack, modifier = Modifier.testTag("device-conversation-back")) {
@@ -91,6 +92,7 @@ internal fun DeviceConversationScreen(
                 }
             }
         }
+        composer()
     }
     imagePart?.let { part -> ImageDialog(part, loadImage) { imagePart = null } }
 }
