@@ -1,6 +1,6 @@
 # FoldSMS — private Android SMS replacement prototype
 
-FoldSMS includes a fabricated preview and an optional SMS companion for a Samsung Galaxy Z Fold6. Sample sending stays disabled. Settings → Open SMS companion offers permission-gated device SMS reading and explicitly confirmed SIM-specific sending. Access starts disabled; Android and the installer may refuse restricted SMS permissions. Keep Google Messages or another capable messaging app default for MMS, notifications and message storage. FoldSMS does not request the default SMS role and is not yet a dependable replacement. No network permission or backend. See [SMS transport behavior and validation limits](docs/SMS_TRANSPORT.md).
+FoldSMS includes a fabricated preview and an optional SMS companion for a Samsung Galaxy Z Fold6. Sample sending stays disabled. Settings → Open SMS companion offers permission-gated device SMS and MMS reading and explicitly confirmed SIM-specific sending. Access starts disabled; Android and the installer may refuse restricted SMS permissions. Keep Google Messages or another capable messaging app default for MMS download, notifications and message storage. FoldSMS does not request the default SMS role and is not yet a dependable replacement. No network permission or backend. See [SMS transport behavior and validation limits](docs/SMS_TRANSPORT.md).
 
 ## Current preview
 

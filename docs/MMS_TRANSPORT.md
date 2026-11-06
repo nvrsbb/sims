@@ -1,0 +1,11 @@
+# MMS companion milestone
+
+The owner prioritized MMS after reporting working SMS receive/send on the Fold. This increment reads MMS stored by the external default messaging app. Google Messages remains default and retains MMS download, provider writes and notifications. The app never registers WAP_PUSH_DELIVER or requests the default role.
+
+`RECEIVE_MMS` is hard-restricted and installer-dependent. The companion requests it alongside existing SMS permissions after explicit opt-in. Denial keeps SMS available but blocks MMS reads. WAP_PUSH_RECEIVED only signals a refresh; this app never parses the broadcast PDU, writes a provider row or emits a competing notification. Foreground resume and a ContentObserver also refresh the provider view.
+
+The first receive slice lists up to 100 stored MMS provider IDs as Long values, without deduplicating equal subject/body/date. It reads sender addresses, subject, text parts and attachment metadata. Images decode only on tap, using a bounded pixel size. Other media remain with Google Messages. MMS provider timestamps are seconds; they are converted to milliseconds for display. Images and text are not copied into preview drafts, exported preview JSON, SMS journal or logs. Android still owns actual MMS download.
+
+Validation uses fabricated isolated fake-provider data: consent cancellation, denied MMS access with SMS still available, identical-body distinct IDs, refresh and image loading only on tap. Native provider receipt and attachment rendering on the owner Fold remain to verify. Sending MMS requires a validated, maintained, license-compatible PDU composer and an explicit SIM-specific send journal; do not substitute plain SMS for a failed MMS. No carrier MMS or owner-phone installation occurs during development.
+
+Official Android contracts: [Telephony provider](https://developer.android.com/reference/android/provider/Telephony), [MMS parts](https://developer.android.com/reference/android/provider/Telephony.Mms.Part), [WAP_PUSH_RECEIVED](https://developer.android.com/reference/android/provider/Telephony.Sms.Intents), [restricted RECEIVE_MMS permission](https://developer.android.com/reference/android/Manifest.permission), [MMS sending API](https://developer.android.com/reference/android/telephony/SmsManager).
