@@ -17,7 +17,7 @@ import org.junit.Test
 class DeviceMetadataStorageTest {
     @get:Rule val migrations = MigrationTestHelper(InstrumentationRegistry.getInstrumentation(), ConversationMetadataDatabase::class.java)
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
-    private val allMigrations = arrayOf(METADATA_MIGRATION_1_2, METADATA_MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+    private val allMigrations = arrayOf(METADATA_MIGRATION_1_2, METADATA_MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
 
     @Test fun versionFourToFiveKeepsEverythingAndAddsAnEmptyDeviceTable() = runBlocking {
         val name = "device-meta-migration-${UUID.randomUUID()}"
@@ -36,6 +36,34 @@ class DeviceMetadataStorageTest {
             assertTrue(database.deviceMetadata().getAll().isEmpty())
             assertEquals("Fabricated existing\ndraft", preferences.getString("thread_2", null))
         } finally { database.close(); context.deleteDatabase(name); preferences.edit().clear().commit() }
+    }
+
+    @Test fun versionFiveToSixKeepsDeviceFlagsAndReadsOldArchivesAsNoDate() = runBlocking {
+        val name = "device-meta-migration-6-${UUID.randomUUID()}"
+        migrations.createDatabase(name, 5).apply {
+            execSQL("INSERT INTO device_conversation_metadata (conversationKey, category, pinned, archived) VALUES ('thread-1', 'Finance', 1, 1)")
+            execSQL("INSERT INTO device_conversation_metadata (conversationKey, category, pinned, archived) VALUES ('thread-2', NULL, 0, 0)")
+            close()
+        }
+        migrations.runMigrationsAndValidate(name, 6, true, MIGRATION_5_6).close()
+        val database = Room.databaseBuilder(context, ConversationMetadataDatabase::class.java, name).addMigrations(*allMigrations).build()
+        try {
+            assertEquals(listOf(
+                DeviceConversationMetadata("thread-1", "Finance", pinned = true, archived = true, archivedAtDate = 0),
+                DeviceConversationMetadata("thread-2", null, pinned = false, archived = false, archivedAtDate = 0)
+            ), database.deviceMetadata().getAll())
+        } finally { database.close(); context.deleteDatabase(name) }
+    }
+
+    @Test fun theArchiveDateIsStoredAndClearedOnRestore() = runBlocking {
+        val database = Room.inMemoryDatabaseBuilder(context, ConversationMetadataDatabase::class.java).build()
+        try {
+            val store = DeviceMetadataStore(database.deviceMetadata())
+            store.setArchived("thread-9", true, atDate = 5_000)
+            assertEquals(5_000L, store.all.first().getValue("thread-9").archivedAtDate)
+            store.setArchived("thread-9", false, atDate = 9_000)
+            assertEquals(DeviceConversationMetadata("thread-9", null, false, false, 0), store.all.first().getValue("thread-9"))
+        } finally { database.close() }
     }
 
     @Test fun flagsPersistAcrossReopenAndNeverCollideWithSampleThreadIds() = runBlocking {
