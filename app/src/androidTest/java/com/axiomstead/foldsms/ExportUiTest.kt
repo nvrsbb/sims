@@ -42,7 +42,7 @@ class ExportUiTest {
         openSettings(readable = true)
         // The tap closes the Settings window while it is still being injected, which fails the injection; the control is
         // checked to be on screen first and then activated through its semantic click.
-        compose.onNodeWithTag("settings-export").assertIsDisplayed()
+        compose.onNodeWithTag("settings-export").performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("settings-export").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
         compose.onNodeWithTag("export-text-only").assertExists()
         compose.onNodeWithTag("export-with-attachments").assertExists()

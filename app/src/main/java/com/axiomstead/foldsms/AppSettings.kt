@@ -4,6 +4,8 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.*
@@ -37,6 +39,8 @@ internal fun AppSettings(
                     TextButton(onClick = onDismiss, modifier = Modifier.testTag("settings-done")) { Text("Done") }
                 }
                 Spacer(Modifier.height(8.dp))
+                // Everything between the title and the version scrolls, so no setting is out of reach on the cover screen or at large fonts.
+                Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
                 Text("Appearance", style = MaterialTheme.typography.titleMedium)
                 Column(Modifier.selectableGroup()) {
                     ThemeChoice.entries.forEach { choice ->
@@ -77,7 +81,7 @@ internal fun AppSettings(
                     context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}")))
                 }, modifier = Modifier.testTag("settings-permissions")) { Text("Android permissions") }
                 TextButton(onClick = onTurnOff, modifier = Modifier.testTag("settings-turn-off")) { Text("Turn off access") }
-                Spacer(Modifier.weight(1f))
+                }
                 if (version.isNotEmpty()) Text("FoldSMS $version", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }

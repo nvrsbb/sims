@@ -117,7 +117,7 @@ class DeviceInboxTest {
         compose.waitUntil(UI_WAIT_MS) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithTag("device-inbox-actions").performClick()
         compose.onNodeWithText("Settings").performClick()
-        compose.onNodeWithTag("settings-turn-off").performClick()
+        compose.onNodeWithTag("settings-turn-off").performScrollTo().performClick()
         compose.onNodeWithTag("welcome-allow").assertIsDisplayed()
         compose.runOnIdle { assertTrue(!consent.enabled()) }
         val readsAfterOff = sms.reads
