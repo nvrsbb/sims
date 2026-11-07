@@ -6,6 +6,7 @@
     <uses-permission android:name="android.permission.SEND_SMS" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.RECEIVE_MMS" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-feature android:name="android.hardware.telephony" android:required="false" />
     <uses-feature android:name="android.hardware.telephony.messaging" android:required="false" />
     <queries>
@@ -26,6 +27,10 @@
                 <action android:name="android.provider.Telephony.WAP_PUSH_RECEIVED" />
                 <data android:mimeType="application/vnd.wap.mms-message" />
             </intent-filter>
+        </receiver>
+        <!-- Used only while FoldSMS holds the default SMS role (see docs/DEFAULT_SMS.md); dormant otherwise. -->
+        <receiver android:name=".SmsDeliverReceiver" android:exported="true" android:permission="android.permission.BROADCAST_SMS">
+            <intent-filter><action android:name="android.provider.Telephony.SMS_DELIVER" /></intent-filter>
         </receiver>
         <receiver android:name=".SmsSentReceiver" android:exported="false" />
     </application>
