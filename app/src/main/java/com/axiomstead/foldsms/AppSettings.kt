@@ -9,7 +9,7 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -58,7 +58,7 @@ internal fun AppSettings(
                 } else if (onMakeDefault != null) {
                     TextButton(onClick = onMakeDefault, modifier = Modifier.testTag("settings-make-default")) { Text("Make FoldSMS default") }
                 }
-                var entries by remember { mutableStateOf(Diagnostics.entryCount(context)) }
+                var entries by remember { mutableIntStateOf(Diagnostics.entryCount(context)) }
                 if (entries > 0) {
                     HorizontalDivider(Modifier.padding(vertical = 8.dp))
                     Text("Troubleshooting", style = MaterialTheme.typography.titleMedium)
