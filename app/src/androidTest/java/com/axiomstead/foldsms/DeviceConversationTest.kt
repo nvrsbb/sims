@@ -84,7 +84,7 @@ class DeviceConversationTest {
         waitForInbox()
         compose.onNodeWithTag("device-thread-thread-10").performClick()
         compose.onNodeWithTag("reply-composer").assertIsDisplayed()
-        compose.onNodeWithTag("reply-review").assertIsDisplayed()
+        compose.onNodeWithTag("reply-send").assertIsDisplayed()
         val list = compose.onNodeWithTag("device-conversation-list").fetchSemanticsNode().boundsInRoot
         val box = compose.onNodeWithTag("reply-composer").fetchSemanticsNode().boundsInRoot
         assertTrue("composer must sit below the message list", box.top >= list.bottom - 1f)

@@ -22,9 +22,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * Reply box for a real conversation. It uses the single shared SMS draft and the send journal, so every existing safeguard
- * applies unchanged: explicit review of number, text, SIM and part count; revision-bound draft; no automatic resend; the
- * draft clears only after every part is accepted. Nothing is sent until the review dialog is confirmed.
+ * Reply box for a real conversation. It uses the single shared SMS draft and the send journal: revision-bound draft, one
+ * attempt per revision, no automatic resend, the draft clears only after every part is accepted. Tapping Send goes straight
+ * out for a one-part reply in an existing conversation; a new recipient, several parts or a possible duplicate first show the
+ * review dialog with number, text, SIM and part count (see [needsSendReview]).
  */
 @Composable
 internal fun ReplyComposer(state: DeviceMessagesState, conversation: DeviceConversation, modifier: Modifier = Modifier) {
@@ -42,9 +43,11 @@ internal fun ReplyComposer(state: DeviceMessagesState, conversation: DeviceConve
     val sim = preferredSubscription(conversation, draft, state.subscriptions)
     val current = attempts.firstOrNull { it.attempt.draftRevision == draft.revision && it.attempt.stage != "REJECTED" }
 
+    fun duplicateRiskFor(send: SmsConfirmation) = attempts.any { it.attempt.recipient == send.recipient && it.attempt.bodyDigest == smsBodyDigest(send.draft.body)
+        && it.attempt.stage in setOf("SUBMITTED", "PARTIAL") }
+
     confirmation?.let { send ->
-        val duplicateRisk = attempts.any { it.attempt.recipient == send.recipient && it.attempt.bodyDigest == smsBodyDigest(send.draft.body)
-            && it.attempt.stage in setOf("SUBMITTED", "PARTIAL") }
+        val duplicateRisk = duplicateRiskFor(send)
         AlertDialog(onDismissRequest = { if (!busy) confirmation = null }, title = { Text("Send real SMS?") },
             text = { Column(Modifier.verticalScroll(rememberScrollState())) {
                 Text("To: ${send.recipient}")
@@ -122,18 +125,22 @@ internal fun ReplyComposer(state: DeviceMessagesState, conversation: DeviceConve
                             )
                         )
                         IconButton(
-                            modifier = Modifier.testTag("reply-review"),
+                            modifier = Modifier.testTag("reply-send"),
                             enabled = !busy && current == null && draft.body.isNotBlank() && sim != null,
                             onClick = {
                                 busy = true; error = null
                                 scope.launch {
-                                    try { confirmation = services.controller.confirm(services.drafts.read()) }
+                                    try {
+                                        val send = services.controller.confirm(services.drafts.read())
+                                        if (needsSendReview(conversation.messages.isNotEmpty(), send.parts.size, duplicateRiskFor(send))) confirmation = send
+                                        else services.controller.submit(send)
+                                    }
                                     catch (cancelled: CancellationException) { throw cancelled }
-                                    catch (failure: Exception) { error = failure.message ?: "Review the number, message and SIM." }
+                                    catch (failure: Exception) { error = failure.message ?: "Could not send the message." }
                                     finally { busy = false }
                                 }
                             }
-                        ) { Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Review SMS") }
+                        ) { Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send SMS") }
                     }
                     current?.let { operation ->
                         Text(smsAttemptLabel(operation), Modifier.testTag("reply-status"), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -145,7 +152,7 @@ internal fun ReplyComposer(state: DeviceMessagesState, conversation: DeviceConve
                             }) { Text("Cancel unsubmitted attempt") }
                         }
                     }
-                    Text("Real SMS · carrier charges may apply · you review before anything is sent", style = MaterialTheme.typography.labelSmall,
+                    Text("Real SMS · carrier charges may apply", style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 12.dp))
                 }
             }

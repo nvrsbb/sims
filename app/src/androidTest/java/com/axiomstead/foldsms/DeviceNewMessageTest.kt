@@ -83,8 +83,8 @@ class DeviceNewMessageTest {
         compose.onNodeWithTag("device-conversation-actions").assertDoesNotExist() // nothing to pin or archive yet
         compose.onNodeWithTag("reply-composer").performTextInput("Hello new number")
         // The shared draft reaches the UI asynchronously and the keyboard moves the controls: wait, then act on the control itself.
-        compose.waitUntil(UI_WAIT_MS) { runCatching { compose.onNodeWithTag("reply-review").assertIsEnabled() }.isSuccess }
-        compose.onNodeWithTag("reply-review").performClick()
+        compose.waitUntil(UI_WAIT_MS) { runCatching { compose.onNodeWithTag("reply-send").assertIsEnabled() }.isSuccess }
+        compose.onNodeWithTag("reply-send").performClick()
         compose.waitUntil(UI_WAIT_MS) { compose.onAllNodesWithText("Send real SMS?").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("To: +639175550199").assertExists()
         compose.onNodeWithText("Cancel").performClick()

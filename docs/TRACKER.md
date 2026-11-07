@@ -38,6 +38,7 @@ Status: **Planned → In progress → PR open → Merged**. Close an item only a
 | F-30 | **Final step: ask the user to make FoldSMS their default message app** | Last on the list; blocked until the owner authorizes a default-role request and the replacement gates pass (see CONTINUE "Next work") | — | Pending |
 | F-31 | Select conversations (long press, menu "Select messages", Select all) and mark read, mark unread or delete them | In review (owner request 2026-11-07) | feature/select-and-unread | Only offered while FoldSMS is the default app; delete asks first. Mark unread flips the newest received message of each conversation. Not verified on the provider: unread/read/delete on real threads, large selections |
 | F-32 | "Show unread only" filter in the three-dot menu | In review (owner request 2026-11-07) | feature/select-and-unread | Works with search, categories and the archive; the open conversation stays listed after it is read |
+| F-33 | Send one-part replies on tap (owner request 2026-11-07); review dialog kept for new recipients, multi-part messages and possible duplicates | In review | feature/send-without-review | Journal, one attempt per draft revision and no-auto-resend unchanged. Not verified: real carrier send, accidental taps in daily use |
 
 F-07–F-10 reached main through merged integration #18. Its 22 JVM tests and 25 emulator tests passed. No new phone checks are implied. #19 (hosted CI) and #22 (export) reached main at `83f7663`. #20 KSP and #21 interrupted-draft recovery remain separate; do not duplicate them.
 
