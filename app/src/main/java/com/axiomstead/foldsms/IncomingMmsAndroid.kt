@@ -54,9 +54,9 @@ class MmsPushReceiver : BroadcastReceiver() {
         receiverScope.launch {
             try {
                 val notification = parseMmsNotification(data)
-                if (notification == null) notifyFailure(app, "")
+                if (notification == null) { Diagnostics.record(app, "MMS_PUSH_UNPARSED", "bytes=${data.size}"); notifyFailure(app, "") }
                 else if (!alreadyStored(app, notification.transactionId)) startDownload(app, notification, subscription)
-            } catch (_: Exception) { notifyFailure(app, "") }
+            } catch (failure: Exception) { Diagnostics.record(app, "MMS_PUSH_ERROR", failure.javaClass.name); notifyFailure(app, "") }
             finally { completion.finish() }
         }
     }
@@ -75,8 +75,13 @@ private fun startDownload(context: Context, notification: MmsNotification, subsc
         .putExtra("tr", notification.transactionId).putExtra("sender", notification.sender).putExtra("sub", subscription)
     // Mutable because the telephony service adds the result details to the intent.
     val pending = PendingIntent.getBroadcast(context, 0, result, PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_MUTABLE)
-    try { manager(context, subscription).downloadMultimediaMessage(context, notification.contentLocation, uri, null, pending) }
-    catch (failure: Exception) { file.delete(); notifyFailure(context, notification.sender) }
+    try {
+        manager(context, subscription).downloadMultimediaMessage(context, notification.contentLocation, uri, null, pending)
+        Diagnostics.record(context, "MMS_DOWNLOAD_STARTED", "sub=$subscription announcedBytes=${notification.size}")
+    } catch (failure: Exception) {
+        Diagnostics.record(context, "MMS_DOWNLOAD_START_FAILED", failure.javaClass.name)
+        file.delete(); notifyFailure(context, notification.sender)
+    }
 }
 
 /** Receives the download result from the telephony service through an app-created PendingIntent only. */
@@ -87,6 +92,7 @@ class MmsDownloadedReceiver : BroadcastReceiver() {
             ?.takeIf { Regex("[0-9a-f-]{36}\\.dl").matches(it) } ?: return
         val app = context.applicationContext
         val ok = resultCode == Activity.RESULT_OK
+        Diagnostics.record(app, "MMS_DOWNLOAD_RESULT", "resultCode=$resultCode httpStatus=${intent.getIntExtra(SmsManager.EXTRA_MMS_HTTP_STATUS, 0)}")
         val sender = intent.getStringExtra("sender").orEmpty(); val subscription = intent.getIntExtra("sub", -1)
         val transactionId = intent.getStringExtra("tr").orEmpty()
         val completion = goAsync()
@@ -94,13 +100,16 @@ class MmsDownloadedReceiver : BroadcastReceiver() {
             val file = File(mmsDir(app), name)
             try {
                 val retrieved = if (ok) file.takeIf { it.exists() && it.length() <= MAX_PDU }?.readBytes()?.let(::parseMmsRetrieved) else null
-                if (retrieved == null) notifyFailure(app, sender)
-                else {
-                    val stored = try { storeRetrieved(app, retrieved, subscription) } catch (_: Exception) { false }
+                if (retrieved == null) {
+                    Diagnostics.record(app, "MMS_PARSE_FAILED", "ok=$ok fileBytes=${if (file.exists()) file.length() else -1}")
+                    notifyFailure(app, sender)
+                } else {
+                    val stored = try { storeRetrieved(app, retrieved, subscription) } catch (failure: Exception) { Diagnostics.record(app, "MMS_STORE_ERROR", failure.javaClass.name); false }
+                    Diagnostics.record(app, "MMS_RECEIVED", "parts=${retrieved.parts.size} stored=$stored")
                     acknowledge(app, retrieved.transactionId.ifEmpty { transactionId }, subscription)
                     showIncomingNotification(app, IncomingSms(retrieved.sender.ifEmpty { "Picture message" }, summary(retrieved, stored), System.currentTimeMillis(), subscription))
                 }
-            } catch (_: Exception) { notifyFailure(app, sender) }
+            } catch (failure: Exception) { Diagnostics.record(app, "MMS_DOWNLOAD_ERROR", failure.javaClass.name); notifyFailure(app, sender) }
             finally { file.delete(); completion.finish() }
         }
     }
@@ -153,5 +162,5 @@ private fun acknowledge(context: Context, transactionId: String, subscription: I
         val uri = fileUri(context, file)
         context.grantUriPermission("com.android.phone", uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
         manager(context, subscription).sendMultimediaMessage(context, uri, null, null, null)
-    } catch (_: Exception) { }
+    } catch (failure: Exception) { Diagnostics.record(context, "MMS_ACK_FAILED", failure.javaClass.name) }
 }
