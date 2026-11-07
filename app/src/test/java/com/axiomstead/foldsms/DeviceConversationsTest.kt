@@ -91,4 +91,14 @@ class DeviceConversationsTest {
         assertEquals(listOf("thread-3"), searchDeviceConversations(all, "555 0199").map { it.key })
         assertTrue(searchDeviceConversations(all, "zzz").isEmpty())
     }
+
+    @Test fun identicalMessagesWithLargeProviderIdsStayDistinct() {
+        // Ported from the removed Device tab test: same body and time must never collapse, and ids beyond Int must survive.
+        val result = groupDeviceConversations(
+            listOf(sms(3_000_000_001L, 1, "2025550199", "Same text", 1234), sms(3_000_000_002L, 1, "2025550199", "Same text", 1234)),
+            listOf(mms(9_000_000_000L, 1, "2025550199", 1234, text = "Same text"), mms(9_000_000_001L, 1, "2025550199", 1234, text = "Same text"))
+        ).single()
+        assertEquals(4, result.messages.size)
+        assertEquals(listOf("sms-3000000001", "sms-3000000002", "mms-9000000000", "mms-9000000001"), result.messages.map { it.key })
+    }
 }

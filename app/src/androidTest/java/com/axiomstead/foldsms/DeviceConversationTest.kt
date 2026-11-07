@@ -78,7 +78,7 @@ class DeviceConversationTest {
         val order = compose.onAllNodes(hasTestTagStartingWith("device-message-sms-")).fetchSemanticsNodes().map { testTagOf(it) }
         assertEquals(listOf("device-message-sms-1", "device-message-sms-2", "device-message-sms-3"), order)
         compose.onNodeWithTag("device-inbox-list").assertDoesNotExist() // phone width shows one pane
-        compose.onNodeWithTag("preview-samples").assertDoesNotExist() // bottom bar hides inside the conversation
+        compose.onNodeWithTag("preview-chats").assertDoesNotExist() // bottom bar hides inside the conversation
         compose.runOnIdle { assertTrue(sms.requests.isEmpty()) }
     }
 
@@ -94,7 +94,7 @@ class DeviceConversationTest {
         compose.onNodeWithTag("device-inbox-list").assertExists()
         compose.onNodeWithTag("device-inbox-search").assertTextContains("2025550101")
         compose.onNodeWithTag("device-thread-thread-20").assertDoesNotExist()
-        compose.onNodeWithTag("preview-samples").assertExists()
+        compose.onNodeWithTag("preview-chats").assertExists()
         compose.onNodeWithTag("device-thread-thread-10").performClick()
         compose.onNodeWithTag("device-conversation-back").performClick()
         compose.onNodeWithTag("device-inbox-list").assertExists()
