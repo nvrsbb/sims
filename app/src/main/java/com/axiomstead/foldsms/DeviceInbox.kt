@@ -92,7 +92,10 @@ internal fun DeviceInboxHost(
     val arranged = arrangeDeviceConversations(state.conversations, metadata, showArchive, filter, unreadOnly, openKey)
     val openReal = state.conversations.firstOrNull { it.key == openKey }
     // A number with no history yet: an empty conversation that only exists on screen until the provider has a thread for it.
-    val synthetic = pendingAddress?.takeIf { openReal == null }?.let { DeviceConversation("new-${conversationAddressKey(it)}", 0, it, emptyList()) }
+    val synthetic = pendingAddress?.takeIf { openReal == null }?.let {
+        // A number with no thread yet still shows the contact's name.
+        withContactNames(listOf(DeviceConversation("new-${conversationAddressKey(it)}", 0, it, emptyList())), contactNameMap(state.contacts)).single()
+    }
     val open = openReal ?: synthetic
     LaunchedEffect(pendingAddress, state.conversations) {
         val pending = pendingAddress ?: return@LaunchedEffect
