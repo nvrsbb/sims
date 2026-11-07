@@ -60,9 +60,10 @@ internal class AndroidSmsPlatform(private val context: Context, private val cons
         val capable = context.packageManager.hasSystemFeature(if (Build.VERSION.SDK_INT >= 33)
             PackageManager.FEATURE_TELEPHONY_MESSAGING else PackageManager.FEATURE_TELEPHONY)
         val defaultPackage = Telephony.Sms.getDefaultSmsPackage(context)
-        return SmsAccess(consent.enabled(), capable, defaultPackage != null && defaultPackage != context.packageName,
+        return SmsAccess(consent.enabled(), capable, defaultPackage != null,
             granted(Manifest.permission.READ_SMS), granted(Manifest.permission.RECEIVE_SMS),
-            granted(Manifest.permission.SEND_SMS), granted(Manifest.permission.READ_PHONE_STATE))
+            granted(Manifest.permission.SEND_SMS), granted(Manifest.permission.READ_PHONE_STATE),
+            isDefaultApp = defaultPackage == context.packageName)
     }
     @Suppress("MissingPermission")
     override fun subscriptions(): List<SmsSubscription> {
@@ -138,7 +139,8 @@ internal class AndroidSmsPlatform(private val context: Context, private val cons
     }.conflate()
 }
 
-internal data class SmsServices(val platform: SmsPlatform, val consent: SmsConsentStore, val drafts: SmsDraftStore, val journal: SmsSendDao, val mms: MmsPlatform? = null) {
+internal data class SmsServices(val platform: SmsPlatform, val consent: SmsConsentStore, val drafts: SmsDraftStore, val journal: SmsSendDao, val mms: MmsPlatform? = null,
+    val actions: MessageActions? = null, val defaultPrompt: DefaultPromptStore? = null) {
     val controller = SmsSendController(platform, consent, drafts, journal)
 }
 
@@ -147,5 +149,6 @@ internal fun smsServices(context: Context): SmsServices {
     val consent = SmsConsentStore(app.getSharedPreferences("sms_companion_access", Context.MODE_PRIVATE))
     return SmsServices(AndroidSmsPlatform(app, consent), consent,
         SmsDraftStore(app.getSharedPreferences("sms_compose_v1", Context.MODE_PRIVATE)), SmsJournalProvider.get(app).sends(),
-        AndroidMmsPlatform(app, consent))
+        AndroidMmsPlatform(app, consent), DefaultAppProviderWrites(app),
+        DefaultPromptStore(app.getSharedPreferences("default_prompt", Context.MODE_PRIVATE)))
 }

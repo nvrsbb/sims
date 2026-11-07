@@ -22,7 +22,7 @@ class SmsRulesTest {
     @Test fun noPrivilegeSetAllowsUnconsentedOwnDefaultOrUnsupportedDispatch() {
         val allowed = SmsAccess(true, true, true, true, true, true, true)
         assertTrue(allowed.canRead); assertTrue(allowed.canSend)
-        listOf(allowed.copy(enabled = false), allowed.copy(messagingSupported = false), allowed.copy(externalDefault = false)).forEach {
+        listOf(allowed.copy(enabled = false), allowed.copy(messagingSupported = false), allowed.copy(hasDefaultApp = false)).forEach {
             assertFalse(it.canRead); assertFalse(it.canSend)
         }
         assertFalse(allowed.copy(readGranted = false).canRead)

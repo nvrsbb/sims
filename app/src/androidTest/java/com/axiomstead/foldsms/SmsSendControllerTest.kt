@@ -107,7 +107,7 @@ class SmsSendControllerTest {
         assertTrue(runCatching { controller.submit(confirmed) }.isFailure)
         assertTrue(platform.requests.isEmpty())
         val latest = controller.confirm(drafts.read())
-        platform.gate = platform.gate.copy(externalDefault = false)
+        platform.gate = platform.gate.copy(hasDefaultApp = false)
         assertTrue(runCatching { controller.submit(latest) }.isFailure)
         assertTrue(platform.requests.isEmpty())
     }

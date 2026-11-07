@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Device message access is user opt-in; this app does not become the default SMS/MMS handler. -->
+    <!-- Device message access is user opt-in. FoldSMS can become the default SMS app only when the owner chooses it in the system dialog. -->
     <uses-permission android:name="android.permission.READ_SMS" />
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
     <uses-permission android:name="android.permission.SEND_SMS" />
@@ -18,7 +18,24 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Required for the default SMS role: other apps hand over a number to message. Nothing is sent without review. -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SENDTO" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="sms" /><data android:scheme="smsto" /><data android:scheme="mms" /><data android:scheme="mmsto" />
+            </intent-filter>
         </activity>
+        <!-- Required for the default SMS role. Quick replies (for example declining a call with a message) are deliberately not
+             sent, because every send needs the review dialog. -->
+        <service android:name=".RespondViaMessageService" android:exported="true" android:permission="android.permission.SEND_RESPOND_VIA_MESSAGE">
+            <intent-filter>
+                <action android:name="android.intent.action.RESPOND_VIA_MESSAGE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="sms" /><data android:scheme="smsto" /><data android:scheme="mms" /><data android:scheme="mmsto" />
+            </intent-filter>
+        </service>
         <receiver android:name=".DeviceSmsReceivedReceiver" android:exported="true" android:permission="android.permission.BROADCAST_SMS">
             <intent-filter><action android:name="android.provider.Telephony.SMS_RECEIVED" /></intent-filter>
         </receiver>

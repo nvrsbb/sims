@@ -50,7 +50,10 @@ internal fun DeviceInboxHost(
     onRequestPermissions: () -> Unit,
     permissionsAsked: Boolean = false,
     now: () -> Instant = { Instant.now() },
-    zone: ZoneId = ZoneId.systemDefault()
+    zone: ZoneId = ZoneId.systemDefault(),
+    onMakeDefault: (() -> Unit)? = null,
+    launchRecipient: String? = null,
+    onLaunchRecipientHandled: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val store = metadataStore ?: remember(context) { DeviceMetadataStore.get(context) }
@@ -65,6 +68,12 @@ internal fun DeviceInboxHost(
     var showCategories by rememberSaveable { mutableStateOf(false) }
     var newMessageDialog by rememberSaveable { mutableStateOf(false) }
     var pendingAddress by rememberSaveable { mutableStateOf<String?>(null) }
+    val prompt = state.services.defaultPrompt
+    var promptDismissed by rememberSaveable { mutableStateOf(prompt?.dismissed() ?: false) }
+    val offer = if (onMakeDefault != null && shouldOfferDefault(state.access, promptDismissed, roleAvailable = true))
+        DefaultOffer(onMakeDefault) { promptDismissed = true; prompt?.dismiss() } else null
+    var deleteTarget by rememberSaveable { mutableStateOf<String?>(null) }
+    val actions = state.services.actions
     val arranged = arrangeDeviceConversations(state.conversations, metadata, showArchive, filter)
     val openReal = state.conversations.firstOrNull { it.key == openKey }
     // A number with no history yet: an empty conversation that only exists on screen until the provider has a thread for it.
@@ -74,15 +83,42 @@ internal fun DeviceInboxHost(
         val pending = pendingAddress ?: return@LaunchedEffect
         state.conversations.firstOrNull { sameRecipient(it.address, pending) }?.let { openKey = it.key; pendingAddress = null }
     }
+    val startConversation = { number: String ->
+        val existing = state.conversations.firstOrNull { sameRecipient(it.address, number) }
+        if (existing != null) { openKey = existing.key; pendingAddress = null; showArchive = (metadata[existing.key]?.archived == true) }
+        else { openKey = null; pendingAddress = number }
+    }
+    // A number handed over by another app (sms:/smsto: link). Same validation as typing it; nothing is sent.
+    LaunchedEffect(launchRecipient, state.access.enabled) {
+        val number = launchRecipient ?: return@LaunchedEffect
+        runCatching { smsAddress(number) }.onSuccess { startConversation(it) }
+        onLaunchRecipientHandled()
+    }
     if (newMessageDialog) NewMessageDialog(
         onDismiss = { newMessageDialog = false },
-        onStart = { number ->
-            newMessageDialog = false
-            val existing = state.conversations.firstOrNull { sameRecipient(it.address, number) }
-            if (existing != null) { openKey = existing.key; pendingAddress = null; showArchive = (metadata[existing.key]?.archived == true) }
-            else { openKey = null; pendingAddress = number }
-        }
+        onStart = { number -> newMessageDialog = false; startConversation(number) }
     )
+    val canManage = state.access.isDefaultApp && actions?.canModify() == true
+    LaunchedEffect(openReal?.key, openReal?.unreadCount, canManage) {
+        val thread = openReal ?: return@LaunchedEffect
+        if (canManage && thread.unreadCount > 0) { withContext(Dispatchers.IO) { actions?.markThreadRead(thread.threadId) }; state.refresh() }
+    }
+    deleteTarget?.let { key ->
+        val thread = state.conversations.firstOrNull { it.key == key }
+        AlertDialog(
+            onDismissRequest = { deleteTarget = null }, title = { Text("Delete this conversation?") },
+            text = { Text("All ${thread?.messages?.size ?: 0} messages with ${thread?.title.orEmpty()} are removed from this phone. This cannot be undone.") },
+            confirmButton = { TextButton(modifier = Modifier.testTag("conversation-confirm-delete"), onClick = {
+                deleteTarget = null
+                if (thread != null) scope.launch {
+                    val done = withContext(Dispatchers.IO) { actions?.deleteThread(thread.threadId) == true }
+                    if (done) { openKey = null; pendingAddress = null; state.error = null } else state.error = "Could not delete the conversation."
+                    state.refresh()
+                }
+            }) { Text("Delete") } },
+            dismissButton = { TextButton(onClick = { deleteTarget = null }) { Text("Keep") } }
+        )
+    }
     if (showCategories && open != null) CategoryPicker(
         category = effectiveCategory(open, metadata[open.key]),
         onChoose = { category -> scope.launch { store.setCategory(open.key, category) }; showCategories = false },
@@ -100,7 +136,10 @@ internal fun DeviceInboxHost(
             MenuAction(if (flags?.archived == true) "Restore conversation" else "Archive conversation") {
                 scope.launch { store.setArchived(thread.key, flags?.archived != true); openKey = null; pendingAddress = null }
             }
-        )
+        ) + if (canManage) listOfNotNull(
+            if (thread.unreadCount > 0) MenuAction("Mark as read") { scope.launch { withContext(Dispatchers.IO) { actions?.markThreadRead(thread.threadId) }; state.refresh() } } else null,
+            MenuAction("Delete conversation") { deleteTarget = thread.key }
+        ) else emptyList()
     }
     val fullScreen = !wide && open != null
     BackHandler(enabled = fullScreen) { openKey = null; pendingAddress = null }
@@ -113,7 +152,7 @@ internal fun DeviceInboxHost(
             DeviceInboxScreen(
                 state, arranged, metadata, open?.key, { openKey = it; pendingAddress = null }, search, { search = it }, listState,
                 showArchive, { showArchive = !showArchive; openKey = null; pendingAddress = null }, filter, { filter = it },
-                onOpenSettings, onRequestPermissions, permissionsAsked, now, zone, onNewMessage = { newMessageDialog = true }
+                onOpenSettings, onRequestPermissions, permissionsAsked, now, zone, onNewMessage = { newMessageDialog = true }, offer = offer
             )
         }
         if (wide) VerticalDivider()
@@ -147,7 +186,8 @@ internal fun DeviceInboxScreen(
     permissionsAsked: Boolean,
     now: () -> Instant = { Instant.now() },
     zone: ZoneId = ZoneId.systemDefault(),
-    onNewMessage: () -> Unit = {}
+    onNewMessage: () -> Unit = {},
+    offer: DefaultOffer? = null
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -195,14 +235,21 @@ internal fun DeviceInboxScreen(
         }
         Column(Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
             if (!access.messagingSupported) Text("This device has no SMS service.", color = MaterialTheme.colorScheme.error)
-            if (access.messagingSupported && !access.externalDefault) Text("Set Google Messages or another SMS app as your default app. FoldSMS reads from it and never replaces it.", color = MaterialTheme.colorScheme.error)
-            if (access.messagingSupported && access.externalDefault && !access.canRead) {
+            if (access.messagingSupported && !access.hasDefaultApp) Text("Choose a default SMS app in Android settings.", color = MaterialTheme.colorScheme.error)
+            if (access.messagingSupported && access.hasDefaultApp && !access.canRead) {
                 Text("Allow SMS access to see your messages.")
                 Row {
                     Button(onClick = onRequestPermissions, modifier = Modifier.testTag("device-request-permissions")) { Text("Allow") }
                     if (permissionsAsked) TextButton(onClick = {
                         context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}")))
                     }, modifier = Modifier.testTag("device-open-app-settings")) { Text("Open settings") }
+                }
+            }
+            if (access.canRead && offer != null) {
+                Text("Make FoldSMS your default messaging app to receive and manage your messages here.")
+                Row {
+                    Button(onClick = offer.onMakeDefault, modifier = Modifier.testTag("device-make-default")) { Text("Make default") }
+                    TextButton(onClick = offer.onNotNow, modifier = Modifier.testTag("device-default-not-now")) { Text("Not now") }
                 }
             }
             if (access.canRead && !state.mmsCanRead) Text("Allow MMS access to see pictures.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

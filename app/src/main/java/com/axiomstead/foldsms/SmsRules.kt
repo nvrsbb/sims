@@ -7,11 +7,13 @@ internal const val MAX_SMS_PARTS = 10
 internal const val MAX_SMS_BODY_LENGTH = 10_000
 
 internal data class SmsAccess(
-    val enabled: Boolean, val messagingSupported: Boolean, val externalDefault: Boolean,
-    val readGranted: Boolean, val receiveGranted: Boolean, val sendGranted: Boolean, val phoneGranted: Boolean
+    val enabled: Boolean, val messagingSupported: Boolean, val hasDefaultApp: Boolean,
+    val readGranted: Boolean, val receiveGranted: Boolean, val sendGranted: Boolean, val phoneGranted: Boolean,
+    /** FoldSMS itself holds the default SMS role. [hasDefaultApp] is true when any app, including FoldSMS, does. */
+    val isDefaultApp: Boolean = false
 ) {
-    val canRead get() = enabled && messagingSupported && externalDefault && readGranted && receiveGranted
-    val canSend get() = enabled && messagingSupported && externalDefault && sendGranted && phoneGranted
+    val canRead get() = enabled && messagingSupported && hasDefaultApp && readGranted && receiveGranted
+    val canSend get() = enabled && messagingSupported && hasDefaultApp && sendGranted && phoneGranted
 }
 
 internal data class SmsSubscription(val id: Int, val slot: Int, val label: String)

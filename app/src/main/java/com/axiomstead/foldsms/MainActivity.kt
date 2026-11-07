@@ -25,14 +25,32 @@ import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+    private var recipient by mutableStateOf<String?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (savedInstanceState == null) recipient = recipientFrom(intent)
         setContent {
             val context = LocalContext.current
             val themeStore = remember(context) { ThemeStore(context.applicationContext) }
-            FoldSmsApp(themeStore)
+            FoldSmsApp(themeStore, launchRecipient = recipient, onLaunchRecipientHandled = { recipient = null })
         }
     }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        recipientFrom(intent)?.let { recipient = it }
+    }
+}
+
+/** The number from an sms:/smsto:/mms:/mmsto: link, or null. The text of the link is ignored: the owner writes and reviews it. */
+internal fun recipientFrom(intent: android.content.Intent?): String? =
+    intent?.data?.let { recipientFromLink(it.scheme, it.schemeSpecificPart) }
+
+internal fun recipientFromLink(scheme: String?, schemeSpecificPart: String?): String? {
+    if (scheme?.lowercase() !in setOf("sms", "smsto", "mms", "mmsto")) return null
+    // Only the first number; "?body=..." and further recipients are ignored.
+    return schemeSpecificPart?.substringBefore('?')?.substringBefore(',')?.substringBefore(';')?.trim()?.takeIf { it.isNotEmpty() }
 }
 
 /**
@@ -44,7 +62,9 @@ internal fun FoldSmsApp(
     themeStore: ThemeStore,
     smsServices: SmsServices? = null,
     deviceMetadataStore: DeviceMetadataStore? = null,
-    wide: Boolean = LocalConfiguration.current.screenWidthDp >= 600
+    wide: Boolean = LocalConfiguration.current.screenWidthDp >= 600,
+    launchRecipient: String? = null,
+    onLaunchRecipientHandled: () -> Unit = {}
 ) {
     var theme by remember { mutableStateOf(themeStore.get()) }
     var showSettings by rememberSaveable { mutableStateOf(false) }
@@ -77,6 +97,26 @@ internal fun FoldSmsApp(
         permissionsAsked = true
         scope.launch { state.refresh() }
     }
+    val context = LocalContext.current
+    val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
+    val roleResult = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        scope.launch { state.refresh() }
+        // Notifications need their own permission on Android 13+; asked once the role is granted, when they matter.
+        if (android.os.Build.VERSION.SDK_INT >= 33 && state.services.platform.access().isDefaultApp)
+            notificationPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+    }
+    val makeDefault: (() -> Unit)? = if (state.services.actions != null && roleAvailable(context)) {
+        { defaultRoleRequest(context)?.let { roleResult.launch(it) } }
+    } else null
+    // The owner can change the default app in Android settings at any time; pick the change up when returning.
+    val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
+    DisposableEffect(lifecycle) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) scope.launch { state.refresh() }
+        }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer) }
+    }
     MaterialTheme(colorScheme = colors) {
         Scaffold(containerColor = MaterialTheme.colorScheme.background) { padding ->
             Box(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
@@ -90,12 +130,16 @@ internal fun FoldSmsApp(
                     state = state, wide = wide, metadataStore = deviceMetadataStore,
                     onOpenSettings = { showSettings = true },
                     onRequestPermissions = { requestPermissions.launch(smsPermissions) },
-                    permissionsAsked = permissionsAsked
+                    permissionsAsked = permissionsAsked,
+                    onMakeDefault = makeDefault,
+                    launchRecipient = launchRecipient, onLaunchRecipientHandled = onLaunchRecipientHandled
                 )
             }
         }
         if (showSettings) AppSettings(
             theme = theme,
+            isDefaultApp = state.access.isDefaultApp,
+            onMakeDefault = makeDefault.takeIf { !state.access.isDefaultApp },
             onThemeChange = { theme = it; themeStore.save(it) },
             onTurnOff = {
                 val saved = state.services.consent.setEnabled(false)
