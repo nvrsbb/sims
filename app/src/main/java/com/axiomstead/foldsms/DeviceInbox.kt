@@ -32,6 +32,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import java.time.Instant
 import java.time.ZoneId
 import java.util.Locale
@@ -83,11 +84,11 @@ internal fun DeviceInboxHost(
         }
     )
     if (showCategories && open != null) CategoryPicker(
-        category = deviceCategory(metadata[open.key]),
+        category = effectiveCategory(open, metadata[open.key]),
         onChoose = { category -> scope.launch { store.setCategory(open.key, category) }; showCategories = false },
         onReset = { scope.launch { store.setCategory(open.key, null) }; showCategories = false },
         onDismiss = { showCategories = false },
-        resetLabel = "Reset category"
+        resetLabel = "Automatic"
     )
     val conversationActions = openReal?.let { thread ->
         val flags = metadata[thread.key]
@@ -173,10 +174,23 @@ internal fun DeviceInboxScreen(
                 MenuAction("Settings", onClick = onOpenSettings)
             ))
         }
-        androidx.compose.foundation.lazy.LazyRow(Modifier.testTag("device-category-filters"), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(listOf("All") + conversationCategories) { c ->
-                FilterChip(modifier = Modifier.testTag("device-category-filter-$c"), selected = c == filter, onClick = { onFilter(c) }, label = { Text(c) })
+        // One row, no scrolling: each chip gets space in proportion to its label, and "Unknown" only appears if something has it.
+        val chipCategories = listOf("All") + (conversationCategories - "Unknown") +
+            (if (arranged.any { effectiveCategory(it, metadata[it.key]) == "Unknown" } || filter == "Unknown") listOf("Unknown") else emptyList())
+        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp).testTag("device-category-filters"), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            chipCategories.forEach { c ->
+                val label = categoryChipLabel(c)
+                Surface(
+                    onClick = { onFilter(c) },
+                    modifier = Modifier.weight(label.length + 2f).testTag("device-category-filter-$c"),
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (c == filter) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f) else Color.Transparent,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, if (c == filter) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant)
+                ) {
+                    Text(label, Modifier.padding(horizontal = 2.dp, vertical = 7.dp), fontSize = 12.sp, maxLines = 1, softWrap = false,
+                        overflow = TextOverflow.Clip, textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        color = if (c == filter) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
         }
         Column(Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
@@ -210,7 +224,7 @@ internal fun DeviceInboxScreen(
                 else -> LazyColumn(Modifier.fillMaxSize().testTag("device-inbox-list"), state = listState, contentPadding = PaddingValues(bottom = 88.dp)) {
                     items(conversations, key = { it.key }) { conversation ->
                         DeviceConversationRow(conversation, formatConversationTime(conversation.last.date, now(), zone, Locale.getDefault()),
-                            selected = conversation.key == selectedKey, category = deviceCategory(metadata[conversation.key]),
+                            selected = conversation.key == selectedKey, category = effectiveCategory(conversation, metadata[conversation.key]),
                             pinned = metadata[conversation.key]?.pinned == true, onClick = { onOpen(conversation.key) })
                         HorizontalDivider(Modifier.padding(start = 76.dp), color = MaterialTheme.colorScheme.outlineVariant)
                     }
