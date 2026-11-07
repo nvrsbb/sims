@@ -6,7 +6,9 @@ internal enum class DeviceMessageKind { SMS, MMS }
 internal data class DeviceMessage(
     val kind: DeviceMessageKind, val id: Long, val address: String, val text: String, val subject: String,
     val date: Long, val outgoing: Boolean, val read: Boolean, val subscriptionId: Int, val attachmentCount: Int,
-    val imageCount: Int, val failed: Boolean, val mmsParts: List<DeviceMmsPart> = emptyList()
+    val imageCount: Int, val failed: Boolean, val mmsParts: List<DeviceMmsPart> = emptyList(),
+    /** Our own message still queued or being sent (provider outbox or queued state). */
+    val pending: Boolean = false
 ) {
     /** Stable key unique across SMS and MMS, whose provider ids can collide. */
     val key get() = "${kind.name.lowercase()}-$id"
@@ -32,6 +34,9 @@ internal data class DeviceConversation(
 private const val SMS_INBOX = 1
 private const val SMS_DRAFT = 3
 private const val SMS_FAILED = 5
+private const val SMS_OUTBOX = 4
+private const val SMS_QUEUED = 6
+private const val MMS_OUTBOX = 4
 private const val MMS_DRAFT = 3
 
 /** Digits only for numbers so "+1 (202) 555-0101" and "12025550101" match; alphanumeric senders compare lowercase. */
@@ -44,12 +49,13 @@ internal fun conversationAddressKey(address: String): String {
 }
 
 internal fun DeviceSms.toMessage() = DeviceMessage(
-    DeviceMessageKind.SMS, id, address, body, "", date, type != SMS_INBOX, read, subscriptionId, 0, 0, type == SMS_FAILED
+    DeviceMessageKind.SMS, id, address, body, "", date, type != SMS_INBOX, read, subscriptionId, 0, 0, type == SMS_FAILED,
+    pending = type == SMS_OUTBOX || type == SMS_QUEUED
 )
 
 internal fun DeviceMms.toMessage() = DeviceMessage(
     DeviceMessageKind.MMS, id, address, text, subject, date, box != 1, read, -1, attachments.size,
-    attachments.count { it.image }, false, parts
+    attachments.count { it.image }, false, parts, pending = box == MMS_OUTBOX
 )
 
 /**
