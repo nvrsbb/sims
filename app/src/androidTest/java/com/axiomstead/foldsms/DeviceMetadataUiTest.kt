@@ -86,6 +86,31 @@ class DeviceMetadataUiTest {
         compose.runOnIdle { assertTrue(sms.requests.isEmpty()) }
     }
 
+    private fun archiveThread20() {
+        compose.onNodeWithTag("device-thread-thread-20").performClick()
+        menu("device-conversation-actions", "Archive conversation")
+        compose.waitUntil(UI_WAIT_MS) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("device-thread-thread-20").assertDoesNotExist()
+    }
+
+    @Test fun aMessageReceivedAfterArchivingBringsTheConversationBackToTheInbox() {
+        show(); archiveThread20()
+        sms.rows = sms.rows + DeviceSms(4, 20, "2025550102", "New after archive", now, Telephony.Sms.MESSAGE_TYPE_INBOX, 7, false)
+        sms.events.value = sms.events.value + 1
+        compose.waitUntil(UI_WAIT_MS) { compose.onAllNodesWithTag("device-thread-thread-20").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("device-unread-thread-20", useUnmergedTree = true).assertExists()
+    }
+
+    @Test fun aMessageSentAfterArchivingDoesNotBringItBack() {
+        show(); archiveThread20()
+        sms.rows = sms.rows + DeviceSms(4, 20, "2025550102", "Sent after archive", now, Telephony.Sms.MESSAGE_TYPE_SENT, 7, true)
+        sms.events.value = sms.events.value + 1
+        compose.waitForIdle()
+        compose.onNodeWithTag("device-inbox-actions").performClick()
+        compose.onNodeWithText("Archived").performClick()
+        compose.waitUntil(UI_WAIT_MS) { compose.onAllNodesWithTag("device-thread-thread-20").fetchSemanticsNodes().isNotEmpty() }
+    }
+
     @Test fun categoryChoiceShowsOnTheRowAndFiltersTheInbox() {
         show()
         compose.onNodeWithTag("device-category-thread-10", useUnmergedTree = true).assertTextEquals("Personal")

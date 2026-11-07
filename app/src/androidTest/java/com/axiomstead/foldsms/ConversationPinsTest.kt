@@ -32,7 +32,7 @@ class ConversationPinsTest {
             close()
         }
         fun open() = Room.databaseBuilder(context, ConversationMetadataDatabase::class.java, name)
-            .addMigrations(METADATA_MIGRATION_1_2, METADATA_MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).build()
+            .addMigrations(METADATA_MIGRATION_1_2, METADATA_MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6).build()
         var database = open()
         try {
             var store = ConversationMetadataStore(database.metadata())

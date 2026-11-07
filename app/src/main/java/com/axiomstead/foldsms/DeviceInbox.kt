@@ -103,7 +103,7 @@ internal fun DeviceInboxHost(
     }
     val startConversation = { number: String ->
         val existing = state.conversations.firstOrNull { sameRecipient(it.address, number) }
-        if (existing != null) { openKey = existing.key; pendingAddress = null; showArchive = (metadata[existing.key]?.archived == true) }
+        if (existing != null) { openKey = existing.key; pendingAddress = null; showArchive = isArchived(existing, metadata[existing.key]) }
         else { openKey = null; pendingAddress = number }
     }
     // A number handed over by another app (sms:/smsto: link). Same validation as typing it; nothing is sent.
@@ -184,8 +184,8 @@ internal fun DeviceInboxHost(
             MenuAction(if (flags?.pinned == true) "Unpin conversation" else "Pin conversation") {
                 scope.launch { store.setPinned(thread.key, flags?.pinned != true) }
             },
-            MenuAction(if (flags?.archived == true) "Restore conversation" else "Archive conversation") {
-                scope.launch { store.setArchived(thread.key, flags?.archived != true); openKey = null; pendingAddress = null }
+            MenuAction(if (isArchived(thread, flags)) "Restore conversation" else "Archive conversation") {
+                scope.launch { store.setArchived(thread.key, !isArchived(thread, flags), thread.last.date); openKey = null; pendingAddress = null }
             }
         ) + if (canManage) listOfNotNull(
             if (thread.unreadCount > 0) MenuAction("Mark as read") { scope.launch { withContext(Dispatchers.IO) { actions?.markThreadRead(thread.threadId) }; state.refresh() } } else null,
