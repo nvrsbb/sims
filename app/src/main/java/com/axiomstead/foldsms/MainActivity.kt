@@ -64,7 +64,8 @@ internal fun FoldSmsApp(
     deviceMetadataStore: DeviceMetadataStore? = null,
     wide: Boolean = LocalConfiguration.current.screenWidthDp >= 600,
     launchRecipient: String? = null,
-    onLaunchRecipientHandled: () -> Unit = {}
+    onLaunchRecipientHandled: () -> Unit = {},
+    codeCopier: ((String) -> Unit)? = null
 ) {
     var theme by remember { mutableStateOf(themeStore.get()) }
     var showSettings by rememberSaveable { mutableStateOf(false) }
@@ -132,7 +133,8 @@ internal fun FoldSmsApp(
                     onRequestPermissions = { requestPermissions.launch(smsPermissions) },
                     permissionsAsked = permissionsAsked,
                     onMakeDefault = makeDefault,
-                    launchRecipient = launchRecipient, onLaunchRecipientHandled = onLaunchRecipientHandled
+                    launchRecipient = launchRecipient, onLaunchRecipientHandled = onLaunchRecipientHandled,
+                    codeCopier = codeCopier
                 )
             }
         }

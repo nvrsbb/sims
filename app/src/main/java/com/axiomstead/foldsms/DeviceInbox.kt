@@ -64,7 +64,8 @@ internal fun DeviceInboxHost(
     zone: ZoneId = ZoneId.systemDefault(),
     onMakeDefault: (() -> Unit)? = null,
     launchRecipient: String? = null,
-    onLaunchRecipientHandled: () -> Unit = {}
+    onLaunchRecipientHandled: () -> Unit = {},
+    codeCopier: ((String) -> Unit)? = null
 ) {
     val context = LocalContext.current
     val store = metadataStore ?: remember(context) { DeviceMetadataStore.get(context) }
@@ -88,6 +89,7 @@ internal fun DeviceInboxHost(
     var selectMode by rememberSaveable { mutableStateOf(false) }
     var selectedKeys by rememberSaveable(stateSaver = listSaver<Set<String>, String>(save = { it.toList() }, restore = { it.toSet() })) { mutableStateOf(emptySet<String>()) }
     var bulkDelete by rememberSaveable { mutableStateOf(false) }
+    var dismissedCode by rememberSaveable { mutableStateOf<String?>(null) }
     val actions = state.services.actions
     val arranged = arrangeDeviceConversations(state.conversations, metadata, showArchive, filter, unreadOnly, openKey)
     val openReal = state.conversations.firstOrNull { it.key == openKey }
@@ -119,6 +121,15 @@ internal fun DeviceInboxHost(
         onAllowContacts = onRequestPermissions
     )
     val canManage = state.access.isDefaultApp && actions?.canModify() == true
+    val copyCode = codeCopier ?: { code -> copyCodeToClipboard(context, code) }
+    // Copying a code is reading it: the conversation is marked read when that is possible.
+    fun copyFrom(thread: DeviceConversation?, code: String, dismissKey: String? = null) {
+        copyCode(code)
+        if (dismissKey != null) dismissedCode = dismissKey
+        if (thread != null && canManage && thread.unreadCount > 0) scope.launch {
+            withContext(Dispatchers.IO) { actions?.markThreadRead(thread.threadId) }; state.refresh()
+        }
+    }
     val chosen = state.conversations.filter { it.key in selectedKeys }
     fun finishSelection(failed: Boolean) { selectMode = false; selectedKeys = emptySet(); bulkDelete = false; if (failed) state.error = "Some conversations could not be changed." }
     var bulkCategory by rememberSaveable { mutableStateOf(false) }
@@ -212,13 +223,15 @@ internal fun DeviceInboxHost(
                 state, arranged, metadata, open?.key, { openKey = it; pendingAddress = null }, search, { search = it }, listState,
                 showArchive, { showArchive = !showArchive; openKey = null; pendingAddress = null }, filter, { filter = it },
                 onOpenSettings, onRequestPermissions, permissionsAsked, now, zone, onNewMessage = { newMessageDialog = true }, offer = offer,
-                unreadOnly = unreadOnly, onToggleUnread = { unreadOnly = !unreadOnly }, selection = selection
+                unreadOnly = unreadOnly, onToggleUnread = { unreadOnly = !unreadOnly }, selection = selection,
+                dismissedCode = dismissedCode, onCopyCode = { thread, code, dismissKey -> copyFrom(thread, code, dismissKey) }
             )
         }
         if (wide) VerticalDivider()
         if (open != null) Box(Modifier.weight(1f).fillMaxHeight()) {
             DeviceConversationScreen(open, simLabel, loadImage, onBack = if (wide) null else ({ openKey = null; pendingAddress = null }), now = now, zone = zone,
-                actions = conversationActions.orEmpty(), composer = { ReplyComposer(state, open) })
+                actions = conversationActions.orEmpty(), composer = { ReplyComposer(state, open) },
+                onCopyCode = { code -> copyFrom(openReal, code) })
         } else if (wide) Box(Modifier.weight(1f).fillMaxHeight().background(chatBackground()), contentAlignment = Alignment.Center) {
             Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)) {
                 Text("Choose a conversation", Modifier.padding(horizontal = 14.dp, vertical = 6.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -250,10 +263,16 @@ internal fun DeviceInboxScreen(
     offer: DefaultOffer? = null,
     unreadOnly: Boolean = false,
     onToggleUnread: () -> Unit = {},
-    selection: InboxSelection? = null
+    selection: InboxSelection? = null,
+    dismissedCode: String? = null,
+    onCopyCode: (DeviceConversation?, String, String?) -> Unit = { _, _, _ -> }
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    // Codes expire on the clock, not only when messages change.
+    var clock by remember { mutableStateOf(now()) }
+    LaunchedEffect(Unit) { while (true) { kotlinx.coroutines.delay(30_000); clock = now() } }
+    val latest = latestOtp(state.conversations, clock).takeIf { it != null && "${it.dateMillis}:${it.code}" != dismissedCode }
     val selecting = selection?.active == true
     val conversations = searchDeviceConversations(arranged, search)
     val access = state.access
@@ -301,6 +320,20 @@ internal fun DeviceInboxScreen(
                 }
             }
         }
+        if (latest != null && access.canRead && !selecting) Surface(
+            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp).testTag("device-latest-code"),
+            shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+        ) {
+            Row(Modifier.padding(start = 14.dp, end = 6.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Latest code · ${latest.sender}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(latest.code, Modifier.testTag("device-latest-code-value"), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+                }
+                Button(onClick = {
+                    onCopyCode(state.conversations.firstOrNull { it.key == latest.conversationKey }, latest.code, "${latest.dateMillis}:${latest.code}")
+                }, modifier = Modifier.testTag("device-latest-code-copy")) { Text("Copy") }
+            }
+        }
         Column(Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
             if (!access.messagingSupported) Text("This device has no SMS service.", color = MaterialTheme.colorScheme.error)
             if (access.messagingSupported && !access.hasDefaultApp) Text("Choose a default SMS app in Android settings.", color = MaterialTheme.colorScheme.error)
@@ -343,6 +376,7 @@ internal fun DeviceInboxScreen(
                             selected = conversation.key == selectedKey, category = effectiveCategory(conversation, metadata[conversation.key]),
                             pinned = metadata[conversation.key]?.pinned == true,
                             checked = if (selecting) conversation.key in selection!!.keys else null,
+                            code = if (selecting) null else recentOtp(conversation, clock), onCopyCode = { code -> onCopyCode(conversation, code, null) },
                             onLongClick = selection?.let { s -> { s.onToggle(conversation.key) } },
                             onClick = { if (selecting) selection!!.onToggle(conversation.key) else onOpen(conversation.key) })
                         HorizontalDivider(Modifier.padding(start = 76.dp), color = MaterialTheme.colorScheme.outlineVariant)
@@ -373,7 +407,8 @@ internal fun DeviceInboxScreen(
 @Composable
 internal fun DeviceConversationRow(
     conversation: DeviceConversation, time: String, selected: Boolean, category: String, pinned: Boolean, onClick: () -> Unit,
-    checked: Boolean? = null, onLongClick: (() -> Unit)? = null
+    checked: Boolean? = null, onLongClick: (() -> Unit)? = null,
+    code: String? = null, onCopyCode: (String) -> Unit = {}
 ) {
     val last = conversation.last
     val unread = conversation.unreadCount
@@ -399,6 +434,8 @@ internal fun DeviceConversationRow(
                 val prefix = if (last.outgoing) "You: " else ""
                 Text(prefix + last.preview.lineSequence().first(), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (code != null) Text("Copy $code", Modifier.padding(start = 8.dp).clickable { onCopyCode(code) }.padding(vertical = 2.dp)
+                    .testTag("device-copy-code-${conversation.key}"), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                 if (pinned) Text("Pinned", Modifier.padding(start = 6.dp).testTag("device-pinned-${conversation.key}"), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                 if (last.failed) Text("Failed", Modifier.padding(start = 6.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
                 if (unread > 0) Box(
