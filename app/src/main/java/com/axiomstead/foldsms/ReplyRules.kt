@@ -34,3 +34,11 @@ internal fun preferredSubscription(conversation: DeviceConversation, draft: SmsD
 /** The composer shows the shared draft's text only when it is addressed to this conversation. */
 internal fun composerText(conversationAddress: String, draft: SmsDraft): String =
     if (sameRecipient(draft.address, conversationAddress)) draft.body else ""
+
+/**
+ * Whether a send needs the review dialog first. A single-part reply in a conversation that already has messages goes out
+ * when the owner taps Send. A new recipient, a message that costs several parts, or a possible duplicate of an earlier
+ * attempt still gets the dialog.
+ */
+internal fun needsSendReview(existingConversation: Boolean, partCount: Int, duplicateRisk: Boolean): Boolean =
+    !existingConversation || partCount != 1 || duplicateRisk

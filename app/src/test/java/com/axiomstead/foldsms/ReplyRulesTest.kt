@@ -52,4 +52,11 @@ class ReplyRulesTest {
         assertEquals("", composerText("2025550102", draft))
         assertEquals("", composerText("2025550101", SmsDraft()))
     }
+
+    @Test fun onlyAOnePartReplyInAnExistingConversationWithoutDuplicateRiskSkipsTheReview() {
+        assertFalse(needsSendReview(existingConversation = true, partCount = 1, duplicateRisk = false))
+        assertTrue(needsSendReview(existingConversation = false, partCount = 1, duplicateRisk = false)) // new recipient
+        assertTrue(needsSendReview(existingConversation = true, partCount = 2, duplicateRisk = false)) // costs more
+        assertTrue(needsSendReview(existingConversation = true, partCount = 1, duplicateRisk = true)) // may duplicate an earlier send
+    }
 }
