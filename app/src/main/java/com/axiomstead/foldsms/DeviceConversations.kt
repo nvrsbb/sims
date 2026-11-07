@@ -88,3 +88,14 @@ internal fun searchDeviceConversations(conversations: List<DeviceConversation>, 
             conversation.messages.any { it.text.contains(needle, ignoreCase = true) || it.subject.contains(needle, ignoreCase = true) }
     }
 }
+
+/** The window plus whatever extra rows were loaded for single threads, each row once (by provider id). */
+internal fun <T> mergeRows(window: List<T>, extra: Collection<List<T>>, id: (T) -> Long): List<T> {
+    if (extra.all { it.isEmpty() }) return window
+    val seen = HashSet<Long>(window.size)
+    window.forEach { seen += id(it) }
+    return window + extra.flatten().filter { seen.add(id(it)) }
+}
+
+/** Page sizes grow threefold until everything is read. */
+internal fun nextPageLimit(current: Int): Int = if (current >= Int.MAX_VALUE / 3) Int.MAX_VALUE else current * 3

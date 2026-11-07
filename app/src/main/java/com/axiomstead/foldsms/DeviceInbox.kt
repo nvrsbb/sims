@@ -44,6 +44,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+@Composable
+private fun SearchAllButton(loading: Boolean, onClick: () -> Unit) {
+    TextButton(onClick = onClick, enabled = !loading, modifier = Modifier.testTag("device-search-all")) {
+        Text(if (loading) "Reading all messages…" else "Search all messages, including older ones")
+    }
+}
+
 /** Multi-select over the conversation list. Category changes are local; read, unread and delete need the default SMS role. */
 internal class InboxSelection(
     val active: Boolean, val keys: Set<String>, val canChangeMessages: Boolean,
@@ -99,6 +106,8 @@ internal fun DeviceInboxHost(
         withContactNames(listOf(DeviceConversation("new-${conversationAddressKey(it)}", 0, it, emptyList())), contactNameMap(state.contacts)).single()
     }
     val open = openReal ?: synthetic
+    // A conversation is always shown complete, even when its messages are older than the list's window.
+    LaunchedEffect(openReal?.threadId) { openReal?.threadId?.let { state.loadThread(it) } }
     LaunchedEffect(pendingAddress, state.conversations) {
         val pending = pendingAddress ?: return@LaunchedEffect
         state.conversations.firstOrNull { sameRecipient(it.address, pending) }?.let { openKey = it.key; pendingAddress = null }
@@ -274,6 +283,13 @@ internal fun DeviceInboxScreen(
     LaunchedEffect(Unit) { while (true) { kotlinx.coroutines.delay(30_000); clock = now() } }
     val latest = latestOtp(state.conversations, clock).takeIf { it != null && "${it.dateMillis}:${it.code}" != dismissedCode }
     val selecting = selection?.active == true
+    // Reaching the end of the list reads older messages; a search does not, it offers to read everything instead.
+    LaunchedEffect(listState, state.exhausted, search) {
+        if (!state.exhausted && search.isBlank()) snapshotFlow {
+            val info = listState.layoutInfo
+            (info.visibleItemsInfo.lastOrNull()?.index ?: -1) to info.totalItemsCount
+        }.collect { (last, total) -> if (total > 0 && last >= total - 3) state.loadMore() }
+    }
     val conversations = searchDeviceConversations(arranged, search)
     val access = state.access
     Column(Modifier.fillMaxSize()) {
@@ -369,7 +385,10 @@ internal fun DeviceInboxScreen(
                         filter != "All" -> "No conversations in this category"
                         else -> "Everything is archived."
                     }, Modifier.padding(20.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                conversations.isEmpty() -> Text("No conversations match", Modifier.padding(20.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                conversations.isEmpty() -> Column(Modifier.padding(20.dp)) {
+                    Text("No conversations match", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (!state.exhausted) SearchAllButton(state.loadingMore) { scope.launch { state.loadAll() } }
+                }
                 else -> LazyColumn(Modifier.fillMaxSize().testTag("device-inbox-list"), state = listState, contentPadding = PaddingValues(bottom = 88.dp)) {
                     items(conversations, key = { it.key }) { conversation ->
                         DeviceConversationRow(conversation, formatConversationTime(conversation.last.date, now(), zone, Locale.getDefault()),
@@ -380,6 +399,10 @@ internal fun DeviceInboxScreen(
                             onLongClick = selection?.let { s -> { s.onToggle(conversation.key) } },
                             onClick = { if (selecting) selection!!.onToggle(conversation.key) else onOpen(conversation.key) })
                         HorizontalDivider(Modifier.padding(start = 76.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                    }
+                    if (!state.exhausted) item(key = "older") {
+                        if (search.isNotBlank()) Box(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) { SearchAllButton(state.loadingMore) { scope.launch { state.loadAll() } } }
+                        else Text("Loading older messages…", Modifier.padding(20.dp).testTag("device-loading-older"), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }

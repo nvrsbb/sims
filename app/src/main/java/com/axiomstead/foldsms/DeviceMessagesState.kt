@@ -35,7 +35,44 @@ internal class DeviceMessagesState(val services: SmsServices) {
     var contacts by mutableStateOf(emptyList<ContactEntry>())
     var contactsCanRead by mutableStateOf(services.contacts?.canRead() == true)
     private val contactNames by derivedStateOf { contactNameMap(contacts) }
-    val conversations by derivedStateOf { withContactNames(groupDeviceConversations(messages, mmsMessages), contactNames) }
+    private var smsLimit by mutableIntStateOf(services.pages.sms)
+    private var mmsLimit by mutableIntStateOf(services.pages.mms)
+    /** True once the newest-first window reaches the end of the provider, i.e. nothing older is waiting to be loaded. */
+    var exhausted by mutableStateOf(true)
+    var loadingMore by mutableStateOf(false)
+    // Full histories of threads that were opened, so a conversation is complete even when it is older than the window.
+    private var threadSms by mutableStateOf(emptyMap<Long, List<DeviceSms>>())
+    private var threadMms by mutableStateOf(emptyMap<Long, List<DeviceMms>>())
+    val conversations by derivedStateOf {
+        withContactNames(groupDeviceConversations(mergeRows(messages, threadSms.values, DeviceSms::id), mergeRows(mmsMessages, threadMms.values, DeviceMms::id)), contactNames)
+    }
+
+    /** Reads older messages when the list is scrolled to its end. */
+    suspend fun loadMore() {
+        if (loadingMore || exhausted) return
+        loadingMore = true
+        try { smsLimit = nextPageLimit(smsLimit); mmsLimit = nextPageLimit(mmsLimit); refresh() } finally { loadingMore = false }
+    }
+
+    /** Reads everything, so a search can find old messages. */
+    suspend fun loadAll() {
+        if (loadingMore) return
+        loadingMore = true
+        try { smsLimit = Int.MAX_VALUE; mmsLimit = Int.MAX_VALUE; refresh() } finally { loadingMore = false }
+    }
+
+    /** Makes one conversation complete, however old its messages are. */
+    suspend fun loadThread(threadId: Long) {
+        if (threadId <= 0 || threadSms.containsKey(threadId) || !access.canRead) return
+        lock.withLock {
+            val (sms, mms) = withContext(Dispatchers.IO) {
+                val smsRows = try { services.platform.thread(threadId) } catch (_: Exception) { emptyList() }
+                val mmsRows = try { if (services.mms?.canRead() == true) services.mms.thread(threadId) else emptyList() } catch (_: Exception) { emptyList() }
+                smsRows to mmsRows
+            }
+            threadSms = threadSms + (threadId to sms); threadMms = threadMms + (threadId to mms)
+        }
+    }
 
     /** Reloads the contact list; empty without permission. Called on resume and when the permission changes. */
     suspend fun refreshContacts() {
@@ -55,11 +92,17 @@ internal class DeviceMessagesState(val services: SmsServices) {
             if (services.mms?.canRead() != true) mmsMessages = emptyList()
             if (!next.canSend) subscriptions = emptyList()
             withContext(Dispatchers.IO) {
-                val rows = if (next.canRead) services.platform.recent() else emptyList()
+                val rows = if (next.canRead) services.platform.recent(smsLimit) else emptyList()
                 val sims = if (next.canSend) services.platform.subscriptions() else emptyList()
-                val mmsResult: Result<List<DeviceMms>> = try { Result.success(if (services.mms?.canRead() == true) services.mms.recent() else emptyList()) }
+                val mmsResult: Result<List<DeviceMms>> = try { Result.success(if (services.mms?.canRead() == true) services.mms.recent(mmsLimit) else emptyList()) }
                     catch (cancelled: CancellationException) { throw cancelled }
                     catch (failure: Exception) { Result.failure(failure) }
+                val loadedThreads = threadSms.keys.toList()
+                val reloaded = loadedThreads.associateWith { id ->
+                    val smsRows = try { services.platform.thread(id) } catch (_: Exception) { emptyList() }
+                    val mmsRows = try { if (services.mms?.canRead() == true) services.mms.thread(id) else emptyList() } catch (_: Exception) { emptyList() }
+                    smsRows to mmsRows
+                }
                 withContext(Dispatchers.Main) {
                     val current = services.platform.access()
                     access = current
@@ -67,6 +110,9 @@ internal class DeviceMessagesState(val services: SmsServices) {
                     subscriptions = if (current.canSend) sims else emptyList()
                     mmsCanRead = services.mms?.canRead() == true
                     mmsMessages = if (mmsCanRead) mmsResult.getOrDefault(emptyList()) else emptyList()
+                    exhausted = rows.size < smsLimit && mmsMessages.size < mmsLimit
+                    threadSms = reloaded.filterValues { it.first.isNotEmpty() || it.second.isNotEmpty() }.mapValues { it.value.first }
+                    threadMms = reloaded.filterValues { it.first.isNotEmpty() || it.second.isNotEmpty() }.mapValues { it.value.second }
                     if (mmsResult.isFailure) error = "MMS provider could not be read. SMS remains available; check MMS permission and refresh."
                 }
             }

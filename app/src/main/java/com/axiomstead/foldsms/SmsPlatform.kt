@@ -26,7 +26,10 @@ internal interface SmsPlatform {
     fun subscriptions(): List<SmsSubscription>
     fun split(body: String, subscriptionId: Int): List<String>
     fun dispatch(operationId: String, recipient: String, parts: List<String>, subscriptionId: Int)
-    fun recent(): List<DeviceSms>
+    /** The newest [limit] messages of every thread together, newest first. */
+    fun recent(limit: Int): List<DeviceSms>
+    /** Every message of one thread, whatever the page size. */
+    fun thread(threadId: Long): List<DeviceSms>
     fun changes(): Flow<Unit>
 }
 
@@ -94,17 +97,19 @@ internal class AndroidSmsPlatform(private val context: Context, private val cons
         if (parts.size == 1) service.sendTextMessage(recipient, null, parts.single(), callbacks.single(), null)
         else service.sendMultipartTextMessage(recipient, null, ArrayList(parts), callbacks, null)
     }
-    override fun recent(): List<DeviceSms> {
+    private fun smsRows(selection: String?, args: Array<String>?, limit: Int): List<DeviceSms> {
         check(access().canRead) { "SMS read access is unavailable." }
         val projection = arrayOf(Telephony.Sms._ID, Telephony.Sms.THREAD_ID, Telephony.Sms.ADDRESS, Telephony.Sms.BODY,
             Telephony.Sms.DATE, Telephony.Sms.TYPE, Telephony.Sms.SUBSCRIPTION_ID, Telephony.Sms.READ)
-        return context.contentResolver.query(Telephony.Sms.CONTENT_URI, projection, null, null, "date DESC, _id DESC")?.use { cursor ->
+        return context.contentResolver.query(Telephony.Sms.CONTENT_URI, projection, selection, args, "date DESC, _id DESC")?.use { cursor ->
             buildList {
-                while (size < 200 && cursor.moveToNext()) add(DeviceSms(cursor.getLong(0), cursor.getLong(1),
+                while (size < limit && cursor.moveToNext()) add(DeviceSms(cursor.getLong(0), cursor.getLong(1),
                     cursor.getString(2).orEmpty(), cursor.getString(3).orEmpty(), cursor.getLong(4), cursor.getInt(5), cursor.getInt(6), cursor.getInt(7) != 0))
             }
         } ?: emptyList()
     }
+    override fun recent(limit: Int): List<DeviceSms> = smsRows(null, null, limit)
+    override fun thread(threadId: Long): List<DeviceSms> = if (threadId <= 0) emptyList() else smsRows("thread_id = ?", arrayOf(threadId.toString()), 100_000)
     @Suppress("MissingPermission", "DEPRECATION")
     override fun changes(): Flow<Unit> = callbackFlow {
         val resolver = context.contentResolver
@@ -141,7 +146,7 @@ internal class AndroidSmsPlatform(private val context: Context, private val cons
 
 internal data class SmsServices(val platform: SmsPlatform, val consent: SmsConsentStore, val drafts: SmsDraftStore, val journal: SmsSendDao, val mms: MmsPlatform? = null,
     val actions: MessageActions? = null, val defaultPrompt: DefaultPromptStore? = null,
-    val contacts: ContactsPlatform? = null) {
+    val contacts: ContactsPlatform? = null, val pages: PageSizes = PageSizes()) {
     val controller = SmsSendController(platform, consent, drafts, journal)
 }
 
@@ -153,3 +158,6 @@ internal fun smsServices(context: Context): SmsServices {
         AndroidMmsPlatform(app, consent), DefaultAppProviderWrites(app),
         DefaultPromptStore(app.getSharedPreferences("default_prompt", Context.MODE_PRIVATE)), AndroidContactsPlatform(app))
 }
+
+/** How many messages the first load reads. Older ones are read on demand: more when the list is scrolled to its end. */
+internal class PageSizes(val sms: Int = 1_000, val mms: Int = 200)
