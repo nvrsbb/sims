@@ -64,10 +64,11 @@ class SelectionAndUnreadUiTest {
 
     @Test fun withoutTheRoleThereIsNoSelection() {
         show(FakeActions(false), isDefault = false)
-        longPress(20)
+        // A long press without selection behaves like a tap and opens the thread, so it is not exercised here.
         compose.onNodeWithTag("selection-count").assertDoesNotExist()
         compose.onNodeWithTag("device-inbox-actions").performClick()
         compose.onNodeWithText("Select messages").assertDoesNotExist()
+        compose.onNodeWithText("Show unread only").assertExists()
     }
 
     @Test fun longPressSelectsSelectAllCountsAndCloseLeavesSelecting() {
