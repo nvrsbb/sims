@@ -89,6 +89,7 @@ internal class AndroidSmsPlatform(private val context: Context, private val cons
                 .setData(Uri.Builder().scheme("foldsms-sent").authority("result").appendPath(operationId).appendPath(part.toString()).build())
             PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         })
+        DefaultAppProviderWrites(context).recordOutgoing(operationId, recipient, parts, subscriptionId) // only while default; best effort
         if (parts.size == 1) service.sendTextMessage(recipient, null, parts.single(), callbacks.single(), null)
         else service.sendMultipartTextMessage(recipient, null, ArrayList(parts), callbacks, null)
     }

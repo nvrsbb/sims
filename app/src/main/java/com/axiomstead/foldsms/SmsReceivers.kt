@@ -34,7 +34,11 @@ class SmsSentReceiver : BroadcastReceiver() {
         val code = resultCode
         val completion = goAsync()
         receiverScope.launch {
-            try { smsServices(context).controller.result(id, part, code) }
+            try {
+                val services = smsServices(context)
+                services.controller.result(id, part, code)
+                services.journal.attempt(id)?.stage?.let { DefaultAppProviderWrites(context).finalizeOutgoing(id, it) }
+            }
             catch (_: Exception) { /* Unrecorded outcomes remain unconfirmed; no resend or private-text logging. */ }
             finally { completion.finish() }
         }
