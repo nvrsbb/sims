@@ -32,6 +32,16 @@
         <receiver android:name=".SmsDeliverReceiver" android:exported="true" android:permission="android.permission.BROADCAST_SMS">
             <intent-filter><action android:name="android.provider.Telephony.SMS_DELIVER" /></intent-filter>
         </receiver>
+        <receiver android:name=".MmsPushReceiver" android:exported="true" android:permission="android.permission.BROADCAST_WAP_PUSH">
+            <intent-filter>
+                <action android:name="android.provider.Telephony.WAP_PUSH_DELIVER" />
+                <data android:mimeType="application/vnd.wap.mms-message" />
+            </intent-filter>
+        </receiver>
+        <receiver android:name=".MmsDownloadedReceiver" android:exported="false" />
+        <provider android:name="androidx.core.content.FileProvider" android:authorities="${applicationId}.mms" android:exported="false" android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/mms_file_paths" />
+        </provider>
         <receiver android:name=".SmsSentReceiver" android:exported="false" />
     </application>
 </manifest>

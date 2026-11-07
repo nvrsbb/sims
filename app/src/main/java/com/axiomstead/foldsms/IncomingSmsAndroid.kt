@@ -59,7 +59,7 @@ internal fun androidIncomingHandler(context: Context) = IncomingSmsHandler(
 
 private const val CHANNEL = "incoming_sms"
 
-private fun showIncomingNotification(context: Context, message: IncomingSms) {
+internal fun showIncomingNotification(context: Context, message: IncomingSms) {
     if (Build.VERSION.SDK_INT >= 33 &&
         ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return
     val manager = context.getSystemService(NotificationManager::class.java) ?: return
