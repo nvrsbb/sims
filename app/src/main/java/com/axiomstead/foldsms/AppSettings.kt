@@ -8,7 +8,10 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -54,6 +57,20 @@ internal fun AppSettings(
                     TextButton(onClick = { context.startActivity(defaultAppsSettings()) }, modifier = Modifier.testTag("settings-switch-back")) { Text("Choose another app") }
                 } else if (onMakeDefault != null) {
                     TextButton(onClick = onMakeDefault, modifier = Modifier.testTag("settings-make-default")) { Text("Make FoldSMS default") }
+                }
+                var entries by remember { mutableStateOf(Diagnostics.entryCount(context)) }
+                if (entries > 0) {
+                    HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                    Text("Troubleshooting", style = MaterialTheme.typography.titleMedium)
+                    Text("$entries entries about failures. They contain no message text, numbers or names.", Modifier.padding(vertical = 4.dp).testTag("settings-diagnostics-count"),
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Row {
+                        TextButton(onClick = {
+                            val report = "FoldSMS $version, Android ${android.os.Build.VERSION.SDK_INT}, ${android.os.Build.MODEL}\n" + Diagnostics.read(context)
+                            context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, report), "Share troubleshooting log"))
+                        }, modifier = Modifier.testTag("settings-diagnostics-share")) { Text("Share") }
+                        TextButton(onClick = { Diagnostics.clear(context); entries = 0 }, modifier = Modifier.testTag("settings-diagnostics-clear")) { Text("Clear") }
+                    }
                 }
                 HorizontalDivider(Modifier.padding(vertical = 8.dp))
                 TextButton(onClick = {
