@@ -87,7 +87,7 @@ class DeviceMetadataUiTest {
 
     @Test fun categoryChoiceShowsOnTheRowAndFiltersTheInbox() {
         show()
-        compose.onNodeWithTag("device-category-thread-10", useUnmergedTree = true).assertTextEquals("Unknown")
+        compose.onNodeWithTag("device-category-thread-10", useUnmergedTree = true).assertTextEquals("Personal")
         compose.onNodeWithTag("device-thread-thread-10").performClick()
         menu("device-conversation-actions", "Change category")
         compose.onNode(hasText("Finance") and hasAnyAncestor(isDialog())).performClick() // the filter chip has the same label

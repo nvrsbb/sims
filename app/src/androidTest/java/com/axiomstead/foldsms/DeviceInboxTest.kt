@@ -106,7 +106,7 @@ class DeviceInboxTest {
         sms.rows = listOf(inbox(1, 1, "2025550101", "SMS still shown", 1_000))
         show()
         compose.waitUntil(15_000) { compose.onAllNodesWithTag("device-inbox-error").fetchSemanticsNodes().isNotEmpty() }
-        compose.onNodeWithText("SMS still shown").assertExists()
+        compose.waitUntil(15_000) { compose.onAllNodesWithText("SMS still shown").fetchSemanticsNodes().isNotEmpty() }
     }
 
     @Test fun turningOffAccessInSettingsReturnsToWelcomeAndStopsReading() {
@@ -135,6 +135,35 @@ class DeviceInboxTest {
         compose.onNodeWithText("Settings").assertExists()
         compose.onNodeWithText("Request permissions").assertDoesNotExist()
         compose.onNodeWithText("Sample data").assertDoesNotExist()
+    }
+
+    @Test fun everyCategoryChipIsVisibleOnOneLineWithoutScrolling() {
+        consent.setEnabled(true)
+        sms.rows = listOf(inbox(1, 1, "2025550101", "Fabricated real row", 1_000))
+        show()
+        compose.waitUntil(15_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
+        val tops = listOf("All", "Personal", "Finance", "Services", "Promotions", "OTP").map { name ->
+            compose.onNodeWithTag("device-category-filter-$name").assertIsDisplayed().fetchSemanticsNode().boundsInRoot.center.y
+        }
+        assertTrue("all chips share one row: $tops", tops.max() - tops.min() < 8f)
+        compose.onNodeWithTag("device-category-filter-Unknown").assertDoesNotExist() // nothing is Unknown
+    }
+
+    @Test fun conversationsShowAnAutomaticCategoryThatTheFilterUses() {
+        consent.setEnabled(true)
+        sms.rows = listOf(
+            inbox(1, 10, "2025550101", "See you tonight", 3_000),
+            inbox(2, 20, "EXAMPLEBANK", "Your verification code is 482913", 2_000),
+            inbox(3, 30, "PARCELCO", "Your parcel is out for delivery", 1_000)
+        )
+        show()
+        compose.waitUntil(15_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("device-category-thread-10", useUnmergedTree = true).assertTextEquals("Personal")
+        compose.onNodeWithTag("device-category-thread-20", useUnmergedTree = true).assertTextEquals("OTP")
+        compose.onNodeWithTag("device-category-thread-30", useUnmergedTree = true).assertTextEquals("Services")
+        compose.onNodeWithTag("device-category-filter-OTP").performClick()
+        compose.onNodeWithTag("device-thread-thread-20").assertExists()
+        compose.onNodeWithTag("device-thread-thread-10").assertDoesNotExist()
     }
 
     @Test fun searchAndMenuShareOneRowAtTheTopAndThereIsNoAppTitle() {

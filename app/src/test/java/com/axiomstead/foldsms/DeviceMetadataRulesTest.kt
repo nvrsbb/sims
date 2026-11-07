@@ -23,14 +23,14 @@ class DeviceMetadataRulesTest {
         assertEquals(listOf("thread-2"), keys(arrangeDeviceConversations(listOf(a, b, c), m, true, "All")))
     }
 
-    @Test fun unassignedConversationsCountAsUnknownAndFiltersApplyInsideTheCurrentView() {
+    @Test fun unassignedConversationsUseTheAutomaticCategoryAndFiltersApplyInsideTheCurrentView() {
+        // These threads have non-numeric two-character-or-less senders and no keywords, so the automatic category is Services.
         val m = meta(DeviceConversationMetadata("thread-1", category = "Finance"), DeviceConversationMetadata("thread-3", category = "Finance", archived = true))
         assertEquals(listOf("thread-1"), keys(arrangeDeviceConversations(listOf(a, b, c), m, false, "Finance")))
         assertEquals(listOf("thread-3"), keys(arrangeDeviceConversations(listOf(a, b, c), m, true, "Finance")))
-        assertEquals(listOf("thread-2"), keys(arrangeDeviceConversations(listOf(a, b, c), m, false, "Unknown")))
-        assertEquals("Unknown", deviceCategory(null))
-        assertEquals("Unknown", deviceCategory(DeviceConversationMetadata("x")))
-        assertEquals("OTP", deviceCategory(DeviceConversationMetadata("x", category = "OTP")))
+        assertEquals(listOf("thread-2"), keys(arrangeDeviceConversations(listOf(a, b, c), m, false, "Services")))
+        assertEquals("Services", effectiveCategory(b, null))
+        assertEquals("OTP", effectiveCategory(b, DeviceConversationMetadata("x", category = "OTP")))
     }
 
     @Test fun pinnedStatePersistsAcrossArchivingAndOnlyAffectsItsOwnView() {

@@ -13,14 +13,15 @@ internal fun CategoryPicker(
     onChoose: (String) -> Unit,
     onReset: () -> Unit,
     onDismiss: () -> Unit,
-    resetLabel: String = "Reset to sample default"
+    resetLabel: String = "Automatic",
+    choices: List<String> = conversationCategories - "Unknown"
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Conversation category") },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
-                conversationCategories.forEach { value ->
+                choices.forEach { value ->
                     TextButton(onClick = { onChoose(value) }) {
                         Text(if (value == category) "$value (current)" else value)
                     }
