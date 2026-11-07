@@ -62,6 +62,11 @@ internal fun AppSettings(
                 } else if (onMakeDefault != null) {
                     TextButton(onClick = onMakeDefault, modifier = Modifier.testTag("settings-make-default")) { Text("Make FoldSMS default") }
                 }
+                if (onExport != null) {
+                    HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                    Text("Backup", style = MaterialTheme.typography.titleMedium)
+                    TextButton(onClick = onExport, modifier = Modifier.testTag("settings-export")) { Text("Export messages to a file") }
+                }
                 var entries by remember { mutableIntStateOf(Diagnostics.entryCount(context)) }
                 if (entries > 0) {
                     HorizontalDivider(Modifier.padding(vertical = 8.dp))

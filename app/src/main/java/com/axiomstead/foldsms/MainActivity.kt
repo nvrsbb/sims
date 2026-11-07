@@ -65,7 +65,8 @@ internal fun FoldSmsApp(
     wide: Boolean = LocalConfiguration.current.screenWidthDp >= 600,
     launchRecipient: String? = null,
     onLaunchRecipientHandled: () -> Unit = {},
-    codeCopier: ((String) -> Unit)? = null
+    codeCopier: ((String) -> Unit)? = null,
+    exportTarget: (() -> android.net.Uri)? = null
 ) {
     var theme by remember { mutableStateOf(themeStore.get()) }
     var showSettings by rememberSaveable { mutableStateOf(false) }
@@ -94,7 +95,7 @@ internal fun FoldSmsApp(
     }
     val state = rememberDeviceMessagesState(smsServices)
     val scope = rememberCoroutineScope()
-    val export = rememberExportFlow(state)
+    val export = rememberExportFlow(state, exportTarget)
     val requestPermissions = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         permissionsAsked = true
         scope.launch { state.refresh() }

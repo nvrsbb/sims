@@ -60,14 +60,15 @@ internal class ExportFlow(
 }
 
 @Composable
-internal fun rememberExportFlow(state: DeviceMessagesState): ExportFlow {
+/** [fixedTarget] replaces the system file picker; tests use it to write to a file they can read back. */
+internal fun rememberExportFlow(state: DeviceMessagesState, fixedTarget: (() -> Uri)? = null): ExportFlow {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val cancelRequested = remember { AtomicBoolean(false) }
     lateinit var flow: ExportFlow
     val create = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/xml")) { uri -> if (uri != null) flow.picked(uri) }
     flow = remember(state) {
-        ExportFlow(state, launch = { name -> create.launch(name) }, cancelRequested = cancelRequested, run = { uri, attachments ->
+        ExportFlow(state, launch = { name -> if (fixedTarget != null) flow.picked(fixedTarget()) else create.launch(name) }, cancelRequested = cancelRequested, run = { uri, attachments ->
             cancelRequested.set(false)
             flow.running = true; flow.status = "Reading messages…"
             scope.launch {
