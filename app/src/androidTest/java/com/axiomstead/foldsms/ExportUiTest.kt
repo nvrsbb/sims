@@ -40,7 +40,10 @@ class ExportUiTest {
 
     @Test fun settingsOffersTheExportAndItAsksWhatToIncludeBeforeAnyFilePicker() {
         openSettings(readable = true)
-        compose.onNodeWithTag("settings-export").performClick()
+        // The tap closes the Settings window while it is still being injected, which fails the injection; the control is
+        // checked to be on screen first and then activated through its semantic click.
+        compose.onNodeWithTag("settings-export").assertIsDisplayed()
+        compose.onNodeWithTag("settings-export").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
         compose.onNodeWithTag("export-text-only").assertExists()
         compose.onNodeWithTag("export-with-attachments").assertExists()
         compose.onNodeWithText("Nothing is changed or deleted", substring = true).assertExists()
