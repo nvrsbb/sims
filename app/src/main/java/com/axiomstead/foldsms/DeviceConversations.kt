@@ -25,6 +25,8 @@ internal data class DeviceConversation(
     val last get() = messages.last()
     val title get() = contactName ?: address.ifBlank { "Unknown sender" }
     val unreadCount get() = messages.count { !it.outgoing && !it.read }
+    /** The message "mark as unread" flips: the newest one received, if any. */
+    val latestIncoming get() = messages.lastOrNull { !it.outgoing }
 }
 
 private const val SMS_INBOX = 1

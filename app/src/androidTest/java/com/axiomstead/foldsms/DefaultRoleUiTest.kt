@@ -30,13 +30,6 @@ class DefaultRoleUiTest {
     private val metaDatabase = Room.inMemoryDatabaseBuilder(context, ConversationMetadataDatabase::class.java).build()
     private val now = System.currentTimeMillis()
 
-    private class FakeActions(var allowed: Boolean) : MessageActions {
-        val read = mutableListOf<Long>(); val deleted = mutableListOf<Long>()
-        override fun canModify() = allowed
-        override fun markThreadRead(threadId: Long): Boolean { read += threadId; return true }
-        override fun deleteThread(threadId: Long): Boolean { deleted += threadId; return true }
-    }
-
     @After fun clean() { smsDatabase.close(); metaDatabase.close(); listOf(consentPrefs, smsDraftPrefs, promptPrefs, samplePrefs).forEach { it.edit().clear().commit() } }
 
     private fun show(actions: FakeActions, isDefault: Boolean) {
