@@ -41,12 +41,8 @@ class DeviceConversationTest {
 
     private fun content(wide: Boolean, onBack: (OnBackPressedDispatcher) -> Unit = {}): @androidx.compose.runtime.Composable () -> Unit = {
         onBack(LocalOnBackPressedDispatcherOwner.current!!.onBackPressedDispatcher)
-        val drafts = DraftStore(samplePrefs)
         MaterialTheme {
-            PreviewApp(ThemeStore(samplePrefs), drafts, ConversationMetadataStore(sampleDatabase.metadata()),
-                CustomSampleConversationStore(sampleDatabase, drafts), wide = wide,
-                deletionStore = SampleDeletionStore(samplePrefs), smsServices = services,
-                    deviceMetadataStore = DeviceMetadataStore(sampleDatabase.deviceMetadata()))
+            FoldSmsApp(ThemeStore(samplePrefs), smsServices = services, deviceMetadataStore = DeviceMetadataStore(sampleDatabase.deviceMetadata()), wide = wide)
         }
     }
 
@@ -78,7 +74,6 @@ class DeviceConversationTest {
         val order = compose.onAllNodes(hasTestTagStartingWith("device-message-sms-")).fetchSemanticsNodes().map { testTagOf(it) }
         assertEquals(listOf("device-message-sms-1", "device-message-sms-2", "device-message-sms-3"), order)
         compose.onNodeWithTag("device-inbox-list").assertDoesNotExist() // phone width shows one pane
-        compose.onNodeWithTag("preview-chats").assertDoesNotExist() // bottom bar hides inside the conversation
         compose.runOnIdle { assertTrue(sms.requests.isEmpty()) }
     }
 
@@ -106,7 +101,6 @@ class DeviceConversationTest {
         compose.onNodeWithTag("device-inbox-list").assertExists()
         compose.onNodeWithTag("device-inbox-search").assertTextContains("2025550101")
         compose.onNodeWithTag("device-thread-thread-20").assertDoesNotExist()
-        compose.onNodeWithTag("preview-chats").assertExists()
         compose.onNodeWithTag("device-thread-thread-10").performClick()
         compose.onNodeWithTag("device-conversation-back").performClick()
         compose.onNodeWithTag("device-inbox-list").assertExists()

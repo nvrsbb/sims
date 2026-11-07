@@ -39,56 +39,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/**
- * The main tab. Real device conversations when the owner has opted in; otherwise (or by choice) the fabricated sample
- * inbox. Opt-in, permissions and consent stay with the existing stores; nothing is read until consent is on.
- */
-@Composable
-internal fun ChatsTab(
-    state: DeviceMessagesState,
-    wide: Boolean,
-    onConversationOpen: (Boolean) -> Unit,
-    deviceMetadata: DeviceMetadataStore? = null,
-    samples: @Composable (onUseDeviceMessages: () -> Unit) -> Unit
-) {
-    val scope = rememberCoroutineScope()
-    var showSamples by rememberSaveable { mutableStateOf(false) }
-    var enablePrompt by rememberSaveable { mutableStateOf(false) }
-    val permissionRequest = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
-        scope.launch { state.refresh() }
-    }
-    if (enablePrompt) AlertDialog(
-        onDismissRequest = { enablePrompt = false },
-        title = { Text("Show your real messages?") },
-        text = { Text("FoldSMS will read your device SMS and MMS, including MMS images, and can send chargeable SMS through the SIM you choose, only after you confirm each message. Android will ask for SMS, MMS and Phone/SIM permissions. Google Messages stays your default app for MMS download, storage and notifications. Nothing is sent automatically.") },
-        confirmButton = { TextButton(onClick = {
-            enablePrompt = false
-            if (state.services.consent.setEnabled(true)) {
-                state.access = state.services.platform.access()
-                showSamples = false
-                permissionRequest.launch(smsPermissions)
-            } else state.error = "Could not save SMS consent. No SMS access was enabled."
-        }) { Text("Continue") } },
-        dismissButton = { TextButton(onClick = { enablePrompt = false }) { Text("Cancel") } }
-    )
-    if (state.access.enabled && !showSamples) DeviceInboxHost(
-        state = state, wide = wide, onConversationOpen = onConversationOpen, metadataStore = deviceMetadata,
-        onShowSamples = { showSamples = true },
-        onRequestPermissions = { permissionRequest.launch(smsPermissions) }
-    ) else samples {
-        if (state.access.enabled) showSamples = false else enablePrompt = true
-    }
-}
-
 /** List plus conversation: side by side when wide, one at a time on a phone-width screen. */
 @Composable
 internal fun DeviceInboxHost(
     state: DeviceMessagesState,
     wide: Boolean,
-    onConversationOpen: (Boolean) -> Unit,
     metadataStore: DeviceMetadataStore?,
-    onShowSamples: () -> Unit,
+    onOpenSettings: () -> Unit,
     onRequestPermissions: () -> Unit,
+    permissionsAsked: Boolean = false,
     now: () -> Instant = { Instant.now() },
     zone: ZoneId = ZoneId.systemDefault()
 ) {
@@ -144,8 +103,6 @@ internal fun DeviceInboxHost(
     }
     val fullScreen = !wide && open != null
     BackHandler(enabled = fullScreen) { openKey = null; pendingAddress = null }
-    SideEffect { onConversationOpen(fullScreen) }
-    DisposableEffect(Unit) { onDispose { onConversationOpen(false) } }
     val simLabel = { message: DeviceMessage ->
         if (state.subscriptions.size > 1) state.subscriptions.firstOrNull { it.id == message.subscriptionId }?.let { "SIM ${it.slot + 1}" } else null
     }
@@ -155,7 +112,7 @@ internal fun DeviceInboxHost(
             DeviceInboxScreen(
                 state, arranged, metadata, open?.key, { openKey = it; pendingAddress = null }, search, { search = it }, listState,
                 showArchive, { showArchive = !showArchive; openKey = null; pendingAddress = null }, filter, { filter = it },
-                onShowSamples, onRequestPermissions, now, zone, onNewMessage = { newMessageDialog = true }
+                onOpenSettings, onRequestPermissions, permissionsAsked, now, zone, onNewMessage = { newMessageDialog = true }
             )
         }
         if (wide) VerticalDivider()
@@ -184,8 +141,9 @@ internal fun DeviceInboxScreen(
     onToggleArchive: () -> Unit,
     filter: String,
     onFilter: (String) -> Unit,
-    onShowSamples: () -> Unit,
+    onOpenSettings: () -> Unit,
     onRequestPermissions: () -> Unit,
+    permissionsAsked: Boolean,
     now: () -> Instant = { Instant.now() },
     zone: ZoneId = ZoneId.systemDefault(),
     onNewMessage: () -> Unit = {}
@@ -195,41 +153,26 @@ internal fun DeviceInboxScreen(
     val conversations = searchDeviceConversations(arranged, search)
     val access = state.access
     Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text("FoldSMS", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                Text(if (showArchive) "Archive" else "Messages", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
-            }
-            OverflowMenu("device-inbox-actions", "inbox actions", listOf(
-                MenuAction(if (showArchive) "Inbox" else "Archive", onClick = onToggleArchive),
-                MenuAction("Refresh messages", !state.refreshing) { scope.launch { state.refresh() } },
-                MenuAction("Request permissions", onClick = onRequestPermissions),
-                MenuAction("Android permissions") {
-                    context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}")))
-                },
-                MenuAction("Sample data", onClick = onShowSamples),
-                MenuAction("Turn off real messages") {
-                    val saved = state.services.consent.setEnabled(false)
-                    state.access = state.services.platform.access()
-                    state.messages = emptyList(); state.mmsMessages = emptyList(); state.subscriptions = emptyList()
-                    if (!saved) state.error = "Disabled for this session, but Android could not save the preference. Revoke SMS permissions in Android settings before restarting."
-                }
+        Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 4.dp, top = 8.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+            TextField(
+                value = search,
+                onValueChange = onSearch,
+                placeholder = { Text(if (showArchive) "Search archived" else "Search messages") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                trailingIcon = { if (search.isNotEmpty()) IconButton(onClick = { onSearch("") }) { Icon(Icons.Default.Clear, contentDescription = "Clear search") } },
+                modifier = Modifier.weight(1f).testTag("device-inbox-search"),
+                singleLine = true,
+                shape = RoundedCornerShape(50),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant, unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent
+                )
+            )
+            OverflowMenu("device-inbox-actions", "menu", listOf(
+                MenuAction(if (showArchive) "Inbox" else "Archived", onClick = onToggleArchive),
+                MenuAction("Settings", onClick = onOpenSettings)
             ))
         }
-        TextField(
-            value = search,
-            onValueChange = onSearch,
-            placeholder = { Text("Search messages") },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-            trailingIcon = { if (search.isNotEmpty()) IconButton(onClick = { onSearch("") }) { Icon(Icons.Default.Clear, contentDescription = "Clear search") } },
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp).testTag("device-inbox-search"),
-            singleLine = true,
-            shape = RoundedCornerShape(50),
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant, unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent
-            )
-        )
         androidx.compose.foundation.lazy.LazyRow(Modifier.testTag("device-category-filters"), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(listOf("All") + conversationCategories) { c ->
@@ -237,26 +180,31 @@ internal fun DeviceInboxScreen(
             }
         }
         Column(Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
-            if (!access.messagingSupported) Text("This device has no supported SMS service.", color = MaterialTheme.colorScheme.error)
-            if (access.messagingSupported && !access.externalDefault) Text("Choose Google Messages or another capable default messaging app in Android settings. FoldSMS never takes over as default.", color = MaterialTheme.colorScheme.error)
+            if (!access.messagingSupported) Text("This device has no SMS service.", color = MaterialTheme.colorScheme.error)
+            if (access.messagingSupported && !access.externalDefault) Text("Set Google Messages or another SMS app as your default app. FoldSMS reads from it and never replaces it.", color = MaterialTheme.colorScheme.error)
             if (access.messagingSupported && access.externalDefault && !access.canRead) {
-                Text("Reading messages needs SMS read and receive permission. Android or the installer may refuse restricted permissions; no bypass is attempted.")
-                TextButton(onClick = onRequestPermissions, modifier = Modifier.testTag("device-request-permissions")) { Text("Request permissions") }
+                Text("Allow SMS access to see your messages.")
+                Row {
+                    Button(onClick = onRequestPermissions, modifier = Modifier.testTag("device-request-permissions")) { Text("Allow") }
+                    if (permissionsAsked) TextButton(onClick = {
+                        context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}")))
+                    }, modifier = Modifier.testTag("device-open-app-settings")) { Text("Open settings") }
+                }
             }
-            if (access.canRead && !state.mmsCanRead) Text("Photos and other MMS need MMS receive permission, which Android or the installer may refuse.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (access.canRead && !access.canSend) Text("Sending needs SMS and Phone/SIM permissions.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (access.canRead && !state.mmsCanRead) Text("Allow MMS access to see pictures.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (access.canRead && !access.canSend) Text("Allow SMS and phone access to send.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             state.error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("device-inbox-error")) }
         }
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when {
                 !access.canRead -> Unit
                 !state.hasLoaded -> Text("Loading messages…", Modifier.padding(20.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                state.conversations.isEmpty() -> Text("No messages found. Refresh after receiving one.", Modifier.padding(20.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                state.conversations.isEmpty() -> Text("No messages yet.", Modifier.padding(20.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 arranged.isEmpty() -> Text(
                     when {
                         showArchive && filter == "All" -> "Archive is empty"
                         filter != "All" -> "No conversations in this category"
-                        else -> "Every conversation is archived. Open the archive from the menu."
+                        else -> "Everything is archived."
                     }, Modifier.padding(20.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 conversations.isEmpty() -> Text("No conversations match", Modifier.padding(20.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 else -> LazyColumn(Modifier.fillMaxSize().testTag("device-inbox-list"), state = listState, contentPadding = PaddingValues(bottom = 88.dp)) {

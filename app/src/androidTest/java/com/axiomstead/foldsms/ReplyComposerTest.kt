@@ -43,13 +43,9 @@ class ReplyComposerTest {
             DeviceSms(1, 10, "2025550101", "Are you coming?", now - 60_000, Telephony.Sms.MESSAGE_TYPE_INBOX, 7, true),
             DeviceSms(2, 20, "BANK", "Balance alert", now - 50_000, Telephony.Sms.MESSAGE_TYPE_INBOX, 7, true)
         )
-        val sampleDrafts = DraftStore(samplePrefs)
         compose.setContent {
             MaterialTheme {
-                PreviewApp(ThemeStore(samplePrefs), sampleDrafts, ConversationMetadataStore(sampleDatabase.metadata()),
-                    CustomSampleConversationStore(sampleDatabase, sampleDrafts), wide = false,
-                    deletionStore = SampleDeletionStore(samplePrefs), smsServices = services,
-                    deviceMetadataStore = DeviceMetadataStore(sampleDatabase.deviceMetadata()))
+                FoldSmsApp(ThemeStore(samplePrefs), smsServices = services, deviceMetadataStore = DeviceMetadataStore(sampleDatabase.deviceMetadata()), wide = false)
             }
         }
         compose.waitUntil(15_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
@@ -146,7 +142,7 @@ class ReplyComposerTest {
     @Test fun missingSendPermissionHidesTheComposerAndExplains() {
         sms.gate = sms.gate.copy(sendGranted = false)
         seedAndOpen()
-        compose.onNodeWithText("Sending needs SMS and Phone/SIM permissions", substring = true).assertExists()
+        compose.onNodeWithText("Allow SMS and phone access", substring = true).assertExists()
         compose.onNodeWithTag("reply-composer").assertDoesNotExist()
         compose.runOnIdle { assertTrue(sms.requests.isEmpty()) }
     }

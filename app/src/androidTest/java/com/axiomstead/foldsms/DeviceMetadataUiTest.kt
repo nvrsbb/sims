@@ -41,10 +41,7 @@ class DeviceMetadataUiTest {
             DeviceSms(2, 20, "2025550102", "Middle thread", now - 2_000_000, Telephony.Sms.MESSAGE_TYPE_INBOX, 7, true),
             DeviceSms(3, 30, "2025550103", "Newest thread", now - 1_000_000, Telephony.Sms.MESSAGE_TYPE_INBOX, 7, true)
         )
-        val drafts = DraftStore(samplePrefs)
-        compose.setContent { MaterialTheme { PreviewApp(ThemeStore(samplePrefs), drafts, ConversationMetadataStore(sampleDatabase.metadata()),
-            CustomSampleConversationStore(sampleDatabase, drafts), wide = false, deletionStore = SampleDeletionStore(samplePrefs),
-            smsServices = services, deviceMetadataStore = device) } }
+        compose.setContent { MaterialTheme { FoldSmsApp(ThemeStore(samplePrefs), smsServices = services, deviceMetadataStore = device, wide = false) } }
         compose.waitUntil(15_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
     }
 
@@ -76,7 +73,7 @@ class DeviceMetadataUiTest {
         compose.waitUntil(15_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() } // returned to the list
         compose.onNodeWithTag("device-thread-thread-20").assertDoesNotExist()
         compose.onNodeWithTag("device-inbox-actions").performClick()
-        compose.onNodeWithText("Archive").performClick()
+        compose.onNodeWithText("Archived").performClick()
         compose.waitUntil(15_000) { compose.onAllNodesWithTag("device-thread-thread-20").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithTag("device-thread-thread-30").assertDoesNotExist()
         compose.onNodeWithTag("device-thread-thread-20").performClick()
