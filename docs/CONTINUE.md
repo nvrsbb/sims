@@ -61,7 +61,9 @@ Confirm the emulator serial before tests; never target the owner's phone or clea
 
 ## Next work
 
-Build F-16 MMS receiving and sending in focused reviewed steps, beginning with provider-backed reading, then a validated PDU composer/send journal. Do not install on the owner phone or perform real carrier sends. Preserve existing worktrees. The owner performs every PR merge; never merge or enable auto-merge. Resume F-14 restore after SMS priority; export alone does not complete the backup/restore gate. See `SMS_TRANSPORT.md` for transport limits and follow-ups.
+Agreed order (owner, 2026-11-07): 1. F-19 phone check of the current build, reporting what is wrong before anything else is built; 2. F-20 app icon/name and F-21 archive handling; 3. F-16 MMS sending, starting with a feasibility step (audit the PDU composer and its licence, independent fixture tests, durable sent callbacks) before any send UI, and a controlled carrier trial because some carriers drop MMS from a non-default app. Later: F-14 restore, F-22 conversation search and delivery status, F-24 per-conversation drafts. Blocked until the owner authorizes them: F-23 contact names (contacts permission) and F-25 delete/mark-read/notifications (default-SMS role). F-26 tracks emulator-test flakiness; #36 now fails a hung test with its name.
+
+Do not install on the owner phone or perform real carrier sends during development. Preserve existing worktrees. The owner performs every PR merge; never merge or enable auto-merge. See `SMS_TRANSPORT.md` and `MMS_TRANSPORT.md` for transport limits.
 
 ## F-13 verification
 

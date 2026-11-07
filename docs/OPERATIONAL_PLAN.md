@@ -29,6 +29,10 @@ Not part of this plan, because they need the default-SMS role or new authorizati
 
 Local: JVM tests, lint, debug and Android-test assembly, `git diff --check`. Hosted: the Android workflow with its emulator tests. Fold behavior, large fonts, cover screen and real carrier sending are checked by the owner on the phone and reported separately from automated results.
 
-## Status (2026-11-06)
+## Status (2026-11-07)
 
-All eight PRs are open as a stack (#28–#35), each based on the previous branch. Merge in order, retargeting each to `main` first. Deliberate deviations from the plan: replies use the existing single shared SMS draft (one unsent draft app-wide, blocked with a visible reason when it belongs to someone else) instead of per-conversation drafts, because per-conversation drafts would change the revision and journal safeguards; metadata uses a new table instead of an extra column, which makes the 4→5 migration purely additive. Hosted emulator results are in each PR's checks; Fold behavior, large fonts, activity/process death and any real carrier send remain unverified.
+Landed on `main` through #37 (the whole stack #28–#35 in one merge, version 0.4.0) and #38 (the reply box had been pushed below the bottom of the screen). Deliberate deviations from the plan: replies use the existing single shared SMS draft (one unsent draft app-wide, blocked with a visible reason when it belongs to someone else) instead of per-conversation drafts, because per-conversation drafts would change the revision and journal safeguards; metadata uses a new table instead of an extra column, which makes the 4→5 migration purely additive.
+
+Lessons: stacked PRs that are merged into their base branches never reach `main`, so retarget each to `main` before merging or land the stack in one PR. Semantic test clicks work on off-screen controls, so UI tests must use real taps and `assertIsDisplayed` for anything a person has to reach.
+
+Hosted emulator results are in each PR's checks; Fold behavior, large fonts, activity/process death, upgrade over the installed build and any real carrier send remain unverified on a device. Open work is listed in `docs/TRACKER.md` (F-19 onward).
