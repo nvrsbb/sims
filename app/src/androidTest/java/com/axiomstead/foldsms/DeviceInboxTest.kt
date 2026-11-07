@@ -143,11 +143,11 @@ class DeviceInboxTest {
         sms.rows = listOf(inbox(1, 1, "2025550101", "Fabricated real row", 1_000))
         show()
         compose.waitUntil(UI_WAIT_MS) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
-        val tops = listOf("All", "Personal", "Finance", "Services", "Promotions", "OTP").map { name ->
+        val tops = listOf("All", "Personal", "Business").map { name ->
             compose.onNodeWithTag("device-category-filter-$name").assertIsDisplayed().fetchSemanticsNode().boundsInRoot.center.y
         }
         assertTrue("all chips share one row: $tops", tops.max() - tops.min() < 8f)
-        compose.onNodeWithTag("device-category-filter-Unknown").assertDoesNotExist() // nothing is Unknown
+        compose.onNodeWithTag("device-category-filter-OTP").assertDoesNotExist() // only Personal and Business exist
     }
 
     @Test fun conversationsShowAnAutomaticCategoryThatTheFilterUses() {
@@ -160,11 +160,15 @@ class DeviceInboxTest {
         show()
         compose.waitUntil(UI_WAIT_MS) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithTag("device-category-thread-10", useUnmergedTree = true).assertTextEquals("Personal")
-        compose.onNodeWithTag("device-category-thread-20", useUnmergedTree = true).assertTextEquals("OTP")
-        compose.onNodeWithTag("device-category-thread-30", useUnmergedTree = true).assertTextEquals("Services")
-        compose.onNodeWithTag("device-category-filter-OTP").performClick()
+        compose.onNodeWithTag("device-category-thread-20", useUnmergedTree = true).assertTextEquals("Business")
+        compose.onNodeWithTag("device-category-thread-30", useUnmergedTree = true).assertTextEquals("Business")
+        compose.onNodeWithTag("device-category-filter-Business").performClick()
         compose.onNodeWithTag("device-thread-thread-20").assertExists()
+        compose.onNodeWithTag("device-thread-thread-30").assertExists()
         compose.onNodeWithTag("device-thread-thread-10").assertDoesNotExist()
+        compose.onNodeWithTag("device-category-filter-Personal").performClick()
+        compose.onNodeWithTag("device-thread-thread-10").assertExists()
+        compose.onNodeWithTag("device-thread-thread-20").assertDoesNotExist()
     }
 
     @Test fun searchAndMenuShareOneRowAtTheTopAndThereIsNoAppTitle() {

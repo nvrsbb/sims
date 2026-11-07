@@ -44,11 +44,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/** Multi-select over the conversation list. Present only when changes are possible (FoldSMS is the default app). */
+/** Multi-select over the conversation list. Category changes are local; read, unread and delete need the default SMS role. */
 internal class InboxSelection(
-    val active: Boolean, val keys: Set<String>,
+    val active: Boolean, val keys: Set<String>, val canChangeMessages: Boolean,
     val onStart: () -> Unit, val onToggle: (String) -> Unit, val onSelectAll: () -> Unit, val onClose: () -> Unit,
-    val onMarkRead: () -> Unit, val onMarkUnread: () -> Unit, val onDelete: () -> Unit
+    val onMarkRead: () -> Unit, val onMarkUnread: () -> Unit, val onDelete: () -> Unit, val onCategory: () -> Unit
 )
 
 /** List plus conversation: side by side when wide, one at a time on a phone-width screen. */
@@ -121,24 +121,32 @@ internal fun DeviceInboxHost(
     val canManage = state.access.isDefaultApp && actions?.canModify() == true
     val chosen = state.conversations.filter { it.key in selectedKeys }
     fun finishSelection(failed: Boolean) { selectMode = false; selectedKeys = emptySet(); bulkDelete = false; if (failed) state.error = "Some conversations could not be changed." }
-    val selection = if (!canManage || actions == null) null else InboxSelection(
-        active = selectMode, keys = selectedKeys,
+    var bulkCategory by rememberSaveable { mutableStateOf(false) }
+    val selection = InboxSelection(
+        active = selectMode, keys = selectedKeys, canChangeMessages = canManage && actions != null,
         onStart = { selectMode = true },
         onToggle = { key -> selectMode = true; selectedKeys = if (key in selectedKeys) selectedKeys - key else selectedKeys + key },
         onSelectAll = { selectedKeys = searchDeviceConversations(arranged, search).map { it.key }.toSet() },
         onClose = { finishSelection(false) },
         onMarkRead = { scope.launch {
-            val failed = withContext(Dispatchers.IO) { chosen.count { !actions.markThreadRead(it.threadId) } > 0 }
+            val failed = withContext(Dispatchers.IO) { chosen.count { !actions!!.markThreadRead(it.threadId) } > 0 }
             finishSelection(failed); state.refresh()
         } },
         onMarkUnread = { scope.launch {
-            val failed = withContext(Dispatchers.IO) { chosen.count { thread -> thread.latestIncoming?.let { actions.markUnread(it.kind, it.id) } != true } > 0 }
+            val failed = withContext(Dispatchers.IO) { chosen.count { thread -> thread.latestIncoming?.let { actions!!.markUnread(it.kind, it.id) } != true } > 0 }
             finishSelection(failed); state.refresh()
         } },
-        onDelete = { if (selectedKeys.isNotEmpty()) bulkDelete = true }
+        onDelete = { if (selectedKeys.isNotEmpty() && canManage) bulkDelete = true },
+        onCategory = { if (selectedKeys.isNotEmpty()) bulkCategory = true }
+    )
+    if (bulkCategory) CategoryPicker(
+        category = "", title = "Category for ${chosen.size} conversation${if (chosen.size == 1) "" else "s"}",
+        onChoose = { value -> scope.launch { chosen.forEach { store.setCategory(it.key, value) } }; bulkCategory = false; finishSelection(false) },
+        onReset = { scope.launch { chosen.forEach { store.setCategory(it.key, null) } }; bulkCategory = false; finishSelection(false) },
+        onDismiss = { bulkCategory = false }
     )
     BackHandler(enabled = selection?.active == true) { finishSelection(false) }
-    if (bulkDelete && selection != null) AlertDialog(
+    if (bulkDelete) AlertDialog(
         onDismissRequest = { bulkDelete = false },
         title = { Text(if (chosen.size == 1) "Delete this conversation?" else "Delete ${chosen.size} conversations?") },
         text = { Text("All their messages are removed from this phone. This cannot be undone.") },
@@ -276,12 +284,10 @@ internal fun DeviceInboxScreen(
                 MenuAction(if (showArchive) "Inbox" else "Archived", onClick = onToggleArchive)
             ) + listOfNotNull(selection?.let { MenuAction("Select messages", onClick = it.onStart) }) + MenuAction("Settings", onClick = onOpenSettings))
         }
-        // One row, no scrolling: each chip gets space in proportion to its label, and "Unknown" only appears if something has it.
-        val chipCategories = listOf("All") + (conversationCategories - "Unknown") +
-            (if (arranged.any { effectiveCategory(it, metadata[it.key]) == "Unknown" } || filter == "Unknown") listOf("Unknown") else emptyList())
+        val chipCategories = listOf("All") + chatCategories
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp).testTag("device-category-filters"), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             chipCategories.forEach { c ->
-                val label = categoryChipLabel(c)
+                val label = c
                 Surface(
                     onClick = { onFilter(c) },
                     modifier = Modifier.weight(label.length + 2f).testTag("device-category-filter-$c"),
@@ -289,7 +295,7 @@ internal fun DeviceInboxScreen(
                     color = if (c == filter) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f) else Color.Transparent,
                     border = androidx.compose.foundation.BorderStroke(1.dp, if (c == filter) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant)
                 ) {
-                    Text(label, Modifier.padding(horizontal = 2.dp, vertical = 7.dp), fontSize = 12.sp, maxLines = 1, softWrap = false,
+                    Text(label, Modifier.padding(horizontal = 2.dp, vertical = 7.dp), fontSize = 14.sp, maxLines = 1, softWrap = false,
                         overflow = TextOverflow.Clip, textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                         color = if (c == filter) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -353,9 +359,11 @@ internal fun DeviceInboxScreen(
         if (selecting && selection != null) Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 3.dp) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
                 val any = selection.keys.isNotEmpty()
-                TextButton(onClick = selection.onMarkRead, enabled = any, modifier = Modifier.testTag("selection-read")) { Text("Mark read") }
-                TextButton(onClick = selection.onMarkUnread, enabled = any, modifier = Modifier.testTag("selection-unread")) { Text("Mark unread") }
-                TextButton(onClick = selection.onDelete, enabled = any, modifier = Modifier.testTag("selection-delete")) { Text("Delete", color = if (any) MaterialTheme.colorScheme.error else Color.Unspecified) }
+                val change = any && selection.canChangeMessages
+                TextButton(onClick = selection.onMarkRead, enabled = change, modifier = Modifier.testTag("selection-read")) { Text("Read") }
+                TextButton(onClick = selection.onMarkUnread, enabled = change, modifier = Modifier.testTag("selection-unread")) { Text("Unread") }
+                TextButton(onClick = selection.onCategory, enabled = any, modifier = Modifier.testTag("selection-category")) { Text("Category") }
+                TextButton(onClick = selection.onDelete, enabled = change, modifier = Modifier.testTag("selection-delete")) { Text("Delete", color = if (change) MaterialTheme.colorScheme.error else Color.Unspecified) }
             }
         }
     }

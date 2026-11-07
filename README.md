@@ -4,7 +4,7 @@ FoldSMS is an SMS and MMS app for a Samsung Galaxy Z Fold6. A welcome screen ask
 
 ## Current preview
 
-- Real conversations from stored SMS and MMS with search, categories, archive and pin; reply and new message (a one-part reply sends on tap; new numbers, several parts or a possible duplicate show a review first). The earlier fabricated sample inbox, its drafts UI and preview export were removed; their stored data on existing installs is left untouched.
+- Real conversations from stored SMS and MMS with search, Personal and Business categories, archive and pin; reply and new message (a one-part reply sends on tap; new numbers, several parts or a possible duplicate show a review first). The earlier fabricated sample inbox, its drafts UI and preview export were removed; their stored data on existing installs is left untouched.
 - Conversation selection and editable drafts saved per conversation; sending disabled.
 - Single pane below 600dp available width and split pane at 600dp or wider.
 - No backend, account, analytics, or cloud backup.
