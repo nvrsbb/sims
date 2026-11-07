@@ -51,10 +51,16 @@ class DeviceNewMessageTest {
         compose.onNodeWithTag("new-message-number").assertExists()
     }
 
-    @Test fun theButtonExistsOnlyForTheRealInboxWhenSendingIsAvailable() {
+    @Test fun theButtonExistsOnlyWhenSendingIsAvailable() {
+        sms.gate = sms.gate.copy(sendGranted = false)
+        show(); waitInbox()
+        compose.onNodeWithTag("device-new-message").assertDoesNotExist()
+    }
+
+    @Test fun theButtonIsAbsentBeforeAccessIsAllowed() {
         show(optIn = false)
         compose.onNodeWithTag("device-new-message").assertDoesNotExist()
-        compose.onNodeWithTag("new-sample").assertExists()
+        compose.onNodeWithTag("welcome-allow").assertExists()
     }
 
     @Test fun invalidNumbersAreRejectedWithoutLeavingTheList() {
