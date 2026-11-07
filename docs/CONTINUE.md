@@ -61,7 +61,14 @@ Confirm the emulator serial before tests; never target the owner's phone or clea
 
 ## Next work
 
-Agreed order (owner, 2026-11-07): 1. F-19 phone check of the current build, reporting what is wrong before anything else is built; 2. F-20 app icon/name and F-21 archive handling; 3. F-16 MMS sending, starting with a feasibility step (audit the PDU composer and its licence, independent fixture tests, durable sent callbacks) before any send UI, and a controlled carrier trial because some carriers drop MMS from a non-default app. Later: F-14 restore, F-22 conversation search and delivery status, F-24 per-conversation drafts. Blocked until the owner authorizes them: F-23 contact names (contacts permission) and F-25 delete/mark-read/notifications (default-SMS role). F-26 tracks emulator-test flakiness; #36 now fails a hung test with its name.
+Agreed order (owner, 2026-11-07), tracked as F-19 onward in `TRACKER.md`:
+1. F-19 phone check of the current build; report what is wrong before building anything else.
+2. F-20 app icon and name, F-21 archive handling, F-27 small follow-ups (launcher name, category-rule tuning, `AGENTS.md` wording).
+3. F-16 MMS sending, starting with a feasibility step (audit the PDU composer and its licence, independent fixture tests, durable sent callbacks) before any send UI, and a controlled carrier trial because some carriers drop MMS from a non-default app.
+4. F-14 restore, F-22 conversation search and delivery status, F-24 per-conversation drafts, F-26 CI flakiness.
+5. F-28 review of the owner’s `argon-grok-backlog.md` once supplied, and F-29 optional later features (rules, scheduling, WebDAV, scam detection, widgets, S Pen).
+6. Blocked until the owner authorizes them: F-23 contact names (contacts permission) and F-25 delete/mark-read/notifications (default-SMS role).
+7. **Last: F-30, ask the user to make FoldSMS their default message app.** It is the end of the list on purpose. Only after the replacement gates in `REPLACEMENT_PLAN.md` pass: outbound MMS validated, notifications, delete/mark-read with a trash, backup and restore, interrupted-operation and duplicate-prevention checks, a controlled carrier trial, and a tested way back to Google Messages. It needs the owner’s explicit authorization of the default-role request first; until then the app never requests the role and never asks at first launch. When built, it is one plain-words prompt using Android’s own role request, easy to decline and to undo.
 
 Do not install on the owner phone or perform real carrier sends during development. Preserve existing worktrees. The owner performs every PR merge; never merge or enable auto-merge. See `SMS_TRANSPORT.md` and `MMS_TRANSPORT.md` for transport limits.
 

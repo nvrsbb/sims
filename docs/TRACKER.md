@@ -32,6 +32,10 @@ Status: **Planned → In progress → PR open → Merged**. Close an item only a
 | F-24 | One unsent SMS draft per conversation | Planned: needs a journal/revision redesign first | — | Pending |
 | F-25 | Delete or mark-as-read real messages, notifications | Blocked: needs the default-SMS role, not authorized | — | Pending |
 | F-26 | Reduce emulator-test flakiness in CI | Ongoing | [#36](https://github.com/nvrsbb/sims/pull/36) fails a hung test after three minutes | About one random test failure per hosted run so far; most were timing or runner stalls |
+| F-27 | Small follow-ups from the lean app: launcher name "FoldSMS Preview" → "FoldSMS"; tune the automatic category rules from real-world misses; refresh `AGENTS.md` wording that still describes the Device tab and samples (the owner’s file, owner decides) | Planned | — | Pending |
+| F-28 | Review the owner’s `argon-grok-backlog.md` against the product boundary and fold what fits into this plan | Waiting: the file has not been supplied in any session | — | Pending |
+| F-29 | Optional later features from `REPLACEMENT_PLAN.md` phase 5: automated rules, scheduling, WebDAV, scam detection, widgets, S Pen refinements | Later | — | Pending |
+| F-30 | **Final step: ask the user to make FoldSMS their default message app** | Last on the list; blocked until the owner authorizes a default-role request and the replacement gates pass (see CONTINUE "Next work") | — | Pending |
 
 F-07–F-10 reached main through merged integration #18. Its 22 JVM tests and 25 emulator tests passed. No new phone checks are implied. #19 (hosted CI) and #22 (export) reached main at `83f7663`. #20 KSP and #21 interrupted-draft recovery remain separate; do not duplicate them.
 
