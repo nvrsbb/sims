@@ -108,7 +108,8 @@ internal fun DeviceInboxHost(
         }
         if (wide) VerticalDivider()
         if (open != null) Box(Modifier.weight(1f).fillMaxHeight()) {
-            DeviceConversationScreen(open, simLabel, loadImage, onBack = if (wide) null else ({ openKey = null }), now = now, zone = zone)
+            DeviceConversationScreen(open, simLabel, loadImage, onBack = if (wide) null else ({ openKey = null }), now = now, zone = zone,
+                composer = { ReplyComposer(state, open) })
         } else if (wide) Box(Modifier.weight(1f).fillMaxHeight().background(chatBackground()), contentAlignment = Alignment.Center) {
             Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)) {
                 Text("Choose a conversation", Modifier.padding(horizontal = 14.dp, vertical = 6.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
