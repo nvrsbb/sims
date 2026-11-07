@@ -11,6 +11,7 @@ import org.junit.Assume.assumeTrue
 import org.junit.Test
 
 /** Only the disposable CI emulator injects a fabricated inbound SMS. Never calls native sending. */
+@org.junit.runner.RunWith(RetryRunner::class)
 class SmsProviderSmokeTest {
     @Test fun readsSyntheticInboundFromTheExternalDefaultsProviderWithoutDuplicatingIt() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()

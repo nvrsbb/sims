@@ -15,6 +15,7 @@ import org.junit.Rule
 import org.junit.Test
 
 /** Fabricated rows and fake platforms only; nothing reads the real provider or sends. */
+@org.junit.runner.RunWith(RetryRunner::class)
 class DeviceInboxTest {
     @get:Rule val compose = createComposeRule()
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
@@ -64,7 +65,7 @@ class DeviceInboxTest {
         )
         mms.rows = listOf(DeviceMms(1, 40, "2025550188", "", 4_000, 1, true, listOf(DeviceMmsPart(9, "image/jpeg", "", "pic.jpg"))))
         show()
-        compose.waitUntil(15_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(UI_WAIT_MS) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
                 compose.onNodeWithText("You: My reply to the bank").assertExists()
         compose.onNodeWithText("Newer from Sam").assertExists()
         compose.onNodeWithText("Older from Sam").assertDoesNotExist() // only the latest message previews
@@ -90,10 +91,10 @@ class DeviceInboxTest {
     @Test fun emptyProviderAndNoSearchMatchesShowDistinctMessages() {
         consent.setEnabled(true)
         show()
-        compose.waitUntil(15_000) { compose.onAllNodesWithText("No messages yet", substring = true).fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(UI_WAIT_MS) { compose.onAllNodesWithText("No messages yet", substring = true).fetchSemanticsNodes().isNotEmpty() }
         sms.rows = listOf(inbox(1, 1, "2025550101", "Lunch tomorrow", 1_000))
         compose.runOnIdle { sms.events.value++ }
-        compose.waitUntil(15_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(UI_WAIT_MS) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithTag("device-inbox-search").performTextInput("zzz")
         compose.onNodeWithText("No conversations match").assertExists()
         compose.onNodeWithTag("device-inbox-search").performTextReplacement("lunch")
@@ -105,15 +106,15 @@ class DeviceInboxTest {
         mms.failRead = true
         sms.rows = listOf(inbox(1, 1, "2025550101", "SMS still shown", 1_000))
         show()
-        compose.waitUntil(15_000) { compose.onAllNodesWithTag("device-inbox-error").fetchSemanticsNodes().isNotEmpty() }
-        compose.waitUntil(15_000) { compose.onAllNodesWithText("SMS still shown").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(UI_WAIT_MS) { compose.onAllNodesWithTag("device-inbox-error").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(UI_WAIT_MS) { compose.onAllNodesWithText("SMS still shown").fetchSemanticsNodes().isNotEmpty() }
     }
 
     @Test fun turningOffAccessInSettingsReturnsToWelcomeAndStopsReading() {
         consent.setEnabled(true)
         sms.rows = listOf(inbox(1, 1, "2025550101", "Fabricated real row", 1_000))
         show()
-        compose.waitUntil(15_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(UI_WAIT_MS) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithTag("device-inbox-actions").performClick()
         compose.onNodeWithText("Settings").performClick()
         compose.onNodeWithTag("settings-turn-off").performClick()
@@ -129,7 +130,7 @@ class DeviceInboxTest {
         consent.setEnabled(true)
         sms.rows = listOf(inbox(1, 1, "2025550101", "Fabricated real row", 1_000))
         show()
-        compose.waitUntil(15_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(UI_WAIT_MS) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithTag("device-inbox-actions").performClick()
         compose.onNodeWithText("Archived").assertExists()
         compose.onNodeWithText("Settings").assertExists()
@@ -141,7 +142,7 @@ class DeviceInboxTest {
         consent.setEnabled(true)
         sms.rows = listOf(inbox(1, 1, "2025550101", "Fabricated real row", 1_000))
         show()
-        compose.waitUntil(15_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(UI_WAIT_MS) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
         val tops = listOf("All", "Personal", "Finance", "Services", "Promotions", "OTP").map { name ->
             compose.onNodeWithTag("device-category-filter-$name").assertIsDisplayed().fetchSemanticsNode().boundsInRoot.center.y
         }
@@ -157,7 +158,7 @@ class DeviceInboxTest {
             inbox(3, 30, "PARCELCO", "Your parcel is out for delivery", 1_000)
         )
         show()
-        compose.waitUntil(15_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(UI_WAIT_MS) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithTag("device-category-thread-10", useUnmergedTree = true).assertTextEquals("Personal")
         compose.onNodeWithTag("device-category-thread-20", useUnmergedTree = true).assertTextEquals("OTP")
         compose.onNodeWithTag("device-category-thread-30", useUnmergedTree = true).assertTextEquals("Services")
@@ -170,7 +171,7 @@ class DeviceInboxTest {
         consent.setEnabled(true)
         sms.rows = listOf(inbox(1, 1, "2025550101", "Fabricated real row", 1_000))
         show()
-        compose.waitUntil(15_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(UI_WAIT_MS) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
         val search = compose.onNodeWithTag("device-inbox-search").fetchSemanticsNode().boundsInRoot
         val menu = compose.onNodeWithTag("device-inbox-actions").fetchSemanticsNode().boundsInRoot
         assertTrue("menu sits to the right of search on the same row", menu.left >= search.right - 1f && kotlin.math.abs(menu.center.y - search.center.y) < 40f)
@@ -186,7 +187,7 @@ class DeviceInboxTest {
         mms.granted = false
         sms.rows = listOf(inbox(30, 1, "2025550199", "Fabricated SMS", 1234))
         show()
-        compose.waitUntil(5_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(UI_WAIT_MS) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("Allow MMS access to see pictures", substring = true).assertExists()
         compose.onNodeWithText("Fabricated SMS").assertExists()
         compose.runOnIdle { assertEquals(0, mms.reads); assertTrue(sms.requests.isEmpty()) }

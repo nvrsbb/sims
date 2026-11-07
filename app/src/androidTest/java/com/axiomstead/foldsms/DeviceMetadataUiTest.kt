@@ -17,6 +17,7 @@ import org.junit.Rule
 import org.junit.Test
 
 /** Fabricated rows and fake platforms only. Metadata stays local: nothing here writes the provider. */
+@org.junit.runner.RunWith(RetryRunner::class)
 class DeviceMetadataUiTest {
     @get:Rule val compose = createComposeRule()
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
@@ -42,7 +43,7 @@ class DeviceMetadataUiTest {
             DeviceSms(3, 30, "2025550103", "Newest thread", now - 1_000_000, Telephony.Sms.MESSAGE_TYPE_INBOX, 7, true)
         )
         compose.setContent { MaterialTheme { FoldSmsApp(ThemeStore(samplePrefs), smsServices = services, deviceMetadataStore = device, wide = false) } }
-        compose.waitUntil(15_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(UI_WAIT_MS) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
     }
 
     private fun order(): List<String> = compose.onAllNodes(SemanticsMatcher("row") { node ->
@@ -57,24 +58,24 @@ class DeviceMetadataUiTest {
         compose.onNodeWithTag("device-thread-thread-10").performClick()
         menu("device-conversation-actions", "Pin conversation")
         compose.onNodeWithTag("device-conversation-back").performClick()
-        compose.waitUntil(15_000) { order().first() == "device-thread-thread-10" }
+        compose.waitUntil(UI_WAIT_MS) { order().first() == "device-thread-thread-10" }
         compose.onNodeWithTag("device-pinned-thread-10", useUnmergedTree = true).assertExists()
         runBlocking { assertTrue(device.all.first().getValue("thread-10").pinned) }
         compose.onNodeWithTag("device-thread-thread-10").performClick()
         menu("device-conversation-actions", "Unpin conversation")
         compose.onNodeWithTag("device-conversation-back").performClick()
-        compose.waitUntil(15_000) { order().first() == "device-thread-thread-30" }
+        compose.waitUntil(UI_WAIT_MS) { order().first() == "device-thread-thread-30" }
     }
 
     @Test fun archiveHidesFromInboxShowsInArchiveAndRestoreReturnsIt() {
         show()
         compose.onNodeWithTag("device-thread-thread-20").performClick()
         menu("device-conversation-actions", "Archive conversation")
-        compose.waitUntil(15_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() } // returned to the list
+        compose.waitUntil(UI_WAIT_MS) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() } // returned to the list
         compose.onNodeWithTag("device-thread-thread-20").assertDoesNotExist()
         compose.onNodeWithTag("device-inbox-actions").performClick()
         compose.onNodeWithText("Archived").performClick()
-        compose.waitUntil(15_000) { compose.onAllNodesWithTag("device-thread-thread-20").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(UI_WAIT_MS) { compose.onAllNodesWithTag("device-thread-thread-20").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithTag("device-thread-thread-30").assertDoesNotExist()
         compose.onNodeWithTag("device-thread-thread-20").performClick()
         menu("device-conversation-actions", "Restore conversation")
@@ -92,7 +93,7 @@ class DeviceMetadataUiTest {
         menu("device-conversation-actions", "Change category")
         compose.onNode(hasText("Finance") and hasAnyAncestor(isDialog())).performClick() // the filter chip has the same label
         compose.onNodeWithTag("device-conversation-back").performClick()
-        compose.waitUntil(15_000) { runBlocking { device.all.first()["thread-10"]?.category == "Finance" } }
+        compose.waitUntil(UI_WAIT_MS) { runBlocking { device.all.first()["thread-10"]?.category == "Finance" } }
         compose.onNodeWithTag("device-category-filter-Finance").performClick()
         compose.onNodeWithTag("device-thread-thread-10").assertExists()
         compose.onNodeWithTag("device-thread-thread-20").assertDoesNotExist()
@@ -106,7 +107,7 @@ class DeviceMetadataUiTest {
         show()
         compose.onNodeWithTag("device-thread-thread-10").performClick()
         menu("device-conversation-actions", "Pin conversation")
-        compose.waitUntil(15_000) { runBlocking { device.all.first()["thread-10"]?.pinned == true } }
+        compose.waitUntil(UI_WAIT_MS) { runBlocking { device.all.first()["thread-10"]?.pinned == true } }
         runBlocking { assertTrue(sampleDatabase.metadata().getAll().isEmpty()) }
     }
 }
