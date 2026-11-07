@@ -1,10 +1,10 @@
 # FoldSMS — private Android SMS replacement prototype
 
-FoldSMS shows fabricated samples and an opt-in Device messages tab for a Samsung Galaxy Z Fold6. Sample sending stays disabled. The Device messages tab shows stored SMS and MMS together and offers explicitly confirmed SIM-specific SMS sending. Access starts disabled; Android and the installer may refuse restricted permissions. Keep Google Messages or another capable messaging app default for MMS download, notifications and message storage. FoldSMS does not request the default SMS role, cannot send MMS yet, and is not yet a dependable replacement. No network permission or backend. See [SMS transport behavior and validation limits](docs/SMS_TRANSPORT.md).
+FoldSMS shows fabricated samples, and after an opt-in your real conversations, in one Chats tab for a Samsung Galaxy Z Fold6. Sample sending stays disabled. Real conversations show stored SMS and MMS together, can be pinned, archived and categorized locally, and offer explicitly reviewed and confirmed SIM-specific SMS sending, including to a typed number. Access starts disabled; Android and the installer may refuse restricted permissions. Keep Google Messages or another capable messaging app default for MMS download, notifications and message storage. FoldSMS does not request the default SMS role, cannot send MMS yet, and is not yet a dependable replacement. No network permission or backend. See [SMS transport behavior and validation limits](docs/SMS_TRANSPORT.md).
 
 ## Current preview
 
-- Fabricated conversations, search, and category filters in Samples; stored device SMS and MMS in Device messages after opt-in.
+- Fabricated conversations, search, and category filters; after opt-in, stored device SMS and MMS as real conversations with search, pin, archive, categories, reply and new message.
 - Conversation selection and editable drafts saved per conversation; sending disabled.
 - Single pane below 600dp available width and split pane at 600dp or wider.
 - No backend, account, analytics, or cloud backup.

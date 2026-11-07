@@ -66,12 +66,11 @@ internal fun PreviewApp(
     customStore: CustomSampleConversationStore? = null,
     wide: Boolean = LocalConfiguration.current.screenWidthDp >= 600,
     deletionStore: SampleDeletionStore? = null,
-    smsServices: SmsServices? = null
+    smsServices: SmsServices? = null,
+    deviceMetadataStore: DeviceMetadataStore? = null
 ) {
     var theme by remember { mutableStateOf(themeStore.get()) }
     var showSettings by rememberSaveable { mutableStateOf(false) }
-    var messageView by rememberSaveable { mutableStateOf("Samples") }
-    val viewStates = rememberSaveableStateHolder()
     val dark = theme.usesDarkColors(isSystemInDarkTheme())
     val colors = if (dark) darkColorScheme(
         primary = Color(0xFFF2A26A), onPrimary = Color(0xFF112022),
@@ -95,22 +94,18 @@ internal fun PreviewApp(
         onDispose {}
     }
     var conversationOpen by remember { mutableStateOf(false) }
+    val deviceState = rememberDeviceMessagesState(smsServices)
     val keyboardVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
     MaterialTheme(colorScheme = colors) {
         Scaffold(
             containerColor = MaterialTheme.colorScheme.background,
             bottomBar = {
                 // Like Telegram, the tab bar belongs to lists; it hides inside a phone-width conversation and while typing.
-                if (!keyboardVisible && !(messageView == "Samples" && conversationOpen)) NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
+                if (!keyboardVisible && !conversationOpen) NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                     NavigationBarItem(
-                        selected = messageView == "Samples", onClick = { messageView = "Samples" },
-                        icon = { Icon(Icons.Default.Email, contentDescription = null) }, label = { Text("Samples") },
-                        modifier = Modifier.testTag("preview-samples")
-                    )
-                    NavigationBarItem(
-                        selected = messageView == "Device messages", onClick = { messageView = "Device messages" },
-                        icon = { Icon(Icons.Default.Phone, contentDescription = null) }, label = { Text("Device") },
-                        modifier = Modifier.testTag("preview-device-messages")
+                        selected = true, onClick = {},
+                        icon = { Icon(Icons.Default.Email, contentDescription = null) }, label = { Text("Chats") },
+                        modifier = Modifier.testTag("preview-chats")
                     )
                     NavigationBarItem(
                         selected = false, onClick = { showSettings = true },
@@ -121,14 +116,12 @@ internal fun PreviewApp(
             }
         ) { padding ->
             Box(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
-                if (messageView == "Samples") viewStates.SaveableStateProvider("samples") {
+                ChatsTab(deviceState, wide = wide, onConversationOpen = { conversationOpen = it }, deviceMetadata = deviceMetadataStore) { useDeviceMessages ->
                     FoldSmsApp(
                         store = draftStore, wide = wide, metadataStore = metadataStore, customStore = customStore,
                         onOpenSettings = { showSettings = true }, deletionStore = deletionStore,
-                        onConversationOpen = { conversationOpen = it }
+                        onConversationOpen = { conversationOpen = it }, onUseDeviceMessages = useDeviceMessages
                     )
-                } else viewStates.SaveableStateProvider("device") {
-                    DeviceMessagesPane(supplied = smsServices)
                 }
             }
         }
@@ -148,7 +141,8 @@ internal fun FoldSmsApp(
     deletionStore: SampleDeletionStore? = null,
     customStore: CustomSampleConversationStore? = null,
     onOpenSettings: () -> Unit = {},
-    onConversationOpen: (Boolean) -> Unit = {}
+    onConversationOpen: (Boolean) -> Unit = {},
+    onUseDeviceMessages: (() -> Unit)? = null
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val draftStore = store ?: remember(context) { DraftStore(context.applicationContext) }
@@ -234,6 +228,7 @@ internal fun FoldSmsApp(
     BackHandler(enabled = !wide && showConversation && !keyboardVisible) { showConversation = false }
     val conversationFullScreen = !wide && showConversation
     SideEffect { onConversationOpen(conversationFullScreen) }
+    DisposableEffect(Unit) { onDispose { onConversationOpen(false) } }
     val pinnedIds = overrides.filter { it.pinned }.map { it.threadId }.toSet()
     val archivedIds = overrides.filter { it.archived }.map { it.threadId }.toSet()
     val available = archiveConversations(threads, archivedIds, showArchive)
@@ -329,7 +324,8 @@ internal fun FoldSmsApp(
                             MenuAction(if (showArchive) "Inbox" else "Archive") {
                                 showArchive = !showArchive; showConversation = false; selecting = false; selectedMessages = emptyList(); detailMessageId = null
                             },
-                            MenuAction("Settings", onClick = onOpenSettings),
+                            MenuAction("Settings", onClick = onOpenSettings)
+                        ) + listOfNotNull(onUseDeviceMessages?.let { MenuAction("Real messages", onClick = it) }) + listOf(
                             MenuAction("Delete all messages in app", sampleMessageIds(threads).isNotEmpty() && !deletionBusy) {
                                 requestDelete(sampleMessageIds(threads), "across the entire app, including conversations outside this search or category")
                             }

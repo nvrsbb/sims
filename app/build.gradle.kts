@@ -12,8 +12,8 @@ android {
         applicationId = "com.axiomstead.foldsms"
         minSdk = 29
         targetSdk = 35
-        versionCode = 3
-        versionName = "0.3.0"
+        versionCode = 4
+        versionName = "0.4.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // A test that hangs (stuck emulator, deadlock) otherwise stalls the CI job for its whole 30-minute limit with no
         // hint which test it was. With a per-test limit it fails with a stack trace and the test's name instead.

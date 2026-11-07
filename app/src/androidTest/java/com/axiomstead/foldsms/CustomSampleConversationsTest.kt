@@ -156,7 +156,7 @@ class CustomSampleConversationsTest {
         val preferences = context.getSharedPreferences(name, Context.MODE_PRIVATE)
         preferences.edit().putString("thread_2", "Fabricated existing\ndraft").commit()
         val database = Room.databaseBuilder(context, ConversationMetadataDatabase::class.java, name)
-            .addMigrations(MIGRATION_3_4).build()
+            .addMigrations(MIGRATION_3_4, MIGRATION_4_5).build()
         try {
             val metadata = database.metadata().observeCategories().first().single()
             assertEquals("Unknown", metadata.category)
