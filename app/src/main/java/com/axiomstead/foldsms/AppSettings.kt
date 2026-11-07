@@ -22,7 +22,7 @@ import androidx.compose.ui.window.DialogProperties
 @Composable
 internal fun AppSettings(
     theme: ThemeChoice, onThemeChange: (ThemeChoice) -> Unit, onTurnOff: () -> Unit, onDismiss: () -> Unit,
-    isDefaultApp: Boolean = false, onMakeDefault: (() -> Unit)? = null
+    isDefaultApp: Boolean = false, onMakeDefault: (() -> Unit)? = null, onExport: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     val version = remember(context) { runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull().orEmpty() }

@@ -94,6 +94,7 @@ internal fun FoldSmsApp(
     }
     val state = rememberDeviceMessagesState(smsServices)
     val scope = rememberCoroutineScope()
+    val export = rememberExportFlow(state)
     val requestPermissions = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         permissionsAsked = true
         scope.launch { state.refresh() }
@@ -138,8 +139,10 @@ internal fun FoldSmsApp(
                 )
             }
         }
+        export.Dialogs()
         if (showSettings) AppSettings(
             theme = theme,
+            onExport = if (state.access.canRead) ({ showSettings = false; export.start() }) else null,
             isDefaultApp = state.access.isDefaultApp,
             onMakeDefault = makeDefault.takeIf { !state.access.isDefaultApp },
             onThemeChange = { theme = it; themeStore.save(it) },
