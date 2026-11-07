@@ -53,7 +53,10 @@ internal fun androidIncomingHandler(context: Context) = IncomingSmsHandler(
             put(Telephony.Sms.SEEN, 0)
             if (message.subscriptionId >= 0) put(Telephony.Sms.SUBSCRIPTION_ID, message.subscriptionId)
         }
-        context.contentResolver.insert(Telephony.Sms.Inbox.CONTENT_URI, values) != null
+        val stored = try { context.contentResolver.insert(Telephony.Sms.Inbox.CONTENT_URI, values) != null }
+            catch (failure: Exception) { Diagnostics.record(context, "SMS_STORE_ERROR", failure.javaClass.name); throw failure }
+        if (!stored) Diagnostics.record(context, "SMS_STORE_FAILED", "insert returned null")
+        stored
     },
     notifier = IncomingNotifier { message -> showIncomingNotification(context, message) }
 )
