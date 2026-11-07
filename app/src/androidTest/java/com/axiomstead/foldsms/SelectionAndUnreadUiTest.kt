@@ -8,6 +8,8 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.room.Room
 import androidx.test.platform.app.InstrumentationRegistry
 import java.util.UUID
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -28,6 +30,7 @@ class SelectionAndUnreadUiTest {
     private val smsDatabase = Room.inMemoryDatabaseBuilder(context, SmsSendDatabase::class.java).build()
     private val metaDatabase = Room.inMemoryDatabaseBuilder(context, ConversationMetadataDatabase::class.java).build()
     private val now = System.currentTimeMillis()
+    private val device by lazy { DeviceMetadataStore(metaDatabase.deviceMetadata()) }
 
     @After fun clean() { smsDatabase.close(); metaDatabase.close(); listOf(consentPrefs, smsDraftPrefs, samplePrefs).forEach { it.edit().clear().commit() } }
 
@@ -43,7 +46,7 @@ class SelectionAndUnreadUiTest {
             row(3, 30, "2025550103", "Unread three", 1_000, read = false)
         )
         val services = SmsServices(sms, consent, SmsDraftStore(smsDraftPrefs), smsDatabase.sends(), FakeMmsPlatform(consent), actions, DefaultPromptStore(samplePrefs))
-        compose.setContent { MaterialTheme { FoldSmsApp(ThemeStore(samplePrefs), smsServices = services, deviceMetadataStore = DeviceMetadataStore(metaDatabase.deviceMetadata()), wide = false) } }
+        compose.setContent { MaterialTheme { FoldSmsApp(ThemeStore(samplePrefs), smsServices = services, deviceMetadataStore = device, wide = false) } }
         compose.waitUntil(UI_WAIT_MS) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
     }
 
@@ -62,13 +65,39 @@ class SelectionAndUnreadUiTest {
         compose.onNodeWithTag("device-thread-thread-10").assertExists()
     }
 
-    @Test fun withoutTheRoleThereIsNoSelection() {
+    @Test fun withoutTheRoleSelectionOffersOnlyTheCategoryChange() {
         show(FakeActions(false), isDefault = false)
-        // A long press without selection behaves like a tap and opens the thread, so it is not exercised here.
-        compose.onNodeWithTag("selection-count").assertDoesNotExist()
         compose.onNodeWithTag("device-inbox-actions").performClick()
-        compose.onNodeWithText("Select messages").assertDoesNotExist()
-        compose.onNodeWithText("Show unread only").assertExists()
+        compose.onNodeWithText("Select messages").performClick()
+        compose.onNodeWithTag("device-thread-thread-20").performClick()
+        compose.onNodeWithTag("selection-count").assertTextEquals("1 selected")
+        compose.onNodeWithTag("selection-read").assertIsNotEnabled()
+        compose.onNodeWithTag("selection-unread").assertIsNotEnabled()
+        compose.onNodeWithTag("selection-delete").assertIsNotEnabled()
+        compose.onNodeWithTag("selection-category").assertIsEnabled()
+    }
+
+    @Test fun theCategoryOfSeveralConversationsChangesTogetherAndAutomaticRestores() {
+        show(FakeActions(false), isDefault = false)
+        compose.onNodeWithTag("device-inbox-actions").performClick()
+        compose.onNodeWithText("Select messages").performClick()
+        compose.onNodeWithTag("device-thread-thread-20").performClick()
+        compose.onNodeWithTag("device-thread-thread-30").performClick()
+        compose.onNodeWithTag("selection-category").performClick()
+        compose.onNodeWithText("Category for 2 conversations").assertExists()
+        compose.onNode(hasText("Business") and hasAnyAncestor(isDialog())).performClick()
+        compose.waitUntil(UI_WAIT_MS) { runBlocking { device.all.first().let { it["thread-20"]?.category == "Business" && it["thread-30"]?.category == "Business" } } }
+        compose.onNodeWithTag("selection-count").assertDoesNotExist() // selection ends
+        compose.onNodeWithTag("device-category-filter-Business").performClick()
+        compose.onNodeWithTag("device-thread-thread-20").assertExists()
+        compose.onNodeWithTag("device-thread-thread-10").assertDoesNotExist()
+        compose.onNodeWithTag("device-category-filter-All").performClick()
+        compose.onNodeWithTag("device-inbox-actions").performClick()
+        compose.onNodeWithText("Select messages").performClick()
+        compose.onNodeWithTag("device-thread-thread-20").performClick()
+        compose.onNodeWithTag("selection-category").performClick()
+        compose.onNodeWithText("Automatic").performClick()
+        compose.waitUntil(UI_WAIT_MS) { runBlocking { device.all.first()["thread-20"]?.category == null } }
     }
 
     @Test fun longPressSelectsSelectAllCountsAndCloseLeavesSelecting() {

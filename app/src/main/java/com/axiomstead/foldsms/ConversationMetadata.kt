@@ -6,7 +6,8 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.flow.Flow
 
-val conversationCategories = listOf("Personal", "Finance", "Services", "Promotions", "OTP", "Unknown")
+/** Every value ever stored, so old data stays readable. The app now offers only Personal and Business (see chatCategories). */
+val conversationCategories = listOf("Personal", "Business", "Finance", "Services", "Promotions", "OTP", "Unknown")
 
 @Entity(tableName = "conversation_metadata")
 data class ConversationMetadata(

@@ -14,11 +14,12 @@ internal fun CategoryPicker(
     onReset: () -> Unit,
     onDismiss: () -> Unit,
     resetLabel: String = "Automatic",
-    choices: List<String> = conversationCategories - "Unknown"
+    title: String = "Conversation category",
+    choices: List<String> = chatCategories
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Conversation category") },
+        title = { Text(title) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
                 choices.forEach { value ->

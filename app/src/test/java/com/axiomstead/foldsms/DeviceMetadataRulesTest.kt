@@ -24,13 +24,14 @@ class DeviceMetadataRulesTest {
     }
 
     @Test fun unassignedConversationsUseTheAutomaticCategoryAndFiltersApplyInsideTheCurrentView() {
-        // These threads have non-numeric two-character-or-less senders and no keywords, so the automatic category is Services.
-        val m = meta(DeviceConversationMetadata("thread-1", category = "Finance"), DeviceConversationMetadata("thread-3", category = "Finance", archived = true))
-        assertEquals(listOf("thread-1"), keys(arrangeDeviceConversations(listOf(a, b, c), m, false, "Finance")))
-        assertEquals(listOf("thread-3"), keys(arrangeDeviceConversations(listOf(a, b, c), m, true, "Finance")))
-        assertEquals(listOf("thread-2"), keys(arrangeDeviceConversations(listOf(a, b, c), m, false, "Services")))
-        assertEquals("Services", effectiveCategory(b, null))
-        assertEquals("OTP", effectiveCategory(b, DeviceConversationMetadata("x", category = "OTP")))
+        // These threads have senders that are not phone numbers, so the automatic category is Business.
+        val m = meta(DeviceConversationMetadata("thread-1", category = "Personal"), DeviceConversationMetadata("thread-3", category = "Personal", archived = true))
+        assertEquals(listOf("thread-1"), keys(arrangeDeviceConversations(listOf(a, b, c), m, false, "Personal")))
+        assertEquals(listOf("thread-3"), keys(arrangeDeviceConversations(listOf(a, b, c), m, true, "Personal")))
+        assertEquals(listOf("thread-2"), keys(arrangeDeviceConversations(listOf(a, b, c), m, false, "Business")))
+        assertEquals("Business", effectiveCategory(b, null))
+        assertEquals("Business", effectiveCategory(b, DeviceConversationMetadata("x", category = "OTP"))) // a value stored by an older version
+        assertEquals("Personal", effectiveCategory(b, DeviceConversationMetadata("x", category = "Personal")))
     }
 
     @Test fun pinnedStatePersistsAcrossArchivingAndOnlyAffectsItsOwnView() {
