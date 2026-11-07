@@ -14,7 +14,8 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 internal val smsPermissions = arrayOf(Manifest.permission.READ_SMS, Manifest.permission.RECEIVE_SMS,
-    Manifest.permission.SEND_SMS, Manifest.permission.READ_PHONE_STATE, Manifest.permission.RECEIVE_MMS)
+    Manifest.permission.SEND_SMS, Manifest.permission.READ_PHONE_STATE, Manifest.permission.RECEIVE_MMS,
+    Manifest.permission.READ_CONTACTS) // contacts are optional: without them numbers are shown as they are
 
 /** Access, SIMs and stored SMS/MMS for the opt-in device messages, refreshed from the providers. */
 @Stable
@@ -31,11 +32,23 @@ internal class DeviceMessagesState(val services: SmsServices) {
 
     /** False until the first refresh finishes, so screens can show loading instead of an empty list. */
     val hasLoaded get() = loaded
-    val conversations by derivedStateOf { groupDeviceConversations(messages, mmsMessages) }
+    var contacts by mutableStateOf(emptyList<ContactEntry>())
+    var contactsCanRead by mutableStateOf(services.contacts?.canRead() == true)
+    private val contactNames by derivedStateOf { contactNameMap(contacts) }
+    val conversations by derivedStateOf { withContactNames(groupDeviceConversations(messages, mmsMessages), contactNames) }
+
+    /** Reloads the contact list; empty without permission. Called on resume and when the permission changes. */
+    suspend fun refreshContacts() {
+        val platform = services.contacts ?: return
+        val allowed = platform.canRead()
+        val list = if (allowed) withContext(Dispatchers.IO) { try { platform.all() } catch (_: Exception) { emptyList() } } else emptyList()
+        contactsCanRead = allowed; contacts = list
+    }
 
     suspend fun refresh() = lock.withLock {
         refreshing = true
         try {
+            if ((services.contacts?.canRead() == true) != contactsCanRead) refreshContacts()
             val next = services.platform.access()
             access = next
             if (!next.canRead) messages = emptyList()
@@ -77,13 +90,14 @@ internal fun rememberDeviceMessagesState(supplied: SmsServices? = null): DeviceM
     val owner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     DisposableEffect(owner, state) {
-        val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_RESUME) scope.launch { state.refresh() } }
+        val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_RESUME) scope.launch { state.refreshContacts(); state.refresh() } }
         owner.lifecycle.addObserver(observer)
         onDispose { owner.lifecycle.removeObserver(observer) }
     }
     LaunchedEffect(state, state.access.canRead, state.access.canSend, state.access.enabled) {
         services.platform.changes().collect { state.refresh() }
     }
+    LaunchedEffect(state) { state.refreshContacts() }
     LaunchedEffect(state, state.mmsCanRead) { services.mms?.changes()?.collect { state.refresh() } }
     return state
 }

@@ -140,7 +140,8 @@ internal class AndroidSmsPlatform(private val context: Context, private val cons
 }
 
 internal data class SmsServices(val platform: SmsPlatform, val consent: SmsConsentStore, val drafts: SmsDraftStore, val journal: SmsSendDao, val mms: MmsPlatform? = null,
-    val actions: MessageActions? = null, val defaultPrompt: DefaultPromptStore? = null) {
+    val actions: MessageActions? = null, val defaultPrompt: DefaultPromptStore? = null,
+    val contacts: ContactsPlatform? = null) {
     val controller = SmsSendController(platform, consent, drafts, journal)
 }
 
@@ -150,5 +151,5 @@ internal fun smsServices(context: Context): SmsServices {
     return SmsServices(AndroidSmsPlatform(app, consent), consent,
         SmsDraftStore(app.getSharedPreferences("sms_compose_v1", Context.MODE_PRIVATE)), SmsJournalProvider.get(app).sends(),
         AndroidMmsPlatform(app, consent), DefaultAppProviderWrites(app),
-        DefaultPromptStore(app.getSharedPreferences("default_prompt", Context.MODE_PRIVATE)))
+        DefaultPromptStore(app.getSharedPreferences("default_prompt", Context.MODE_PRIVATE)), AndroidContactsPlatform(app))
 }

@@ -21,7 +21,7 @@ internal fun WelcomeScreen(error: String?, onAllow: () -> Unit) {
     ) {
         Text("FoldSMS", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
         Spacer(Modifier.height(12.dp))
-        Text("Read and send your SMS and MMS in one place. Messages stay on this phone. Google Messages stays your default app.",
+        Text("Read and send your SMS and MMS in one place. Messages and contacts stay on this phone; contacts are only used to show names.",
             textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurface)
         Spacer(Modifier.height(24.dp))
         Button(onClick = onAllow, modifier = Modifier.testTag("welcome-allow")) { Text("Allow access") }

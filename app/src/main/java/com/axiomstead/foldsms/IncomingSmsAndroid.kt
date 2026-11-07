@@ -70,7 +70,7 @@ internal fun showIncomingNotification(context: Context, message: IncomingSms) {
     // The lock screen shows only that a message arrived; sender and text appear once the phone is unlocked.
     val hidden = NotificationCompat.Builder(context, CHANNEL).setSmallIcon(android.R.drawable.stat_notify_chat).setContentTitle("New message").build()
     val notification = NotificationCompat.Builder(context, CHANNEL)
-        .setSmallIcon(android.R.drawable.stat_notify_chat).setContentTitle(message.address).setContentText(notificationBody(message.body))
+        .setSmallIcon(android.R.drawable.stat_notify_chat).setContentTitle(contactNameFor(context, message.address) ?: message.address).setContentText(notificationBody(message.body))
         .setStyle(NotificationCompat.BigTextStyle().bigText(message.body.trim()))
         .setCategory(NotificationCompat.CATEGORY_MESSAGE).setVisibility(NotificationCompat.VISIBILITY_PRIVATE).setPublicVersion(hidden)
         .setContentIntent(open).setAutoCancel(true).build()
