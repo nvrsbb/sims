@@ -34,10 +34,7 @@ class DeviceNewMessageTest {
     private fun show(optIn: Boolean = true) {
         if (optIn) consent.setEnabled(true)
         sms.rows = listOf(DeviceSms(1, 10, "2025550101", "Existing thread text", now - 60_000, Telephony.Sms.MESSAGE_TYPE_INBOX, 7, true))
-        val drafts = DraftStore(samplePrefs)
-        compose.setContent { MaterialTheme { PreviewApp(ThemeStore(samplePrefs), drafts, ConversationMetadataStore(sampleDatabase.metadata()),
-            CustomSampleConversationStore(sampleDatabase, drafts), wide = false, deletionStore = SampleDeletionStore(samplePrefs),
-            smsServices = services, deviceMetadataStore = DeviceMetadataStore(sampleDatabase.deviceMetadata())) } }
+        compose.setContent { MaterialTheme { FoldSmsApp(ThemeStore(samplePrefs), smsServices = services, deviceMetadataStore = DeviceMetadataStore(sampleDatabase.deviceMetadata()), wide = false) } }
     }
 
     private fun start(number: String) {
@@ -54,10 +51,16 @@ class DeviceNewMessageTest {
         compose.onNodeWithTag("new-message-number").assertExists()
     }
 
-    @Test fun theButtonExistsOnlyForTheRealInboxWhenSendingIsAvailable() {
+    @Test fun theButtonExistsOnlyWhenSendingIsAvailable() {
+        sms.gate = sms.gate.copy(sendGranted = false)
+        show(); waitInbox()
+        compose.onNodeWithTag("device-new-message").assertDoesNotExist()
+    }
+
+    @Test fun theButtonIsAbsentBeforeAccessIsAllowed() {
         show(optIn = false)
         compose.onNodeWithTag("device-new-message").assertDoesNotExist()
-        compose.onNodeWithTag("new-sample").assertExists()
+        compose.onNodeWithTag("welcome-allow").assertExists()
     }
 
     @Test fun invalidNumbersAreRejectedWithoutLeavingTheList() {

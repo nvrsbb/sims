@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -41,7 +42,10 @@ internal fun DeviceConversationScreen(
     actions: List<MenuAction> = emptyList(),
     composer: @Composable () -> Unit = {},
     now: () -> Instant = { Instant.now() },
-    zone: ZoneId = ZoneId.systemDefault()
+    zone: ZoneId = ZoneId.systemDefault(),
+    // While the keyboard is open the list is much shorter; keep the newest message in view so the reply you are writing
+    // never scrolls out of sight. A parameter so tests can drive it without a real keyboard.
+    pinToLatest: Boolean = WindowInsets.ime.getBottom(LocalDensity.current) > 0
 ) {
     val locale = Locale.getDefault()
     val items = remember(conversation, zone, locale) { chatItems(conversation.messages, now(), zone, locale) }
@@ -58,6 +62,11 @@ internal fun DeviceConversationScreen(
             .collect { following = it }
     }
     LaunchedEffect(items.size) { if (positioned && following && items.isNotEmpty()) listState.scrollToItem(items.lastIndex) }
+    val itemCount by rememberUpdatedState(items.size)
+    LaunchedEffect(listState, pinToLatest) {
+        // The viewport shrinks over several frames as the keyboard slides up; follow it until it settles.
+        if (pinToLatest) snapshotFlow { listState.layoutInfo.viewportSize.height }.collect { if (itemCount > 0) listState.scrollToItem(itemCount - 1) }
+    }
     Column(modifier.fillMaxSize().background(chatBackground()).imePadding()) {
         Surface(color = MaterialTheme.colorScheme.surface) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
