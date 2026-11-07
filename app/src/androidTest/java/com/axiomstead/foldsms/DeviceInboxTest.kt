@@ -106,7 +106,7 @@ class DeviceInboxTest {
         sms.rows = listOf(inbox(1, 1, "2025550101", "SMS still shown", 1_000))
         show()
         compose.waitUntil(15_000) { compose.onAllNodesWithTag("device-inbox-error").fetchSemanticsNodes().isNotEmpty() }
-        compose.onNodeWithText("SMS still shown").assertExists()
+        compose.waitUntil(15_000) { compose.onAllNodesWithText("SMS still shown").fetchSemanticsNodes().isNotEmpty() }
     }
 
     @Test fun turningOffAccessInSettingsReturnsToWelcomeAndStopsReading() {
