@@ -53,6 +53,7 @@ internal fun DeviceConversationScreen(
     actions: List<MenuAction> = emptyList(),
     composer: @Composable () -> Unit = {},
     onCopyCode: (String) -> Unit = {},
+    blocked: Boolean = false,
     now: () -> Instant = { Instant.now() },
     zone: ZoneId = ZoneId.systemDefault(),
     // While the keyboard is open the list is much shorter; keep the newest message in view so the reply you are writing
@@ -128,7 +129,7 @@ internal fun DeviceConversationScreen(
                         maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.testTag("device-conversation-title"))
                     val mmsCount = conversation.messages.count { it.kind == DeviceMessageKind.MMS }
-                    Text(listOfNotNull(conversation.contactName?.let { conversation.address.ifBlank { null } }, if (mmsCount > 0) "SMS and MMS" else "SMS").joinToString(" · "), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
+                    Text(listOfNotNull(conversation.contactName?.let { conversation.address.ifBlank { null } }, if (mmsCount > 0) "SMS and MMS" else "SMS", if (blocked) "Blocked" else null).joinToString(" · "), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
                 }
                 IconButton(onClick = { searching = true }, modifier = Modifier.testTag("conversation-search")) { Icon(Icons.Default.Search, contentDescription = "Search in conversation") }
                 if (actions.isNotEmpty()) OverflowMenu("device-conversation-actions", "conversation actions", actions)

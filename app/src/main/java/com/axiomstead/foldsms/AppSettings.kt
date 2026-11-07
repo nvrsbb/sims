@@ -27,7 +27,8 @@ import androidx.compose.ui.window.DialogProperties
 @Composable
 internal fun AppSettings(
     theme: ThemeChoice, onThemeChange: (ThemeChoice) -> Unit, onTurnOff: () -> Unit, onDismiss: () -> Unit,
-    isDefaultApp: Boolean = false, onMakeDefault: (() -> Unit)? = null, onExport: (() -> Unit)? = null
+    isDefaultApp: Boolean = false, onMakeDefault: (() -> Unit)? = null, onExport: (() -> Unit)? = null,
+    blockedNumbers: List<String> = emptyList(), onUnblock: ((String) -> Unit)? = null
 ) {
     val context = LocalContext.current
     val version = remember(context) { runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull().orEmpty() }
@@ -61,6 +62,16 @@ internal fun AppSettings(
                     TextButton(onClick = { context.startActivity(defaultAppsSettings()) }, modifier = Modifier.testTag("settings-switch-back")) { Text("Choose another app") }
                 } else if (onMakeDefault != null) {
                     TextButton(onClick = onMakeDefault, modifier = Modifier.testTag("settings-make-default")) { Text("Make FoldSMS default") }
+                }
+                if (onUnblock != null && blockedNumbers.isNotEmpty()) {
+                    HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                    Text("Blocked numbers", style = MaterialTheme.typography.titleMedium)
+                    blockedNumbers.forEach { number ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(number, Modifier.weight(1f).testTag("settings-blocked-$number"))
+                            TextButton(onClick = { onUnblock(number) }, modifier = Modifier.testTag("settings-unblock-$number")) { Text("Unblock") }
+                        }
+                    }
                 }
                 if (onExport != null) {
                     HorizontalDivider(Modifier.padding(vertical = 8.dp))

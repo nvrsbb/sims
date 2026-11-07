@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
     private var recipient by mutableStateOf<String?>(null)
@@ -144,6 +145,8 @@ internal fun FoldSmsApp(
         if (showSettings) AppSettings(
             theme = theme,
             onExport = if (state.access.canRead) ({ showSettings = false; export.start() }) else null,
+            blockedNumbers = state.blockedNumbers,
+            onUnblock = state.services.blocker?.takeIf { state.canBlock }?.let { blocker -> { number: String -> scope.launch { withContext(kotlinx.coroutines.Dispatchers.IO) { blocker.unblock(number) }; state.refresh() } } },
             isDefaultApp = state.access.isDefaultApp,
             onMakeDefault = makeDefault.takeIf { !state.access.isDefaultApp },
             onThemeChange = { theme = it; themeStore.save(it) },
