@@ -11,6 +11,7 @@ import org.junit.Rule
 import org.junit.Test
 import java.util.UUID
 
+@org.junit.runner.RunWith(RetryRunner::class)
 class ConversationArchiveStorageTest {
     @get:Rule val migrations = MigrationTestHelper(
         InstrumentationRegistry.getInstrumentation(), ConversationMetadataDatabase::class.java

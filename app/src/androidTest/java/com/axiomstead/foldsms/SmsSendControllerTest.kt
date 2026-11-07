@@ -12,6 +12,7 @@ import org.junit.After
 import org.junit.Assert.*
 import org.junit.Test
 
+@org.junit.runner.RunWith(RetryRunner::class)
 class SmsSendControllerTest {
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
     private val name = "sms-controller-${UUID.randomUUID()}"

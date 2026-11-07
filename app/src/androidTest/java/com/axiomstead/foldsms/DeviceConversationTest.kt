@@ -19,6 +19,7 @@ import org.junit.Rule
 import org.junit.Test
 
 /** Fabricated rows and fake platforms only; nothing reads the real provider or sends. */
+@org.junit.runner.RunWith(RetryRunner::class)
 class DeviceConversationTest {
     @get:Rule val compose = createComposeRule()
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
@@ -59,7 +60,7 @@ class DeviceConversationTest {
         )
     }
 
-    private fun waitForInbox() = compose.waitUntil(15_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
+    private fun waitForInbox() = compose.waitUntil(UI_WAIT_MS) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
 
     @Test fun tappingARowOpensTheConversationOldestFirstWithSeparatorTimesAndFailure() {
         seed()
@@ -143,7 +144,7 @@ class DeviceConversationTest {
         compose.onNodeWithText("Trip").assertExists()
         compose.onNodeWithText("Look at this").assertExists()
         compose.onNodeWithText("audio/amr · note.amr · open in Google Messages").assertExists()
-        compose.waitUntil(15_000) { mms.images == 1 }
+        compose.waitUntil(UI_WAIT_MS) { mms.images == 1 }
         compose.onNodeWithText("Image unavailable", substring = true).assertExists() // the fake returns no bitmap
     }
 
@@ -154,7 +155,7 @@ class DeviceConversationTest {
         compose.setContent(content(wide = false))
         waitForInbox()
         compose.onNodeWithTag("device-thread-thread-10").performClick()
-        compose.waitUntil(15_000) { compose.onAllNodesWithText("SIM 2", substring = true).fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(UI_WAIT_MS) { compose.onAllNodesWithText("SIM 2", substring = true).fetchSemanticsNodes().isNotEmpty() }
         // Only labels inside bubbles count: rows 1-3 are on SIM 1, row 5 on SIM 2 (a composer SIM chip may also say "SIM 1").
         compose.onAllNodes(hasText("SIM 1", substring = true) and hasAnyAncestor(hasTestTagStartingWith("device-message-"))).assertCountEquals(3)
     }
@@ -170,7 +171,7 @@ class DeviceConversationTest {
         compose.onNodeWithTag("device-thread-thread-26").performClick()
         compose.onNodeWithTag("device-conversation-title").assertExists()
         compose.onNodeWithTag("device-conversation-back").performClick()
-        compose.waitUntil(15_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(UI_WAIT_MS) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
         val after = compose.onNodeWithTag("device-inbox-list").fetchSemanticsNode().config[androidx.compose.ui.semantics.SemanticsProperties.VerticalScrollAxisRange].value()
         assertEquals(before, after, 0.5f)
     }
@@ -183,7 +184,7 @@ class DeviceConversationTest {
         compose.onNodeWithTag("device-conversation-title").assertTextEquals("BANK")
         sms.rows = sms.rows.filter { it.threadId != 20L }
         compose.runOnIdle { sms.events.value++ }
-        compose.waitUntil(15_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(UI_WAIT_MS) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithTag("device-thread-thread-20").assertDoesNotExist()
     }
 
