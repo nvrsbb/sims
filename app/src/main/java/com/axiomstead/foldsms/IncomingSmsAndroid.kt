@@ -69,10 +69,19 @@ internal fun showIncomingNotification(context: Context, message: IncomingSms) {
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
     // The lock screen shows only that a message arrived; sender and text appear once the phone is unlocked.
     val hidden = NotificationCompat.Builder(context, CHANNEL).setSmallIcon(android.R.drawable.stat_notify_chat).setContentTitle("New message").build()
-    val notification = NotificationCompat.Builder(context, CHANNEL)
+    val code = extractOtp(message.body)
+    val copy = code?.let {
+        PendingIntent.getBroadcast(context, message.address.hashCode(),
+            Intent(context, CopyCodeReceiver::class.java).setAction(CopyCodeReceiver.ACTION).putExtra("code", it)
+                .putExtra("address", message.address).putExtra("tag", message.address),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+    }
+    val builder = NotificationCompat.Builder(context, CHANNEL)
         .setSmallIcon(android.R.drawable.stat_notify_chat).setContentTitle(contactNameFor(context, message.address) ?: message.address).setContentText(notificationBody(message.body))
         .setStyle(NotificationCompat.BigTextStyle().bigText(message.body.trim()))
         .setCategory(NotificationCompat.CATEGORY_MESSAGE).setVisibility(NotificationCompat.VISIBILITY_PRIVATE).setPublicVersion(hidden)
-        .setContentIntent(open).setAutoCancel(true).build()
+        .setContentIntent(open).setAutoCancel(true)
+    if (copy != null) builder.addAction(0, "Copy code", copy).setTimeoutAfter(10 * 60_000L) // a code is useless after a few minutes
+    val notification = builder.build()
     manager.notify(message.address, 0, notification) // one slot per sender: a newer message replaces the older notice
 }
