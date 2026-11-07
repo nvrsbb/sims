@@ -94,5 +94,6 @@ jobs:
             app/build/outputs/androidTest-results/connected/
             app/build/reports/sms-receive-smoke.txt
             app/build/reports/flaky-retries.txt
+            app/build/reports/emulator-logcat.txt
           retention-days: 7
           if-no-files-found: warn
