@@ -12,7 +12,23 @@ dump() { # dump the screen to a file and print its path
   adb -s "$serial" shell uiautomator dump /sdcard/ui.xml >/dev/null
   adb -s "$serial" pull /sdcard/ui.xml "$1" >/dev/null
 }
-fail() { echo "RELEASE SMOKE FAILED: $1"; adb -s "$serial" logcat -d | grep -E "FATAL EXCEPTION|AndroidRuntime|ClassNotFound|NoSuchMethod|NoClassDef|$app" | tail -40 || true; exit 1; }
+# Waits up to $3 seconds for the screen dump $2 to match the pattern $1, dumping again every 3 seconds.
+wait_for() {
+  local deadline=$((SECONDS + $3))
+  while (( SECONDS < deadline )); do
+    dump "$2" || true
+    if grep -qE "$1" "$2"; then return 0; fi
+    sleep 3
+  done
+  return 1
+}
+fail() {
+  echo "RELEASE SMOKE FAILED: $1"
+  echo "--- what was in front:"; adb -s "$serial" shell dumpsys window | grep -E "mCurrentFocus|mFocusedApp" | head -3 || true
+  echo "--- last screen dump:"; cat app/build/reports/release-welcome.xml app/build/reports/release-inbox.xml 2>/dev/null | head -c 6000 || true
+  echo "--- log:"; adb -s "$serial" logcat -d | grep -E "FATAL EXCEPTION|AndroidRuntime|ClassNotFound|NoSuchMethod|NoClassDef|$app" | tail -40 || true
+  exit 1
+}
 
 adb -s "$serial" uninstall "$app" >/dev/null 2>&1 || true
 adb -s "$serial" install -r "$apk"
@@ -22,9 +38,7 @@ for permission in READ_SMS RECEIVE_SMS SEND_SMS READ_PHONE_STATE RECEIVE_MMS REA
 done
 adb -s "$serial" logcat -c
 adb -s "$serial" shell am start -W -n "$app/.MainActivity" >/dev/null
-sleep 8
-dump app/build/reports/release-welcome.xml
-grep -q "Allow access" app/build/reports/release-welcome.xml || fail "the welcome screen did not show"
+wait_for "Allow access" app/build/reports/release-welcome.xml 45 || fail "the welcome screen did not show"
 
 # Tap "Allow access" at the centre of its bounds.
 read -r x y < <(python3 - <<'PY'
@@ -37,9 +51,7 @@ print((x1 + x2) // 2, (y1 + y2) // 2)
 PY
 )
 adb -s "$serial" shell input tap "$x" "$y"
-sleep 8
-dump app/build/reports/release-inbox.xml
-grep -qE "Search messages|No messages yet|Allow SMS access" app/build/reports/release-inbox.xml || fail "the inbox did not show after Allow access"
+wait_for "Search messages|No messages yet|Allow SMS access" app/build/reports/release-inbox.xml 45 || fail "the inbox did not show after Allow access"
 if adb -s "$serial" logcat -d | grep -E "FATAL EXCEPTION|AndroidRuntime: .*$app|ClassNotFoundException|NoSuchMethodError|NoClassDefFoundError"; then fail "a crash was logged"; fi
 adb -s "$serial" uninstall "$app" >/dev/null 2>&1 || true
 echo "Release smoke test passed"
