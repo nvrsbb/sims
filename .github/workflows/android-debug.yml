@@ -34,16 +34,25 @@ jobs:
       - name: Unit tests, Android lint, and debug APK
         env:
           FOLDSMS_KEYSTORE_PASSWORD: ${{ secrets.FOLDSMS_KEYSTORE_PASSWORD }}
-        run: ./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
+        run: ./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest :app:assembleRelease
       - name: Show APK signing certificate
         run: |
           APKSIGNER=$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
           "$APKSIGNER" verify --print-certs app/build/outputs/apk/debug/app-debug.apk | grep -E "SHA-256|DN"
+          echo "Release APK:"
+          "$APKSIGNER" verify --print-certs app/build/outputs/apk/release/app-release.apk | grep -E "SHA-256|DN"
+          ls -l app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/release/app-release.apk
           rm -f "$RUNNER_TEMP/foldsms-debug.p12"
       - uses: actions/upload-artifact@v4
         with:
           name: FoldSMS-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FoldSMS-release-apk
+          path: app/build/outputs/apk/release/app-release.apk
           retention-days: 14
           if-no-files-found: error
 
@@ -64,6 +73,10 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
+      - uses: actions/download-artifact@v4
+        with:
+          name: FoldSMS-release-apk
+          path: app/build/outputs/apk/release
       - name: Run isolated API 35 interaction and storage tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -81,6 +94,7 @@ jobs:
             adb -s emulator-5554 shell wm density 320
             bash scripts/ci-run-instrumentation.sh
             bash scripts/ci-sms-receive-smoke.sh
+            bash scripts/ci-release-smoke.sh
       - name: Print failing test details
         if: failure()
         run: |
@@ -98,5 +112,7 @@ jobs:
             app/build/reports/sms-receive-smoke.txt
             app/build/reports/flaky-retries.txt
             app/build/reports/emulator-logcat.txt
+            app/build/reports/release-welcome.xml
+            app/build/reports/release-inbox.xml
           retention-days: 7
           if-no-files-found: warn

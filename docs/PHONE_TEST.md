@@ -2,6 +2,8 @@
 
 What automated tests cannot show: real carriers, notifications, the fold, the provider on a real inbox. Do the groups in order; stop and report at the first failure. Takes about 45 minutes in total, and each group stands alone.
 
+**Which APK.** From the build that has a `FoldSMS-release-apk` artifact on, install the **release** APK: it is the build that would ship (smaller, not debuggable, same key, so it installs over the debug one). If something behaves differently from before, say that it is the release build.
+
 **Safety first.** Keep Google Messages installed. Switching back is Settings in FoldSMS → Choose another app, or Android Settings → Apps → Default apps → SMS app. Do not delete a real conversation while testing; use a conversation you made for the test.
 
 **What to report.** The group and step number, what you expected, what happened, which SIM, and whether it also fails in Google Messages. Never paste message text, numbers or names. If anything failed, open FoldSMS → ⋮ → Settings → *Troubleshooting* and share that log (it holds only error names, codes and sizes). If Android shows "FoldSMS keeps stopping", the log will have a CRASH line.
