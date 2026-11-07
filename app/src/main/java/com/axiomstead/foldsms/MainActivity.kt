@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
     private var recipient by mutableStateOf<String?>(null)
@@ -65,7 +66,8 @@ internal fun FoldSmsApp(
     wide: Boolean = LocalConfiguration.current.screenWidthDp >= 600,
     launchRecipient: String? = null,
     onLaunchRecipientHandled: () -> Unit = {},
-    codeCopier: ((String) -> Unit)? = null
+    codeCopier: ((String) -> Unit)? = null,
+    exportTarget: (() -> android.net.Uri)? = null
 ) {
     var theme by remember { mutableStateOf(themeStore.get()) }
     var showSettings by rememberSaveable { mutableStateOf(false) }
@@ -94,6 +96,7 @@ internal fun FoldSmsApp(
     }
     val state = rememberDeviceMessagesState(smsServices)
     val scope = rememberCoroutineScope()
+    val export = rememberExportFlow(state, exportTarget)
     val requestPermissions = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         permissionsAsked = true
         scope.launch { state.refresh() }
@@ -138,8 +141,12 @@ internal fun FoldSmsApp(
                 )
             }
         }
+        export.Dialogs()
         if (showSettings) AppSettings(
             theme = theme,
+            onExport = if (state.access.canRead) ({ showSettings = false; export.start() }) else null,
+            blockedNumbers = state.blockedNumbers,
+            onUnblock = state.services.blocker?.takeIf { state.canBlock }?.let { blocker -> { number: String -> scope.launch { withContext(kotlinx.coroutines.Dispatchers.IO) { blocker.unblock(number) }; state.refresh() } } },
             isDefaultApp = state.access.isDefaultApp,
             onMakeDefault = makeDefault.takeIf { !state.access.isDefaultApp },
             onThemeChange = { theme = it; themeStore.save(it) },

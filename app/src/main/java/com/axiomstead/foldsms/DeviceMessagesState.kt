@@ -32,6 +32,8 @@ internal class DeviceMessagesState(val services: SmsServices) {
 
     /** False until the first refresh finishes, so screens can show loading instead of an empty list. */
     val hasLoaded get() = loaded
+    var blockedNumbers by mutableStateOf(emptyList<String>())
+    var canBlock by mutableStateOf(false)
     var contacts by mutableStateOf(emptyList<ContactEntry>())
     var contactsCanRead by mutableStateOf(services.contacts?.canRead() == true)
     private val contactNames by derivedStateOf { contactNameMap(contacts) }
@@ -86,6 +88,7 @@ internal class DeviceMessagesState(val services: SmsServices) {
         refreshing = true
         try {
             if ((services.contacts?.canRead() == true) != contactsCanRead) refreshContacts()
+            services.blocker?.let { blocker -> val allowed = blocker.canBlock(); canBlock = allowed; blockedNumbers = if (allowed) withContext(Dispatchers.IO) { blocker.blocked() } else emptyList() }
             val next = services.platform.access()
             access = next
             if (!next.canRead) messages = emptyList()

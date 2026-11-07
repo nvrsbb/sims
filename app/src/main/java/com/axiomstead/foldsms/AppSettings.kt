@@ -4,6 +4,8 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.*
@@ -25,7 +27,8 @@ import androidx.compose.ui.window.DialogProperties
 @Composable
 internal fun AppSettings(
     theme: ThemeChoice, onThemeChange: (ThemeChoice) -> Unit, onTurnOff: () -> Unit, onDismiss: () -> Unit,
-    isDefaultApp: Boolean = false, onMakeDefault: (() -> Unit)? = null
+    isDefaultApp: Boolean = false, onMakeDefault: (() -> Unit)? = null, onExport: (() -> Unit)? = null,
+    blockedNumbers: List<String> = emptyList(), onUnblock: ((String) -> Unit)? = null
 ) {
     val context = LocalContext.current
     val version = remember(context) { runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull().orEmpty() }
@@ -37,6 +40,8 @@ internal fun AppSettings(
                     TextButton(onClick = onDismiss, modifier = Modifier.testTag("settings-done")) { Text("Done") }
                 }
                 Spacer(Modifier.height(8.dp))
+                // Everything between the title and the version scrolls, so no setting is out of reach on the cover screen or at large fonts.
+                Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
                 Text("Appearance", style = MaterialTheme.typography.titleMedium)
                 Column(Modifier.selectableGroup()) {
                     ThemeChoice.entries.forEach { choice ->
@@ -58,6 +63,21 @@ internal fun AppSettings(
                 } else if (onMakeDefault != null) {
                     TextButton(onClick = onMakeDefault, modifier = Modifier.testTag("settings-make-default")) { Text("Make FoldSMS default") }
                 }
+                if (onUnblock != null && blockedNumbers.isNotEmpty()) {
+                    HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                    Text("Blocked numbers", style = MaterialTheme.typography.titleMedium)
+                    blockedNumbers.forEach { number ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(number, Modifier.weight(1f).testTag("settings-blocked-$number"))
+                            TextButton(onClick = { onUnblock(number) }, modifier = Modifier.testTag("settings-unblock-$number")) { Text("Unblock") }
+                        }
+                    }
+                }
+                if (onExport != null) {
+                    HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                    Text("Backup", style = MaterialTheme.typography.titleMedium)
+                    TextButton(onClick = onExport, modifier = Modifier.testTag("settings-export")) { Text("Export messages to a file") }
+                }
                 var entries by remember { mutableIntStateOf(Diagnostics.entryCount(context)) }
                 if (entries > 0) {
                     HorizontalDivider(Modifier.padding(vertical = 8.dp))
@@ -77,7 +97,7 @@ internal fun AppSettings(
                     context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}")))
                 }, modifier = Modifier.testTag("settings-permissions")) { Text("Android permissions") }
                 TextButton(onClick = onTurnOff, modifier = Modifier.testTag("settings-turn-off")) { Text("Turn off access") }
-                Spacer(Modifier.weight(1f))
+                }
                 if (version.isNotEmpty()) Text("FoldSMS $version", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }

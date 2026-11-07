@@ -38,6 +38,8 @@ internal interface MmsPlatform {
     fun recent(limit: Int): List<DeviceMms>
     fun thread(threadId: Long): List<DeviceMms>
     fun image(partId: Long): Bitmap?
+    /** Copies the raw bytes of one MMS part (a picture, video, ...) to [out]; false if it cannot be read. */
+    fun partData(partId: Long, out: java.io.OutputStream): Boolean
     fun changes(): Flow<Unit>
 }
 
@@ -97,6 +99,12 @@ internal class AndroidMmsPlatform(private val context: Context, private val cons
                 }
             }
         } ?: emptyList()
+    }
+
+    override fun partData(partId: Long, out: java.io.OutputStream): Boolean {
+        check(canRead()) { "MMS read access is unavailable." }
+        val uri = Telephony.Mms.Part.CONTENT_URI.buildUpon().appendPath(partId.toString()).build()
+        return context.contentResolver.openInputStream(uri)?.use { it.copyTo(out); true } ?: false
     }
 
     override fun image(partId: Long): Bitmap? {

@@ -97,6 +97,7 @@ internal fun DeviceInboxHost(
     var selectedKeys by rememberSaveable(stateSaver = listSaver<Set<String>, String>(save = { it.toList() }, restore = { it.toSet() })) { mutableStateOf(emptySet<String>()) }
     var bulkDelete by rememberSaveable { mutableStateOf(false) }
     var dismissedCode by rememberSaveable { mutableStateOf<String?>(null) }
+    var blockTarget by rememberSaveable { mutableStateOf<String?>(null) }
     val actions = state.services.actions
     val arranged = arrangeDeviceConversations(state.conversations, metadata, showArchive, filter, unreadOnly, openKey)
     val openReal = state.conversations.firstOrNull { it.key == openKey }
@@ -219,6 +220,28 @@ internal fun DeviceInboxHost(
             if (thread.unreadCount > 0) MenuAction("Mark as read") { scope.launch { withContext(Dispatchers.IO) { actions?.markThreadRead(thread.threadId) }; state.refresh() } } else null,
             MenuAction("Delete conversation") { deleteTarget = thread.key }
         ) else emptyList()
+    } ?.let { base ->
+        val thread = openReal
+        val blocker = state.services.blocker
+        if (thread == null || blocker == null || !state.canBlock || !isBlockable(thread.address)) base
+        else base + if (isBlockedIn(state.blockedNumbers, thread.address)) MenuAction("Unblock this number") {
+            scope.launch { withContext(Dispatchers.IO) { blocker.unblock(thread.address) }; state.refresh() }
+        } else MenuAction("Block this number") { blockTarget = thread.address }
+    }
+    blockTarget?.let { address ->
+        AlertDialog(
+            onDismissRequest = { blockTarget = null }, title = { Text("Block this number?") },
+            text = { Text("You will stop receiving texts and calls from $address. Messages already here stay. You can unblock it here or in Settings.") },
+            confirmButton = { TextButton(modifier = Modifier.testTag("block-confirm"), onClick = {
+                blockTarget = null
+                scope.launch {
+                    val done = withContext(Dispatchers.IO) { state.services.blocker?.block(address) == true }
+                    if (!done) state.error = "Could not block this number."
+                    state.refresh()
+                }
+            }) { Text("Block") } },
+            dismissButton = { TextButton(onClick = { blockTarget = null }) { Text("Cancel") } }
+        )
     }
     val fullScreen = !wide && open != null
     BackHandler(enabled = fullScreen) { openKey = null; pendingAddress = null }
@@ -240,7 +263,8 @@ internal fun DeviceInboxHost(
         if (open != null) Box(Modifier.weight(1f).fillMaxHeight()) {
             DeviceConversationScreen(open, simLabel, loadImage, onBack = if (wide) null else ({ openKey = null; pendingAddress = null }), now = now, zone = zone,
                 actions = conversationActions.orEmpty(), composer = { ReplyComposer(state, open) },
-                onCopyCode = { code -> copyFrom(openReal, code) })
+                onCopyCode = { code -> copyFrom(openReal, code) },
+                blocked = openReal?.let { isBlockedIn(state.blockedNumbers, it.address) } == true)
         } else if (wide) Box(Modifier.weight(1f).fillMaxHeight().background(chatBackground()), contentAlignment = Alignment.Center) {
             Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)) {
                 Text("Choose a conversation", Modifier.padding(horizontal = 14.dp, vertical = 6.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)

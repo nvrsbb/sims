@@ -18,6 +18,8 @@ internal class FakeMmsPlatform(private val consent: SmsConsentStore) : MmsPlatfo
         return rows.sortedWith(compareByDescending<DeviceMms> { it.date }.thenByDescending { it.id }).take(limit)
     }
     override fun thread(threadId: Long): List<DeviceMms> { check(canRead()); if (failRead) error("Fabricated provider failure"); return rows.filter { it.threadId == threadId } }
+    val partBytes = mutableMapOf<Long, ByteArray>()
+    override fun partData(partId: Long, out: java.io.OutputStream): Boolean = partBytes[partId]?.let { out.write(it); true } ?: false
     override fun image(partId: Long): Bitmap? { images++; return null }
     override fun changes(): Flow<Unit> = events.map { Unit }
 }

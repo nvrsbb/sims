@@ -50,9 +50,19 @@ What automated tests cannot show: real carriers, notifications, the fold, the pr
 4. Show unread only (menu) works; archive then receive a message in it: it returns to the inbox.
 5. Contacts: names show instead of numbers; New message finds a contact by name.
 
+## F3. Blocking (5 min, needs a second phone)
+1. In a conversation with the second phone's number: ⋮ → **Block this number**: the dialog warns that texts *and calls* stop. Confirm; the header says "Blocked".
+2. From the second phone send a text and call: nothing arrives in FoldSMS (the call is rejected). Check that the Phone app's blocked numbers list also shows it.
+3. ⋮ → **Unblock this number** (or Settings → Blocked numbers → Unblock): texts arrive again.
+
+## F2. Backup (5 min)
+1. Settings → *Export messages to a file* → **Messages only** → pick a place (for example Downloads). It shows progress and then "Saved N SMS and M MS". Open the file in a text viewer: it starts with `<smses count=...>` and your messages are readable.
+2. Export again **With pictures and attachments**: the file is much bigger, takes longer, and the result line says how many attachments were included or could not be read.
+3. Start an export and press Cancel: the unfinished file is removed.
+
 ## G. Switching back (3 min)
 1. Choose another app → Google Messages: your messages are all there, new ones arrive there.
 2. Switch to FoldSMS again from the banner or Settings: it works at once.
 
 ## Not covered here
-Sending pictures (not built), RCS chats (not possible in FoldSMS; they stay in Google Messages), backup (export is the next item).
+Sending pictures (not built), RCS chats (not possible in FoldSMS; they stay in Google Messages), restoring a backup into FoldSMS (not built; the export is a safety copy).

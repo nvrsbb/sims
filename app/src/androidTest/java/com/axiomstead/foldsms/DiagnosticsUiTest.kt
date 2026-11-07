@@ -63,7 +63,7 @@ class DiagnosticsUiTest {
         openSettings()
         compose.onNodeWithTag("settings-diagnostics-count").assertTextContains("2 entries", substring = true)
         compose.onNodeWithTag("settings-diagnostics-share").assertExists()
-        compose.onNodeWithTag("settings-diagnostics-clear").performClick()
+        compose.onNodeWithTag("settings-diagnostics-clear").performScrollTo().performClick()
         compose.onNodeWithTag("settings-diagnostics-count").assertDoesNotExist()
         assertFalse(Diagnostics.entryCount(context) > 0)
     }
