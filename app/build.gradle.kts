@@ -19,11 +19,11 @@ android {
         // hint which test it was. With a per-test limit it fails with a stack trace and the test's name instead.
         testInstrumentationRunnerArguments["timeout_msec"] = "180000"
     }
-    // CI signs debug APKs with one stored key so phone updates keep the same signature.
+    // CI signs debug and release APKs with one stored key so phone updates keep the same signature.
     // Without FOLDSMS_KEYSTORE_FILE (local builds, forks), Android's per-machine debug key is used.
     val sharedKeystore = System.getenv("FOLDSMS_KEYSTORE_FILE")?.let { file(it) }?.takeIf { it.isFile }
     signingConfigs {
-        if (sharedKeystore != null) create("sharedDebug") {
+        if (sharedKeystore != null) create("shared") {
             storeFile = sharedKeystore
             storePassword = System.getenv("FOLDSMS_KEYSTORE_PASSWORD")
             keyAlias = System.getenv("FOLDSMS_KEY_ALIAS") ?: "foldsms"
@@ -31,8 +31,15 @@ android {
         }
     }
     buildTypes {
-        debug { if (sharedKeystore != null) signingConfig = signingConfigs.getByName("sharedDebug") }
-        release { isMinifyEnabled = false }
+        debug { if (sharedKeystore != null) signingConfig = signingConfigs.getByName("shared") }
+        // The release build: not debuggable, unused library code and resources removed. It is signed with the same stored key,
+        // so it installs over the debug builds already on the phone and the phone keeps its drafts and metadata.
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.getByName(if (sharedKeystore != null) "shared" else "debug")
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
