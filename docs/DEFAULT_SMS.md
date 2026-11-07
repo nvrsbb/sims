@@ -15,3 +15,9 @@ Owner authorization: 2026-11-07, "start on step 1". Scope: build the pieces belo
 - A storage failure must never hide a message: it is still notified.
 - Message text is never logged.
 - The prompt appears only after steps 1-3 are merged and checked on the phone.
+
+## Step 2 status (incoming MMS)
+
+`MmsPushReceiver` (WAP_PUSH_DELIVER) -> `downloadMultimediaMessage` into an app cache file shared only with the phone process through a FileProvider -> `MmsDownloadedReceiver` parses (`MmsPdu.kt`), writes the message and parts to the MMS provider (a failed write removes the half-written message), sends the M-NotifyResp.ind acknowledgement and notifies. A message that cannot be downloaded or read still produces a plain notice. Duplicate notifications (same transaction id) are skipped.
+
+Verified: JVM tests of the PDU parser and acknowledgement on **fabricated** PDUs built from the encoding rules (not captured from a carrier), including truncated and random input. **Not verified:** carrier PDUs, download, provider writes, acknowledgement and the notification; these need the default role and a real MMS and are the first phone check once step 4 lands. No network permission is added; transfers go through the telephony service.
