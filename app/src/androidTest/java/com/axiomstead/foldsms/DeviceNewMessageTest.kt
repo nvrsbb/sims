@@ -43,8 +43,7 @@ class DeviceNewMessageTest {
     private fun start(number: String) {
         compose.onNodeWithTag("device-new-message").performClick()
         compose.onNodeWithTag("new-message-number").performTextInput(number)
-        // The keyboard opens with the text field; a semantic click avoids tapping a position it now covers.
-        compose.onNodeWithTag("new-message-continue").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
+                compose.onNodeWithTag("new-message-continue").performClick()
     }
 
     private fun waitInbox() = compose.waitUntil(15_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
@@ -81,7 +80,7 @@ class DeviceNewMessageTest {
         compose.onNodeWithTag("reply-composer").performTextInput("Hello new number")
         // The shared draft reaches the UI asynchronously and the keyboard moves the controls: wait, then act on the control itself.
         compose.waitUntil(15_000) { runCatching { compose.onNodeWithTag("reply-review").assertIsEnabled() }.isSuccess }
-        compose.onNodeWithTag("reply-review").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
+        compose.onNodeWithTag("reply-review").performClick()
         compose.waitUntil(15_000) { compose.onAllNodesWithText("Send real SMS?").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("To: +639175550199").assertExists()
         compose.onNodeWithText("Cancel").performClick()

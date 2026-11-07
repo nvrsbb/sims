@@ -76,7 +76,8 @@ internal fun DeviceConversationScreen(
                 if (actions.isNotEmpty()) OverflowMenu("device-conversation-actions", "conversation actions", actions)
             }
         }
-        SelectionContainer(Modifier.weight(1f)) {
+        // The weight sits on a plain Box so the list can never take the whole height and push the composer off screen.
+        Box(Modifier.weight(1f).fillMaxWidth()) { SelectionContainer(Modifier.fillMaxSize()) {
             LazyColumn(
                 state = listState, modifier = Modifier.fillMaxSize().testTag("device-conversation-list"),
                 verticalArrangement = Arrangement.spacedBy(6.dp), contentPadding = PaddingValues(horizontal = 10.dp, vertical = 12.dp)
@@ -97,7 +98,7 @@ internal fun DeviceConversationScreen(
                     }
                 }
             }
-        }
+        } }
         composer()
     }
     imagePart?.let { part -> ImageDialog(part, loadImage) { imagePart = null } }
