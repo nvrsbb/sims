@@ -29,7 +29,6 @@ import kotlinx.coroutines.launch
 private const val MMS_MIME = "application/vnd.wap.mms-message"
 private val receiverScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-private fun isDefaultApp(context: Context) = Telephony.Sms.getDefaultSmsPackage(context) == context.packageName
 private fun mmsDir(context: Context) = File(context.cacheDir, "mms").apply { mkdirs() }
 private fun fileUri(context: Context, file: File): Uri = FileProvider.getUriForFile(context, "${context.packageName}.mms", file)
 
@@ -48,7 +47,7 @@ class MmsPushReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Telephony.Sms.Intents.WAP_PUSH_DELIVER_ACTION || intent.type != MMS_MIME) return
         val app = context.applicationContext
-        if (!isDefaultApp(app)) return
+        // WAP_PUSH_DELIVER reaches only the default SMS app; delivery proves the role.
         val data = intent.getByteArrayExtra("data") ?: return
         val subscription = intent.getIntExtra("android.telephony.extra.SUBSCRIPTION_INDEX", intent.getIntExtra("subscription", -1))
         val completion = goAsync()
@@ -94,7 +93,7 @@ class MmsDownloadedReceiver : BroadcastReceiver() {
         receiverScope.launch {
             val file = File(mmsDir(app), name)
             try {
-                val retrieved = if (ok && isDefaultApp(app)) file.takeIf { it.exists() && it.length() <= MAX_PDU }?.readBytes()?.let(::parseMmsRetrieved) else null
+                val retrieved = if (ok) file.takeIf { it.exists() && it.length() <= MAX_PDU }?.readBytes()?.let(::parseMmsRetrieved) else null
                 if (retrieved == null) notifyFailure(app, sender)
                 else {
                     val stored = try { storeRetrieved(app, retrieved, subscription) } catch (_: Exception) { false }

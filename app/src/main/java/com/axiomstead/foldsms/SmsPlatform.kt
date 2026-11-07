@@ -59,7 +59,7 @@ internal class AndroidSmsPlatform(private val context: Context, private val cons
     override fun access(): SmsAccess {
         val capable = context.packageManager.hasSystemFeature(if (Build.VERSION.SDK_INT >= 33)
             PackageManager.FEATURE_TELEPHONY_MESSAGING else PackageManager.FEATURE_TELEPHONY)
-        val defaultPackage = Telephony.Sms.getDefaultSmsPackage(context)
+        val defaultPackage = defaultSmsPackage(context)
         return SmsAccess(consent.enabled(), capable, defaultPackage != null,
             granted(Manifest.permission.READ_SMS), granted(Manifest.permission.RECEIVE_SMS),
             granted(Manifest.permission.SEND_SMS), granted(Manifest.permission.READ_PHONE_STATE),

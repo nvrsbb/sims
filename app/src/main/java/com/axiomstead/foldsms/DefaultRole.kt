@@ -29,3 +29,18 @@ internal fun defaultAppsSettings() = Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_
 
 /** The inbox banner asking the owner to choose FoldSMS as the default messaging app. */
 internal class DefaultOffer(val onMakeDefault: () -> Unit, val onNotNow: () -> Unit)
+
+/**
+ * The package Android treats as the default SMS app. Telephony.Sms.getDefaultSmsPackage can return null on a device where
+ * FoldSMS does hold the SMS role, so a held role counts as FoldSMS being the default.
+ */
+internal fun resolveDefaultSmsPackage(reported: String?, ownRoleHeld: Boolean, ownPackage: String): String? =
+    reported ?: ownPackage.takeIf { ownRoleHeld }
+
+internal fun defaultSmsPackage(context: Context): String? = resolveDefaultSmsPackage(
+    android.provider.Telephony.Sms.getDefaultSmsPackage(context),
+    context.getSystemService(RoleManager::class.java)?.isRoleHeld(RoleManager.ROLE_SMS) == true,
+    context.packageName
+)
+
+internal fun isDefaultSmsApp(context: Context): Boolean = defaultSmsPackage(context) == context.packageName
