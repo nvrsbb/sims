@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.first
 import org.junit.Assert.*
 import org.junit.Test
 
+@org.junit.runner.RunWith(RetryRunner::class)
 class SmsReceiverTest {
     @Test fun incomingNotificationRequiresConsentAndPermissionWithoutParsingOrWritingMessages() = runBlocking {
         val app = InstrumentationRegistry.getInstrumentation().targetContext

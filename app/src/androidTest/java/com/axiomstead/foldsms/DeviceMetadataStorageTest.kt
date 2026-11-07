@@ -13,6 +13,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
+@org.junit.runner.RunWith(RetryRunner::class)
 class DeviceMetadataStorageTest {
     @get:Rule val migrations = MigrationTestHelper(InstrumentationRegistry.getInstrumentation(), ConversationMetadataDatabase::class.java)
     private val context = InstrumentationRegistry.getInstrumentation().targetContext

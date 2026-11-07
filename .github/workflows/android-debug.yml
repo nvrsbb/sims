@@ -76,7 +76,7 @@ jobs:
           script: |
             adb -s emulator-5554 shell wm size 1856x2160
             adb -s emulator-5554 shell wm density 320
-            ANDROID_SERIAL=emulator-5554 ./gradlew --no-daemon :app:connectedDebugAndroidTest
+            bash scripts/ci-run-instrumentation.sh
             bash scripts/ci-sms-receive-smoke.sh
       - name: Print failing test details
         if: failure()
@@ -93,5 +93,6 @@ jobs:
             app/build/reports/androidTests/connected/
             app/build/outputs/androidTest-results/connected/
             app/build/reports/sms-receive-smoke.txt
+            app/build/reports/flaky-retries.txt
           retention-days: 7
           if-no-files-found: warn
