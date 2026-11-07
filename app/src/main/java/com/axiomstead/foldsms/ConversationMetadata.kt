@@ -58,10 +58,11 @@ interface ConversationMetadataDao {
 
 // Legacy sample_drafts preferences stay untouched.
 // Future schema changes must supply explicit migrations; never use destructive fallback.
-@Database(entities = [ConversationMetadata::class, CustomSampleConversation::class], version = 4, exportSchema = true)
+@Database(entities = [ConversationMetadata::class, CustomSampleConversation::class, DeviceConversationMetadata::class], version = 5, exportSchema = true)
 abstract class ConversationMetadataDatabase : RoomDatabase() {
     abstract fun metadata(): ConversationMetadataDao
     abstract fun customConversations(): CustomSampleConversationDao
+    abstract fun deviceMetadata(): DeviceConversationMetadataDao
 }
 
 class ConversationMetadataStore(private val dao: ConversationMetadataDao) {
@@ -118,6 +119,6 @@ internal fun sampleMetadataDatabase(context: Context): ConversationMetadataDatab
     SampleMetadataDatabaseProvider.instance ?: synchronized(SampleMetadataDatabaseProvider) {
         SampleMetadataDatabaseProvider.instance ?: Room.databaseBuilder(context.applicationContext,
             ConversationMetadataDatabase::class.java, "sample_metadata.db")
-            .addMigrations(METADATA_MIGRATION_1_2, METADATA_MIGRATION_2_3, MIGRATION_3_4)
+            .addMigrations(METADATA_MIGRATION_1_2, METADATA_MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
             .build().also { SampleMetadataDatabaseProvider.instance = it }
     }

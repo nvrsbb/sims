@@ -12,7 +12,8 @@ internal fun CategoryPicker(
     category: String,
     onChoose: (String) -> Unit,
     onReset: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    resetLabel: String = "Reset to sample default"
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -24,7 +25,7 @@ internal fun CategoryPicker(
                         Text(if (value == category) "$value (current)" else value)
                     }
                 }
-                TextButton(onClick = onReset) { Text("Reset to sample default") }
+                TextButton(onClick = onReset) { Text(resetLabel) }
             }
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }

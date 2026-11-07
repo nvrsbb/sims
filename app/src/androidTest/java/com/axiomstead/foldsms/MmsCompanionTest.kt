@@ -80,7 +80,8 @@ class MmsCompanionTest {
         try {
             compose.setContent { PreviewApp(ThemeStore(preferences), sampleDrafts,
                 ConversationMetadataStore(sampleDatabase.metadata()), CustomSampleConversationStore(sampleDatabase, sampleDrafts),
-                wide = false, deletionStore = SampleDeletionStore(preferences), smsServices = services) }
+                wide = false, deletionStore = SampleDeletionStore(preferences), smsServices = services,
+                deviceMetadataStore = DeviceMetadataStore(sampleDatabase.deviceMetadata())) }
             // Opted in, so the main tab reads the provider at once; the opted-out case reading nothing is covered in DeviceInboxTest.
             compose.onNodeWithTag("preview-device-messages").performClick()
             compose.waitUntil(5_000) { compose.onAllNodesWithTag("device-mms-51").fetchSemanticsNodes().size == 1 }

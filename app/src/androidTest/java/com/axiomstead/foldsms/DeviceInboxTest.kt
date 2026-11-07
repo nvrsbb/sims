@@ -40,7 +40,8 @@ class DeviceInboxTest {
             MaterialTheme {
                 PreviewApp(ThemeStore(samplePrefs), drafts, ConversationMetadataStore(sampleDatabase.metadata()),
                     CustomSampleConversationStore(sampleDatabase, drafts), wide = false,
-                    deletionStore = SampleDeletionStore(samplePrefs), smsServices = services)
+                    deletionStore = SampleDeletionStore(samplePrefs), smsServices = services,
+                    deviceMetadataStore = DeviceMetadataStore(sampleDatabase.deviceMetadata()))
             }
         }
     }
