@@ -22,5 +22,7 @@ internal fun joinSmsParts(parts: List<String>): String = parts.joinToString("")
 internal interface MessageActions {
     fun canModify(): Boolean
     fun markThreadRead(threadId: Long): Boolean
+    /** Makes one received message unread again so its conversation shows as unread. */
+    fun markUnread(kind: DeviceMessageKind, messageId: Long): Boolean
     fun deleteThread(threadId: Long): Boolean
 }

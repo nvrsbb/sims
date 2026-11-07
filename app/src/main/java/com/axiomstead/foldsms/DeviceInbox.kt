@@ -8,7 +8,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
@@ -21,6 +24,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,6 +43,13 @@ import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+/** Multi-select over the conversation list. Present only when changes are possible (FoldSMS is the default app). */
+internal class InboxSelection(
+    val active: Boolean, val keys: Set<String>,
+    val onStart: () -> Unit, val onToggle: (String) -> Unit, val onSelectAll: () -> Unit, val onClose: () -> Unit,
+    val onMarkRead: () -> Unit, val onMarkUnread: () -> Unit, val onDelete: () -> Unit
+)
 
 /** List plus conversation: side by side when wide, one at a time on a phone-width screen. */
 @Composable
@@ -73,11 +84,18 @@ internal fun DeviceInboxHost(
     val offer = if (onMakeDefault != null && shouldOfferDefault(state.access, promptDismissed, roleAvailable = true))
         DefaultOffer(onMakeDefault) { promptDismissed = true; prompt?.dismiss() } else null
     var deleteTarget by rememberSaveable { mutableStateOf<String?>(null) }
+    var unreadOnly by rememberSaveable { mutableStateOf(false) }
+    var selectMode by rememberSaveable { mutableStateOf(false) }
+    var selectedKeys by rememberSaveable(stateSaver = listSaver<Set<String>, String>(save = { it.toList() }, restore = { it.toSet() })) { mutableStateOf(emptySet<String>()) }
+    var bulkDelete by rememberSaveable { mutableStateOf(false) }
     val actions = state.services.actions
-    val arranged = arrangeDeviceConversations(state.conversations, metadata, showArchive, filter)
+    val arranged = arrangeDeviceConversations(state.conversations, metadata, showArchive, filter, unreadOnly, openKey)
     val openReal = state.conversations.firstOrNull { it.key == openKey }
     // A number with no history yet: an empty conversation that only exists on screen until the provider has a thread for it.
-    val synthetic = pendingAddress?.takeIf { openReal == null }?.let { DeviceConversation("new-${conversationAddressKey(it)}", 0, it, emptyList()) }
+    val synthetic = pendingAddress?.takeIf { openReal == null }?.let {
+        // A number with no thread yet still shows the contact's name.
+        withContactNames(listOf(DeviceConversation("new-${conversationAddressKey(it)}", 0, it, emptyList())), contactNameMap(state.contacts)).single()
+    }
     val open = openReal ?: synthetic
     LaunchedEffect(pendingAddress, state.conversations) {
         val pending = pendingAddress ?: return@LaunchedEffect
@@ -96,9 +114,42 @@ internal fun DeviceInboxHost(
     }
     if (newMessageDialog) NewMessageDialog(
         onDismiss = { newMessageDialog = false },
-        onStart = { number -> newMessageDialog = false; startConversation(number) }
+        onStart = { number -> newMessageDialog = false; startConversation(number) },
+        contacts = state.contacts, contactsCanRead = state.contactsCanRead || state.services.contacts == null,
+        onAllowContacts = onRequestPermissions
     )
     val canManage = state.access.isDefaultApp && actions?.canModify() == true
+    val chosen = state.conversations.filter { it.key in selectedKeys }
+    fun finishSelection(failed: Boolean) { selectMode = false; selectedKeys = emptySet(); bulkDelete = false; if (failed) state.error = "Some conversations could not be changed." }
+    val selection = if (!canManage || actions == null) null else InboxSelection(
+        active = selectMode, keys = selectedKeys,
+        onStart = { selectMode = true },
+        onToggle = { key -> selectMode = true; selectedKeys = if (key in selectedKeys) selectedKeys - key else selectedKeys + key },
+        onSelectAll = { selectedKeys = searchDeviceConversations(arranged, search).map { it.key }.toSet() },
+        onClose = { finishSelection(false) },
+        onMarkRead = { scope.launch {
+            val failed = withContext(Dispatchers.IO) { chosen.count { !actions.markThreadRead(it.threadId) } > 0 }
+            finishSelection(failed); state.refresh()
+        } },
+        onMarkUnread = { scope.launch {
+            val failed = withContext(Dispatchers.IO) { chosen.count { thread -> thread.latestIncoming?.let { actions.markUnread(it.kind, it.id) } != true } > 0 }
+            finishSelection(failed); state.refresh()
+        } },
+        onDelete = { if (selectedKeys.isNotEmpty()) bulkDelete = true }
+    )
+    BackHandler(enabled = selection?.active == true) { finishSelection(false) }
+    if (bulkDelete && selection != null) AlertDialog(
+        onDismissRequest = { bulkDelete = false },
+        title = { Text(if (chosen.size == 1) "Delete this conversation?" else "Delete ${chosen.size} conversations?") },
+        text = { Text("All their messages are removed from this phone. This cannot be undone.") },
+        confirmButton = { TextButton(modifier = Modifier.testTag("selection-confirm-delete"), onClick = {
+            scope.launch {
+                val failed = withContext(Dispatchers.IO) { chosen.count { !actions!!.deleteThread(it.threadId) } > 0 }
+                finishSelection(failed); state.refresh()
+            }
+        }) { Text("Delete") } },
+        dismissButton = { TextButton(onClick = { bulkDelete = false }) { Text("Keep") } }
+    )
     LaunchedEffect(openReal?.key, openReal?.unreadCount, canManage) {
         val thread = openReal ?: return@LaunchedEffect
         if (canManage && thread.unreadCount > 0) { withContext(Dispatchers.IO) { actions?.markThreadRead(thread.threadId) }; state.refresh() }
@@ -152,7 +203,8 @@ internal fun DeviceInboxHost(
             DeviceInboxScreen(
                 state, arranged, metadata, open?.key, { openKey = it; pendingAddress = null }, search, { search = it }, listState,
                 showArchive, { showArchive = !showArchive; openKey = null; pendingAddress = null }, filter, { filter = it },
-                onOpenSettings, onRequestPermissions, permissionsAsked, now, zone, onNewMessage = { newMessageDialog = true }, offer = offer
+                onOpenSettings, onRequestPermissions, permissionsAsked, now, zone, onNewMessage = { newMessageDialog = true }, offer = offer,
+                unreadOnly = unreadOnly, onToggleUnread = { unreadOnly = !unreadOnly }, selection = selection
             )
         }
         if (wide) VerticalDivider()
@@ -187,18 +239,28 @@ internal fun DeviceInboxScreen(
     now: () -> Instant = { Instant.now() },
     zone: ZoneId = ZoneId.systemDefault(),
     onNewMessage: () -> Unit = {},
-    offer: DefaultOffer? = null
+    offer: DefaultOffer? = null,
+    unreadOnly: Boolean = false,
+    onToggleUnread: () -> Unit = {},
+    selection: InboxSelection? = null
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val selecting = selection?.active == true
     val conversations = searchDeviceConversations(arranged, search)
     val access = state.access
     Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 4.dp, top = 8.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+        if (selecting && selection != null) Row(
+            Modifier.fillMaxWidth().padding(start = 4.dp, end = 8.dp, top = 8.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = selection.onClose, modifier = Modifier.testTag("selection-close")) { Icon(Icons.Default.Clear, contentDescription = "Stop selecting") }
+            Text("${selection.keys.size} selected", Modifier.weight(1f).testTag("selection-count"), style = MaterialTheme.typography.titleMedium)
+            TextButton(onClick = selection.onSelectAll, modifier = Modifier.testTag("selection-select-all")) { Text("Select all") }
+        } else         Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 4.dp, top = 8.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically) {
             TextField(
                 value = search,
                 onValueChange = onSearch,
-                placeholder = { Text(if (showArchive) "Search archived" else "Search messages") },
+                placeholder = { Text(if (unreadOnly) "Search unread" else if (showArchive) "Search archived" else "Search messages") },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                 trailingIcon = { if (search.isNotEmpty()) IconButton(onClick = { onSearch("") }) { Icon(Icons.Default.Clear, contentDescription = "Clear search") } },
                 modifier = Modifier.weight(1f).testTag("device-inbox-search"),
@@ -210,9 +272,9 @@ internal fun DeviceInboxScreen(
                 )
             )
             OverflowMenu("device-inbox-actions", "menu", listOf(
-                MenuAction(if (showArchive) "Inbox" else "Archived", onClick = onToggleArchive),
-                MenuAction("Settings", onClick = onOpenSettings)
-            ))
+                MenuAction(if (unreadOnly) "Show all messages" else "Show unread only", onClick = onToggleUnread),
+                MenuAction(if (showArchive) "Inbox" else "Archived", onClick = onToggleArchive)
+            ) + listOfNotNull(selection?.let { MenuAction("Select messages", onClick = it.onStart) }) + MenuAction("Settings", onClick = onOpenSettings))
         }
         // One row, no scrolling: each chip gets space in proportion to its label, and "Unknown" only appears if something has it.
         val chipCategories = listOf("All") + (conversationCategories - "Unknown") +
@@ -263,6 +325,7 @@ internal fun DeviceInboxScreen(
                 state.conversations.isEmpty() -> Text("No messages yet.", Modifier.padding(20.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 arranged.isEmpty() -> Text(
                     when {
+                        unreadOnly -> "No unread conversations"
                         showArchive && filter == "All" -> "Archive is empty"
                         filter != "All" -> "No conversations in this category"
                         else -> "Everything is archived."
@@ -272,32 +335,48 @@ internal fun DeviceInboxScreen(
                     items(conversations, key = { it.key }) { conversation ->
                         DeviceConversationRow(conversation, formatConversationTime(conversation.last.date, now(), zone, Locale.getDefault()),
                             selected = conversation.key == selectedKey, category = effectiveCategory(conversation, metadata[conversation.key]),
-                            pinned = metadata[conversation.key]?.pinned == true, onClick = { onOpen(conversation.key) })
+                            pinned = metadata[conversation.key]?.pinned == true,
+                            checked = if (selecting) conversation.key in selection!!.keys else null,
+                            onLongClick = selection?.let { s -> { s.onToggle(conversation.key) } },
+                            onClick = { if (selecting) selection!!.onToggle(conversation.key) else onOpen(conversation.key) })
                         HorizontalDivider(Modifier.padding(start = 76.dp), color = MaterialTheme.colorScheme.outlineVariant)
                     }
                 }
             }
             // Declared after the list so it is drawn, and hit-tested, on top of it.
-            if (access.canSend) FloatingActionButton(
+            if (access.canSend && !selecting) FloatingActionButton(
                 onClick = onNewMessage,
                 modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp).testTag("device-new-message"),
                 containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary
             ) { Icon(Icons.Default.Edit, contentDescription = "New message") }
         }
+        if (selecting && selection != null) Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 3.dp) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+                val any = selection.keys.isNotEmpty()
+                TextButton(onClick = selection.onMarkRead, enabled = any, modifier = Modifier.testTag("selection-read")) { Text("Mark read") }
+                TextButton(onClick = selection.onMarkUnread, enabled = any, modifier = Modifier.testTag("selection-unread")) { Text("Mark unread") }
+                TextButton(onClick = selection.onDelete, enabled = any, modifier = Modifier.testTag("selection-delete")) { Text("Delete", color = if (any) MaterialTheme.colorScheme.error else Color.Unspecified) }
+            }
+        }
     }
 }
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
-internal fun DeviceConversationRow(conversation: DeviceConversation, time: String, selected: Boolean, category: String, pinned: Boolean, onClick: () -> Unit) {
+internal fun DeviceConversationRow(
+    conversation: DeviceConversation, time: String, selected: Boolean, category: String, pinned: Boolean, onClick: () -> Unit,
+    checked: Boolean? = null, onLongClick: (() -> Unit)? = null
+) {
     val last = conversation.last
     val unread = conversation.unreadCount
     Row(
         Modifier.fillMaxWidth()
             .background(if (selected) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent)
-            .clickable(onClick = onClick)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .testTag("device-thread-${conversation.key}").padding(horizontal = 12.dp, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        if (checked != null) Checkbox(checked = checked, onCheckedChange = null, modifier = Modifier.padding(end = 8.dp).testTag("device-check-${conversation.key}"))
         ConversationAvatar(conversation.title, conversation.key.hashCode(), 52.dp)
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
@@ -327,25 +406,37 @@ internal fun DeviceConversationRow(conversation: DeviceConversation, time: Strin
     }
 }
 
-/** Asks for a phone number only. No contacts permission is requested; the number is validated like any SMS recipient. */
+/**
+ * Asks for the person to message: a number, or a name to find among the contacts. The number is validated like any SMS
+ * recipient. Contacts are optional; without permission only typing a number works, with an offer to allow contacts.
+ */
 @Composable
-internal fun NewMessageDialog(onDismiss: () -> Unit, onStart: (String) -> Unit) {
+internal fun NewMessageDialog(
+    onDismiss: () -> Unit, onStart: (String) -> Unit,
+    contacts: List<ContactEntry> = emptyList(), contactsCanRead: Boolean = true, onAllowContacts: (() -> Unit)? = null
+) {
     var number by rememberSaveable { mutableStateOf("") }
     var error by rememberSaveable { mutableStateOf<String?>(null) }
+    val matches = remember(contacts, number) { searchContacts(contacts, number, limit = 5) }
+    fun start(value: String) { try { onStart(smsAddress(value)) } catch (invalid: IllegalArgumentException) { error = invalid.message } }
     AlertDialog(
         onDismissRequest = onDismiss, title = { Text("New message") },
-        text = { Column {
-            Text("Enter the phone number to message. You will review the number, text and SIM before anything is sent.")
+        text = { Column(Modifier.verticalScroll(rememberScrollState())) {
+            Text("Type a number" + (if (contactsCanRead) " or a contact's name" else "") + ". You will review the number, text and SIM before anything is sent.")
             OutlinedTextField(
-                value = number, onValueChange = { number = it; error = null }, label = { Text("Phone number") }, singleLine = true,
+                value = number, onValueChange = { number = it; error = null }, label = { Text(if (contactsCanRead) "Name or number" else "Phone number") }, singleLine = true,
                 isError = error != null, modifier = Modifier.fillMaxWidth().testTag("new-message-number"),
-                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone),
                 supportingText = { error?.let { Text(it, Modifier.testTag("new-message-error")) } }
             )
+            matches.forEachIndexed { index, entry ->
+                Column(Modifier.fillMaxWidth().clickable { start(entry.number) }.padding(vertical = 8.dp).testTag("new-message-contact-$index")) {
+                    Text(entry.name, fontWeight = FontWeight.SemiBold)
+                    Text(entry.number, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            if (!contactsCanRead && onAllowContacts != null) TextButton(onClick = onAllowContacts, modifier = Modifier.testTag("new-message-allow-contacts")) { Text("Allow contacts to search by name") }
         } },
-        confirmButton = { TextButton(modifier = Modifier.testTag("new-message-continue"), onClick = {
-            try { onStart(smsAddress(number)) } catch (invalid: IllegalArgumentException) { error = invalid.message }
-        }) { Text("Continue") } },
+        confirmButton = { TextButton(modifier = Modifier.testTag("new-message-continue"), onClick = { start(number) }) { Text("Continue") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
     )
 }

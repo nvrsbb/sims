@@ -19,10 +19,14 @@ internal data class DeviceMessage(
     }
 }
 
-internal data class DeviceConversation(val key: String, val threadId: Long, val address: String, val messages: List<DeviceMessage>) {
+internal data class DeviceConversation(
+    val key: String, val threadId: Long, val address: String, val messages: List<DeviceMessage>, val contactName: String? = null
+) {
     val last get() = messages.last()
-    val title get() = address.ifBlank { "Unknown sender" }
+    val title get() = contactName ?: address.ifBlank { "Unknown sender" }
     val unreadCount get() = messages.count { !it.outgoing && !it.read }
+    /** The message "mark as unread" flips: the newest one received, if any. */
+    val latestIncoming get() = messages.lastOrNull { !it.outgoing }
 }
 
 private const val SMS_INBOX = 1
@@ -73,7 +77,7 @@ internal fun searchDeviceConversations(conversations: List<DeviceConversation>, 
     if (needle.isEmpty()) return conversations
     val digits = needle.filter { it.isDigit() }
     return conversations.filter { conversation ->
-        conversation.title.contains(needle, ignoreCase = true) ||
+        conversation.title.contains(needle, ignoreCase = true) || conversation.address.contains(needle, ignoreCase = true) ||
             (digits.length >= 3 && conversation.address.filter { it.isDigit() }.contains(digits)) ||
             conversation.messages.any { it.text.contains(needle, ignoreCase = true) || it.subject.contains(needle, ignoreCase = true) }
     }

@@ -80,7 +80,7 @@ internal fun DeviceConversationScreen(
                         maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.testTag("device-conversation-title"))
                     val mmsCount = conversation.messages.count { it.kind == DeviceMessageKind.MMS }
-                    Text(if (mmsCount > 0) "SMS and MMS" else "SMS", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
+                    Text(listOfNotNull(conversation.contactName?.let { conversation.address.ifBlank { null } }, if (mmsCount > 0) "SMS and MMS" else "SMS").joinToString(" · "), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
                 }
                 if (actions.isNotEmpty()) OverflowMenu("device-conversation-actions", "conversation actions", actions)
             }

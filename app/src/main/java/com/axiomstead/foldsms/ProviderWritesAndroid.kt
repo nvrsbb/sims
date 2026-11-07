@@ -50,6 +50,14 @@ internal class DefaultAppProviderWrites(private val context: Context) : MessageA
         } catch (_: Exception) { false }
     }
 
+    override fun markUnread(kind: DeviceMessageKind, messageId: Long): Boolean {
+        if (!isDefault() || messageId <= 0) return false
+        return try {
+            val base = if (kind == DeviceMessageKind.MMS) Telephony.Mms.CONTENT_URI else Telephony.Sms.CONTENT_URI
+            context.contentResolver.update(Uri.withAppendedPath(base, messageId.toString()), ContentValues().apply { put("read", 0); put("seen", 0) }, null, null) > 0
+        } catch (_: Exception) { false }
+    }
+
     /** Deletes every SMS and MMS in the thread. Callers must have shown a confirmation first. */
     override fun deleteThread(threadId: Long): Boolean {
         if (!isDefault() || threadId <= 0) return false

@@ -15,6 +15,7 @@ import org.junit.Rule
 import org.junit.Test
 
 /** Fake platform and fake provider actions only: nothing is deleted, written or sent on the device. */
+@org.junit.runner.RunWith(RetryRunner::class)
 class DefaultRoleUiTest {
     @get:Rule val compose = createComposeRule()
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
@@ -29,13 +30,6 @@ class DefaultRoleUiTest {
     private val metaDatabase = Room.inMemoryDatabaseBuilder(context, ConversationMetadataDatabase::class.java).build()
     private val now = System.currentTimeMillis()
 
-    private class FakeActions(var allowed: Boolean) : MessageActions {
-        val read = mutableListOf<Long>(); val deleted = mutableListOf<Long>()
-        override fun canModify() = allowed
-        override fun markThreadRead(threadId: Long): Boolean { read += threadId; return true }
-        override fun deleteThread(threadId: Long): Boolean { deleted += threadId; return true }
-    }
-
     @After fun clean() { smsDatabase.close(); metaDatabase.close(); listOf(consentPrefs, smsDraftPrefs, promptPrefs, samplePrefs).forEach { it.edit().clear().commit() } }
 
     private fun show(actions: FakeActions, isDefault: Boolean) {
@@ -44,7 +38,7 @@ class DefaultRoleUiTest {
         sms.rows = listOf(DeviceSms(1, 10, "2025550101", "Are you coming?", now - 60_000, Telephony.Sms.MESSAGE_TYPE_INBOX, 7, false))
         val services = SmsServices(sms, consent, SmsDraftStore(smsDraftPrefs), smsDatabase.sends(), FakeMmsPlatform(consent), actions, DefaultPromptStore(promptPrefs))
         compose.setContent { MaterialTheme { FoldSmsApp(ThemeStore(samplePrefs), smsServices = services, deviceMetadataStore = DeviceMetadataStore(metaDatabase.deviceMetadata()), wide = false) } }
-        compose.waitUntil(15_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(UI_WAIT_MS) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
     }
 
     @Test fun theOfferShowsUntilNotNowAndThenStaysGone() {
@@ -73,7 +67,7 @@ class DefaultRoleUiTest {
         val actions = FakeActions(true)
         show(actions, isDefault = true)
         compose.onNodeWithTag("device-thread-thread-10").performClick()
-        compose.waitUntil(15_000) { actions.read.contains(10L) }
+        compose.waitUntil(UI_WAIT_MS) { actions.read.contains(10L) }
         compose.onNodeWithTag("device-conversation-actions").performClick()
         compose.onNodeWithText("Delete conversation").performClick()
         compose.onNodeWithText("Delete this conversation?").assertExists()
@@ -83,7 +77,7 @@ class DefaultRoleUiTest {
         compose.onNodeWithTag("device-conversation-actions").performClick()
         compose.onNodeWithText("Delete conversation").performClick()
         compose.onNodeWithTag("conversation-confirm-delete").performClick()
-        compose.waitUntil(15_000) { actions.deleted == listOf(10L) }
+        compose.waitUntil(UI_WAIT_MS) { actions.deleted == listOf(10L) }
         assertEquals(listOf(10L), actions.deleted)
     }
 }

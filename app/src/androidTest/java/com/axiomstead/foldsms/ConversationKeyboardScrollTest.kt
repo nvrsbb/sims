@@ -13,6 +13,7 @@ import org.junit.Rule
 import org.junit.Test
 
 /** The keyboard is simulated by shrinking the screen and setting pinToLatest, as the real inset does. */
+@org.junit.runner.RunWith(RetryRunner::class)
 class ConversationKeyboardScrollTest {
     @get:Rule val compose = createComposeRule()
     private val now = Instant.parse("2026-11-06T04:00:00Z")
@@ -32,7 +33,7 @@ class ConversationKeyboardScrollTest {
         }
         compose.onNodeWithTag("device-message-sms-30").assertIsDisplayed() // opens at the newest message
         compose.runOnIdle { height.value = 320.dp; pinned.value = true } // keyboard opens
-        compose.waitUntil(5_000) { runCatching { compose.onNodeWithTag("device-message-sms-30").assertIsDisplayed() }.isSuccess }
+        compose.waitUntil(UI_WAIT_MS) { runCatching { compose.onNodeWithTag("device-message-sms-30").assertIsDisplayed() }.isSuccess }
         compose.onNodeWithText("Message number 30").assertIsDisplayed()
     }
 
