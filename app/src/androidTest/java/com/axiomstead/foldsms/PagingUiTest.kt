@@ -65,7 +65,8 @@ class PagingUiTest {
     }
 
     @Test fun searchOffersToReadOlderMessagesAndThenFindsThem() {
-        val rows = listOf(row(1, 1, "The needle is here", 10_000_000)) + (2L..12L).map { row(it, it, "Message $it", (13 - it) * 60_000) }
+        // Sixty conversations: the list pages in until it is longer than the screen and then stops, so the oldest one is not read yet.
+        val rows = listOf(row(1, 1, "The needle is here", 10_000_000)) + (2L..60L).map { row(it, it, "Message $it", (61 - it) * 60_000) }
         show(rows)
         compose.onNodeWithTag("device-inbox-search").performTextInput("needle")
         compose.onNodeWithText("No conversations match").assertExists()
