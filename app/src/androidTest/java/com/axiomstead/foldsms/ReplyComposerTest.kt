@@ -56,11 +56,12 @@ class ReplyComposerTest {
         compose.onNodeWithTag("device-thread-thread-$thread").performClick()
     }
 
-    // Typing opens the keyboard, which moves the composer after the test last measured it. A semantic click acts on the
-    // control itself instead of tapping a position the keyboard may now cover.
-    private fun SemanticsNodeInteraction.click() = performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
+    // Real touches on purpose: a semantic click works even on a control that is off screen, which once hid a layout bug.
+    private fun SemanticsNodeInteraction.click() = performClick()
 
     private fun review(text: String) {
+        compose.onNodeWithTag("reply-composer").assertIsDisplayed()
+        compose.onNodeWithTag("reply-review").assertIsDisplayed()
         compose.onNodeWithTag("reply-composer").performTextInput(text)
         // The shared draft reaches the UI asynchronously; do not click while the send button is still disabled.
         compose.waitUntil(15_000) { runCatching { compose.onNodeWithTag("reply-review").assertIsEnabled() }.isSuccess }

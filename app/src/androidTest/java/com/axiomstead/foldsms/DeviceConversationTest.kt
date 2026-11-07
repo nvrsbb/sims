@@ -82,6 +82,18 @@ class DeviceConversationTest {
         compose.runOnIdle { assertTrue(sms.requests.isEmpty()) }
     }
 
+    @Test fun theReplyBoxIsOnScreenBelowTheMessagesAndNotPushedOffTheBottom() {
+        seed()
+        compose.setContent(content(wide = false))
+        waitForInbox()
+        compose.onNodeWithTag("device-thread-thread-10").performClick()
+        compose.onNodeWithTag("reply-composer").assertIsDisplayed()
+        compose.onNodeWithTag("reply-review").assertIsDisplayed()
+        val list = compose.onNodeWithTag("device-conversation-list").fetchSemanticsNode().boundsInRoot
+        val box = compose.onNodeWithTag("reply-composer").fetchSemanticsNode().boundsInRoot
+        assertTrue("composer must sit below the message list", box.top >= list.bottom - 1f)
+    }
+
     @Test fun backReturnsToTheListWithSearchKept() {
         seed()
         var dispatcher: OnBackPressedDispatcher? = null
