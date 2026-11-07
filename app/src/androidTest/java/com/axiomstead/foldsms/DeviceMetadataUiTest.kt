@@ -116,14 +116,14 @@ class DeviceMetadataUiTest {
         compose.onNodeWithTag("device-category-thread-10", useUnmergedTree = true).assertTextEquals("Personal")
         compose.onNodeWithTag("device-thread-thread-10").performClick()
         menu("device-conversation-actions", "Change category")
-        compose.onNode(hasText("Finance") and hasAnyAncestor(isDialog())).performClick() // the filter chip has the same label
+        compose.onNode(hasText("Business") and hasAnyAncestor(isDialog())).performClick() // the filter chip has the same label
         compose.onNodeWithTag("device-conversation-back").performClick()
-        compose.waitUntil(UI_WAIT_MS) { runBlocking { device.all.first()["thread-10"]?.category == "Finance" } }
-        compose.onNodeWithTag("device-category-filter-Finance").performClick()
+        compose.waitUntil(UI_WAIT_MS) { runBlocking { device.all.first()["thread-10"]?.category == "Business" } }
+        compose.onNodeWithTag("device-category-filter-Business").performClick()
         compose.onNodeWithTag("device-thread-thread-10").assertExists()
         compose.onNodeWithTag("device-thread-thread-20").assertDoesNotExist()
-        compose.onNodeWithTag("device-category-filter-OTP").performClick()
-        compose.onNodeWithText("No conversations in this category").assertExists()
+        compose.onNodeWithTag("device-category-filter-Personal").performClick()
+        compose.onNodeWithTag("device-thread-thread-10").assertDoesNotExist() // moved to Business by hand
         compose.onNodeWithTag("device-category-filter-All").performClick()
         compose.onNodeWithTag("device-thread-thread-20").assertExists()
     }
