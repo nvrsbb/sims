@@ -11,7 +11,18 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
+import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -54,6 +65,20 @@ internal fun DeviceConversationScreen(
     var positioned by rememberSaveable(conversation.key) { mutableStateOf(false) }
     var following by rememberSaveable(conversation.key) { mutableStateOf(true) }
     var imagePart by remember { mutableStateOf<DeviceMmsPart?>(null) }
+    var searching by rememberSaveable(conversation.key) { mutableStateOf(false) }
+    var query by rememberSaveable(conversation.key) { mutableStateOf("") }
+    var matchIndex by remember(conversation.key, query) { mutableIntStateOf(-1) }
+    val matches = remember(conversation.messages, query) { threadMatches(conversation.messages, query) }
+    // Opens on the newest match; the arrows walk back to older ones.
+    LaunchedEffect(query, matches.size) { matchIndex = if (matches.isEmpty()) -1 else matches.lastIndex }
+    val currentKey = matches.getOrNull(matchIndex)
+    LaunchedEffect(currentKey) {
+        currentKey?.let { key -> val at = items.indexOfFirst { it.key == key }; if (at >= 0) listState.scrollToItem(at) }
+    }
+    BackHandler(enabled = searching) { searching = false; query = "" }
+    val searchFocus = remember { FocusRequester() }
+    LaunchedEffect(searching) { if (searching) searchFocus.requestFocus() }
+    val newestOutgoingKey = remember(items) { items.lastOrNull { it is ChatItem.Bubble && it.message.outgoing }?.key }
     LaunchedEffect(conversation.key) {
         if (!positioned && items.isNotEmpty()) listState.scrollToItem(items.lastIndex)
         positioned = true
@@ -62,14 +87,36 @@ internal fun DeviceConversationScreen(
         snapshotFlow { val info = listState.layoutInfo; (info.visibleItemsInfo.lastOrNull()?.index ?: -1) >= info.totalItemsCount - 2 }
             .collect { following = it }
     }
-    LaunchedEffect(items.size) { if (positioned && following && items.isNotEmpty()) listState.scrollToItem(items.lastIndex) }
+    LaunchedEffect(items.size) { if (positioned && following && !searching && items.isNotEmpty()) listState.scrollToItem(items.lastIndex) }
     val itemCount by rememberUpdatedState(items.size)
-    LaunchedEffect(listState, pinToLatest) {
+    LaunchedEffect(listState, pinToLatest, searching) {
         // The viewport shrinks over several frames as the keyboard slides up; follow it until it settles.
-        if (pinToLatest) snapshotFlow { listState.layoutInfo.viewportSize.height }.collect { if (itemCount > 0) listState.scrollToItem(itemCount - 1) }
+        if (pinToLatest && !searching) snapshotFlow { listState.layoutInfo.viewportSize.height }.collect { if (itemCount > 0) listState.scrollToItem(itemCount - 1) }
     }
     Column(modifier.fillMaxSize().background(chatBackground()).imePadding()) {
-        Surface(color = MaterialTheme.colorScheme.surface) {
+        if (searching) Surface(color = MaterialTheme.colorScheme.surface) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = { searching = false; query = "" }, modifier = Modifier.testTag("conversation-search-close")) { Icon(Icons.Default.Clear, contentDescription = "Close search") }
+                TextField(
+                    value = query, onValueChange = { query = it }, singleLine = true, placeholder = { Text("Search this conversation") },
+                    modifier = Modifier.weight(1f).focusRequester(searchFocus).testTag("conversation-search-field"),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent
+                    )
+                )
+                Text(
+                    when { query.isBlank() -> ""; matches.isEmpty() -> "No matches"; else -> "${matchIndex + 1}/${matches.size}" },
+                    Modifier.testTag("conversation-search-count"), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                IconButton(onClick = { if (matchIndex > 0) matchIndex-- }, enabled = matchIndex > 0, modifier = Modifier.testTag("conversation-search-older")) {
+                    Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Older match")
+                }
+                IconButton(onClick = { if (matchIndex < matches.lastIndex) matchIndex++ }, enabled = matchIndex in 0 until matches.lastIndex, modifier = Modifier.testTag("conversation-search-newer")) {
+                    Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Newer match")
+                }
+            }
+        } else         Surface(color = MaterialTheme.colorScheme.surface) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (onBack != null) IconButton(onClick = onBack, modifier = Modifier.testTag("device-conversation-back")) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -83,6 +130,7 @@ internal fun DeviceConversationScreen(
                     val mmsCount = conversation.messages.count { it.kind == DeviceMessageKind.MMS }
                     Text(listOfNotNull(conversation.contactName?.let { conversation.address.ifBlank { null } }, if (mmsCount > 0) "SMS and MMS" else "SMS").joinToString(" · "), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
                 }
+                IconButton(onClick = { searching = true }, modifier = Modifier.testTag("conversation-search")) { Icon(Icons.Default.Search, contentDescription = "Search in conversation") }
                 if (actions.isNotEmpty()) OverflowMenu("device-conversation-actions", "conversation actions", actions)
             }
         }
@@ -104,7 +152,9 @@ internal fun DeviceConversationScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
-                        is ChatItem.Bubble -> MessageBubble(item.message, simLabel(item.message), zone, locale, loadImage, onCopyCode, now()) { imagePart = it }
+                        is ChatItem.Bubble -> MessageBubble(item.message, simLabel(item.message), zone, locale, loadImage, onCopyCode, now(),
+                            query = if (searching) query else "", current = item.key == currentKey,
+                            status = outgoingStatusLabel(item.message, item.key == newestOutgoingKey)) { imagePart = it }
                     }
                 }
             }
@@ -117,7 +167,8 @@ internal fun DeviceConversationScreen(
 @Composable
 private fun MessageBubble(
     message: DeviceMessage, sim: String?, zone: ZoneId, locale: Locale,
-    loadImage: suspend (Long) -> ImageBitmap?, onCopyCode: (String) -> Unit, now: java.time.Instant, onOpenImage: (DeviceMmsPart) -> Unit
+    loadImage: suspend (Long) -> ImageBitmap?, onCopyCode: (String) -> Unit, now: java.time.Instant,
+    query: String, current: Boolean, status: String?, onOpenImage: (DeviceMmsPart) -> Unit
 ) {
     val outgoing = message.outgoing
     Box(Modifier.fillMaxWidth().testTag("device-message-${message.key}"), contentAlignment = if (outgoing) Alignment.CenterEnd else Alignment.CenterStart) {
@@ -135,11 +186,25 @@ private fun MessageBubble(
                     Text("${part.mimeType} · ${part.name.ifEmpty { "attachment" }} · open in Google Messages",
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.fillMaxWidth())
                 }
-                if (message.text.isNotBlank()) Text(message.text, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.fillMaxWidth())
+                if (message.text.isNotBlank()) {
+                    val ranges = highlightRanges(message.text, query)
+                    val shade = MaterialTheme.colorScheme.primary.copy(alpha = if (current) 0.5f else 0.22f)
+                    if (ranges.isEmpty()) Text(message.text, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.fillMaxWidth())
+                    else Text(buildAnnotatedString {
+                        var at = 0
+                        ranges.forEach { range ->
+                            append(message.text.substring(at, range.first))
+                            withStyle(SpanStyle(background = shade)) { append(message.text.substring(range.first, range.last + 1)) }
+                            at = range.last + 1
+                        }
+                        append(message.text.substring(at))
+                    }, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.fillMaxWidth())
+                }
                 val code = if (!outgoing && codeStillUseful(message.date, now)) extractOtp(message.text) else null
                 if (code != null) TextButton(onClick = { onCopyCode(code) }, modifier = Modifier.testTag("device-bubble-copy-${message.key}")) { Text("Copy code $code") }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (message.failed) Text("Failed · ", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                    status?.let { Text("$it · ", Modifier.testTag("device-status-${message.key}"), style = MaterialTheme.typography.labelSmall,
+                        color = if (message.failed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant) }
                     sim?.let { Text("$it · ", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                     Text(formatMessageTime(message.date, zone, locale), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
