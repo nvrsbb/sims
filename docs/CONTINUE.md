@@ -43,6 +43,10 @@ Owner asked to make the sample tab operational and then drop the Device tab. The
 
 Verification: local JVM tests, lint, debug and Android-test APKs per PR; emulator tests only in hosted CI. Not verified: Fold layouts, large fonts, activity/process death, upgrade from the installed 0.1.0 build, any real carrier send. Known limits: one unsent SMS draft app-wide (blocked, never overwritten, when it belongs to another recipient); no MMS sending, no delete or mark-read of real messages (needs the default-SMS role), no notifications, no contacts.
 
+## Lean real-messages app — 0.5.0
+
+Owner asked for a lean app: ask permission at the very start, remove the test data, a useful three-dot menu, a leaner settings screen, search and menu on one line without an app name. This build shows a welcome screen until access is allowed, then the inbox: search and a menu with only Archived and Settings, a one-tap banner when permission is missing, and Settings with appearance, Android permissions, turning access off and the version. The fabricated sample inbox, sample drafts UI, message selection/deletion, sample creation, details sheet and preview export are removed. The Room database, its migrations, the legacy sample tables and the stored sample preferences are deliberately unchanged, so nothing on an existing install is deleted. Automatic categories and one-line category chips are the next separate change. The system permission dialog itself is not exercised in CI.
+
 ## Build and emulator
 
 CI signing: the build job signs `app-debug.apk` with one shared debug key from the repository secrets `FOLDSMS_KEYSTORE_BASE64` and `FOLDSMS_KEYSTORE_PASSWORD` (alias `foldsms`). The job log prints the certificate SHA-256; it must stay `13:EE:DA:20:…:A6:BD` for phone updates to install over each other. Without the secrets, CI warns and falls back to a one-off key. Local builds keep the machine debug key unless `FOLDSMS_KEYSTORE_FILE` and the password are exported. Never commit the keystore or password. The first install of a shared-key build over an older per-run-key build still needs an uninstall, which deletes local app data.

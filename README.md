@@ -1,10 +1,10 @@
 # FoldSMS — private Android SMS replacement prototype
 
-FoldSMS shows fabricated samples, and after an opt-in your real conversations, in one Chats tab for a Samsung Galaxy Z Fold6. Sample sending stays disabled. Real conversations show stored SMS and MMS together, can be pinned, archived and categorized locally, and offer explicitly reviewed and confirmed SIM-specific SMS sending, including to a typed number. Access starts disabled; Android and the installer may refuse restricted permissions. Keep Google Messages or another capable messaging app default for MMS download, notifications and message storage. FoldSMS does not request the default SMS role, cannot send MMS yet, and is not yet a dependable replacement. No network permission or backend. See [SMS transport behavior and validation limits](docs/SMS_TRANSPORT.md).
+FoldSMS is an SMS and MMS app for a Samsung Galaxy Z Fold6. A welcome screen asks once for access; after that it lists your real conversations (search, categories, archive, pin), opens them as chats with MMS pictures, and sends SMS only after you review the number, text and SIM. Google Messages stays your default app for MMS download, notifications and storage. FoldSMS does not request the default SMS role, cannot send MMS yet, and is not yet a dependable replacement. No network permission or backend. See [SMS transport behavior and validation limits](docs/SMS_TRANSPORT.md).
 
 ## Current preview
 
-- Fabricated conversations, search, and category filters; after opt-in, stored device SMS and MMS as real conversations with search, pin, archive, categories, reply and new message.
+- Real conversations from stored SMS and MMS with search, categories, archive and pin; reply and new message with a send review. The earlier fabricated sample inbox, its drafts UI and preview export were removed; their stored data on existing installs is left untouched.
 - Conversation selection and editable drafts saved per conversation; sending disabled.
 - Single pane below 600dp available width and split pane at 600dp or wider.
 - No backend, account, analytics, or cloud backup.

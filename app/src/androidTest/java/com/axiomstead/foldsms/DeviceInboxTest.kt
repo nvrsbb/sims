@@ -35,13 +35,9 @@ class DeviceInboxTest {
     }
 
     private fun show() {
-        val drafts = DraftStore(samplePrefs)
         compose.setContent {
             MaterialTheme {
-                PreviewApp(ThemeStore(samplePrefs), drafts, ConversationMetadataStore(sampleDatabase.metadata()),
-                    CustomSampleConversationStore(sampleDatabase, drafts), wide = false,
-                    deletionStore = SampleDeletionStore(samplePrefs), smsServices = services,
-                    deviceMetadataStore = DeviceMetadataStore(sampleDatabase.deviceMetadata()))
+                FoldSmsApp(ThemeStore(samplePrefs), smsServices = services, deviceMetadataStore = DeviceMetadataStore(sampleDatabase.deviceMetadata()), wide = false)
             }
         }
     }
@@ -49,22 +45,13 @@ class DeviceInboxTest {
     private fun inbox(id: Long, thread: Long, address: String, body: String, date: Long, type: Int = Telephony.Sms.MESSAGE_TYPE_INBOX, read: Boolean = true) =
         DeviceSms(id, thread, address, body, date, type, 7, read)
 
-    @Test fun optedOutShowsSamplesAndNeverReadsTheProvider() {
+    @Test fun beforeAccessIsAllowedOnlyTheWelcomeScreenShowsAndNothingIsRead() {
         sms.rows = listOf(inbox(1, 1, "2025550199", "Fabricated real row", 1000))
         show()
-        compose.onNodeWithText("Alex").assertExists()
+        compose.onNodeWithTag("welcome-allow").assertIsDisplayed()
         compose.onNodeWithTag("device-inbox-list").assertDoesNotExist()
-        compose.runOnIdle { assertEquals(0, sms.reads); assertEquals(0, mms.reads); assertTrue(sms.requests.isEmpty()) }
-    }
-
-    @Test fun cancelingTheOptInPromptReadsNothingAndKeepsSamples() {
-        show()
-        compose.onNodeWithTag("inbox-actions").performClick()
-        compose.onNodeWithText("Real messages").performClick()
-        compose.onNodeWithText("Show your real messages?").assertExists()
-        compose.onNodeWithText("Cancel").performClick()
-        compose.onNodeWithText("Alex").assertExists()
-        compose.runOnIdle { assertTrue(!consent.enabled()); assertEquals(0, sms.reads); assertEquals(0, mms.reads) }
+        compose.onNodeWithTag("device-inbox-search").assertDoesNotExist()
+        compose.runOnIdle { assertEquals(0, sms.reads); assertEquals(0, mms.reads); assertTrue(sms.requests.isEmpty()); assertTrue(!consent.enabled()) }
     }
 
     @Test fun optedInShowsGroupedConversationsNewestFirstWithPreviewsAndUnreadBadges() {
@@ -78,8 +65,7 @@ class DeviceInboxTest {
         mms.rows = listOf(DeviceMms(1, 40, "2025550188", "", 4_000, 1, true, listOf(DeviceMmsPart(9, "image/jpeg", "", "pic.jpg"))))
         show()
         compose.waitUntil(15_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
-        compose.onNodeWithText("Alex").assertDoesNotExist()
-        compose.onNodeWithText("You: My reply to the bank").assertExists()
+                compose.onNodeWithText("You: My reply to the bank").assertExists()
         compose.onNodeWithText("Newer from Sam").assertExists()
         compose.onNodeWithText("Older from Sam").assertDoesNotExist() // only the latest message previews
         compose.onNodeWithText("Photo").assertExists()
@@ -95,7 +81,7 @@ class DeviceInboxTest {
         consent.setEnabled(true)
         sms.gate = sms.gate.copy(readGranted = false)
         show()
-        compose.onNodeWithText("Reading messages needs SMS read and receive permission", substring = true).assertExists()
+        compose.onNodeWithText("Allow SMS access to see your messages", substring = true).assertExists()
         compose.onNodeWithTag("device-request-permissions").assertExists()
         compose.onNodeWithTag("device-inbox-list").assertDoesNotExist()
         compose.runOnIdle { assertEquals(0, sms.reads) }
@@ -104,7 +90,7 @@ class DeviceInboxTest {
     @Test fun emptyProviderAndNoSearchMatchesShowDistinctMessages() {
         consent.setEnabled(true)
         show()
-        compose.waitUntil(15_000) { compose.onAllNodesWithText("No messages found", substring = true).fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodesWithText("No messages yet", substring = true).fetchSemanticsNodes().isNotEmpty() }
         sms.rows = listOf(inbox(1, 1, "2025550101", "Lunch tomorrow", 1_000))
         compose.runOnIdle { sms.events.value++ }
         compose.waitUntil(15_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
@@ -123,32 +109,44 @@ class DeviceInboxTest {
         compose.onNodeWithText("SMS still shown").assertExists()
     }
 
-    @Test fun sampleDataMenuSwitchesToSamplesAndBack() {
+    @Test fun turningOffAccessInSettingsReturnsToWelcomeAndStopsReading() {
         consent.setEnabled(true)
         sms.rows = listOf(inbox(1, 1, "2025550101", "Fabricated real row", 1_000))
         show()
         compose.waitUntil(15_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithTag("device-inbox-actions").performClick()
-        compose.onNodeWithText("Sample data").performClick()
-        compose.onNodeWithText("Alex").assertExists()
-        compose.onNodeWithTag("inbox-actions").performClick()
-        compose.onNodeWithText("Real messages").performClick()
-        compose.onNodeWithText("Fabricated real row").assertExists()
-    }
-
-    @Test fun turningOffRealMessagesReturnsToSamplesAndStopsReading() {
-        consent.setEnabled(true)
-        sms.rows = listOf(inbox(1, 1, "2025550101", "Fabricated real row", 1_000))
-        show()
-        compose.waitUntil(15_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
-        compose.onNodeWithTag("device-inbox-actions").performClick()
-        compose.onNodeWithText("Turn off real messages").performClick()
-        compose.onNodeWithText("Alex").assertExists()
+        compose.onNodeWithText("Settings").performClick()
+        compose.onNodeWithTag("settings-turn-off").performClick()
+        compose.onNodeWithTag("welcome-allow").assertIsDisplayed()
         compose.runOnIdle { assertTrue(!consent.enabled()) }
         val readsAfterOff = sms.reads
         compose.runOnIdle { sms.events.value++ }
         compose.waitForIdle()
         compose.runOnIdle { assertEquals(readsAfterOff, sms.reads) }
+    }
+
+    @Test fun theMenuHasOnlyArchivedAndSettings() {
+        consent.setEnabled(true)
+        sms.rows = listOf(inbox(1, 1, "2025550101", "Fabricated real row", 1_000))
+        show()
+        compose.waitUntil(15_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("device-inbox-actions").performClick()
+        compose.onNodeWithText("Archived").assertExists()
+        compose.onNodeWithText("Settings").assertExists()
+        compose.onNodeWithText("Request permissions").assertDoesNotExist()
+        compose.onNodeWithText("Sample data").assertDoesNotExist()
+    }
+
+    @Test fun searchAndMenuShareOneRowAtTheTopAndThereIsNoAppTitle() {
+        consent.setEnabled(true)
+        sms.rows = listOf(inbox(1, 1, "2025550101", "Fabricated real row", 1_000))
+        show()
+        compose.waitUntil(15_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
+        val search = compose.onNodeWithTag("device-inbox-search").fetchSemanticsNode().boundsInRoot
+        val menu = compose.onNodeWithTag("device-inbox-actions").fetchSemanticsNode().boundsInRoot
+        assertTrue("menu sits to the right of search on the same row", menu.left >= search.right - 1f && kotlin.math.abs(menu.center.y - search.center.y) < 40f)
+        compose.onNodeWithText("FoldSMS").assertDoesNotExist()
+        compose.onNodeWithText("Messages").assertDoesNotExist()
     }
 
     private fun testTagOf(node: androidx.compose.ui.semantics.SemanticsNode): String? =
@@ -160,28 +158,9 @@ class DeviceInboxTest {
         sms.rows = listOf(inbox(30, 1, "2025550199", "Fabricated SMS", 1234))
         show()
         compose.waitUntil(5_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
-        compose.onNodeWithText("Photos and other MMS need MMS receive permission", substring = true).assertExists()
+        compose.onNodeWithText("Allow MMS access to see pictures", substring = true).assertExists()
         compose.onNodeWithText("Fabricated SMS").assertExists()
         compose.runOnIdle { assertEquals(0, mms.reads); assertTrue(sms.requests.isEmpty()) }
-    }
-
-    @Test fun sampleDraftSurvivesSwitchingToRealMessagesAndBack() {
-        consent.setEnabled(true)
-        sms.rows = listOf(inbox(1, 1, "2025550101", "Fabricated real row", 1_000))
-        show()
-        compose.waitUntil(5_000) { compose.onAllNodesWithTag("device-inbox-list").fetchSemanticsNodes().isNotEmpty() }
-        compose.onNodeWithTag("device-inbox-actions").performClick()
-        compose.onNodeWithText("Sample data").performClick()
-        compose.onNodeWithText("Alex").performClick()
-        compose.onNodeWithTag("draft-composer").performTextInput("Fabricated sample draft")
-        compose.onNodeWithContentDescription("Back").performClick()
-        compose.onNodeWithTag("inbox-actions").performClick()
-        compose.onNodeWithText("Real messages").performClick()
-        compose.onNodeWithText("Fabricated real row").assertExists()
-        compose.onNodeWithTag("device-inbox-actions").performClick()
-        compose.onNodeWithText("Sample data").performClick()
-        compose.onNodeWithTag("draft_indicator_1", useUnmergedTree = true).assertTextContains("Fabricated sample draft", substring = true)
-        compose.runOnIdle { assertTrue(sms.requests.isEmpty()) }
     }
 
     private fun hasTestTagStartingWith(prefix: String) = SemanticsMatcher("TestTag starts with $prefix") {

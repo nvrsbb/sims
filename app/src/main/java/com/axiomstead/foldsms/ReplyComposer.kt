@@ -93,8 +93,8 @@ internal fun ReplyComposer(state: DeviceMessagesState, conversation: DeviceConve
         Column(Modifier.padding(start = 10.dp, end = 10.dp, top = 8.dp, bottom = 6.dp)) {
             when (status) {
                 ReplyState.NotAPhoneNumber -> Note("You can't reply to this sender because it is not a phone number.", "reply-note")
-                ReplyState.NoSendPermission -> Note("Sending needs SMS and Phone/SIM permissions. Use the menu on the message list to request them.", "reply-note")
-                ReplyState.NoActiveSim -> Note("No active SIM is available for sending.", "reply-note")
+                ReplyState.NoSendPermission -> Note("Allow SMS and phone access in Android settings to send.", "reply-note")
+                ReplyState.NoActiveSim -> Note("No active SIM to send with.", "reply-note")
                 is ReplyState.OtherDraftWaiting -> {
                     Note(if (status.address.isBlank()) "An unsent SMS draft with no recipient is waiting. Send or discard it before writing here."
                         else "An unsent SMS to ${status.address} is waiting. Send or discard it before writing here.", "reply-note")
