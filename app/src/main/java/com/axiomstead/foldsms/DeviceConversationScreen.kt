@@ -104,7 +104,7 @@ internal fun DeviceConversationScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
-                        is ChatItem.Bubble -> MessageBubble(item.message, simLabel(item.message), zone, locale, loadImage, onCopyCode) { imagePart = it }
+                        is ChatItem.Bubble -> MessageBubble(item.message, simLabel(item.message), zone, locale, loadImage, onCopyCode, now()) { imagePart = it }
                     }
                 }
             }
@@ -117,7 +117,7 @@ internal fun DeviceConversationScreen(
 @Composable
 private fun MessageBubble(
     message: DeviceMessage, sim: String?, zone: ZoneId, locale: Locale,
-    loadImage: suspend (Long) -> ImageBitmap?, onCopyCode: (String) -> Unit, onOpenImage: (DeviceMmsPart) -> Unit
+    loadImage: suspend (Long) -> ImageBitmap?, onCopyCode: (String) -> Unit, now: java.time.Instant, onOpenImage: (DeviceMmsPart) -> Unit
 ) {
     val outgoing = message.outgoing
     Box(Modifier.fillMaxWidth().testTag("device-message-${message.key}"), contentAlignment = if (outgoing) Alignment.CenterEnd else Alignment.CenterStart) {
@@ -136,7 +136,7 @@ private fun MessageBubble(
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.fillMaxWidth())
                 }
                 if (message.text.isNotBlank()) Text(message.text, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.fillMaxWidth())
-                val code = if (!outgoing) extractOtp(message.text) else null
+                val code = if (!outgoing && codeStillUseful(message.date, now)) extractOtp(message.text) else null
                 if (code != null) TextButton(onClick = { onCopyCode(code) }, modifier = Modifier.testTag("device-bubble-copy-${message.key}")) { Text("Copy code $code") }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (message.failed) Text("Failed · ", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)

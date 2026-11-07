@@ -52,3 +52,7 @@ internal fun recentOtp(conversation: DeviceConversation, now: Instant, windowMil
     val last = conversation.messages.lastOrNull { !it.outgoing } ?: return null
     return if (now.toEpochMilli() - last.date <= windowMillis) extractOtp(last.text) else null
 }
+
+/** Codes expire in minutes; a day later the Copy button is only clutter. */
+internal fun codeStillUseful(dateMillis: Long, now: Instant, windowMillis: Long = 24 * 60 * 60_000L): Boolean =
+    now.toEpochMilli() - dateMillis <= windowMillis
