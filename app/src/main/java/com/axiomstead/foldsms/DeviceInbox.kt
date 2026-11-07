@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -102,8 +103,26 @@ internal fun DeviceInboxHost(
     var showArchive by rememberSaveable { mutableStateOf(false) }
     var filter by rememberSaveable { mutableStateOf("All") }
     var showCategories by rememberSaveable { mutableStateOf(false) }
+    var newMessageDialog by rememberSaveable { mutableStateOf(false) }
+    var pendingAddress by rememberSaveable { mutableStateOf<String?>(null) }
     val arranged = arrangeDeviceConversations(state.conversations, metadata, showArchive, filter)
-    val open = state.conversations.firstOrNull { it.key == openKey }
+    val openReal = state.conversations.firstOrNull { it.key == openKey }
+    // A number with no history yet: an empty conversation that only exists on screen until the provider has a thread for it.
+    val synthetic = pendingAddress?.takeIf { openReal == null }?.let { DeviceConversation("new-${conversationAddressKey(it)}", 0, it, emptyList()) }
+    val open = openReal ?: synthetic
+    LaunchedEffect(pendingAddress, state.conversations) {
+        val pending = pendingAddress ?: return@LaunchedEffect
+        state.conversations.firstOrNull { sameRecipient(it.address, pending) }?.let { openKey = it.key; pendingAddress = null }
+    }
+    if (newMessageDialog) NewMessageDialog(
+        onDismiss = { newMessageDialog = false },
+        onStart = { number ->
+            newMessageDialog = false
+            val existing = state.conversations.firstOrNull { sameRecipient(it.address, number) }
+            if (existing != null) { openKey = existing.key; pendingAddress = null; showArchive = (metadata[existing.key]?.archived == true) }
+            else { openKey = null; pendingAddress = number }
+        }
+    )
     if (showCategories && open != null) CategoryPicker(
         category = deviceCategory(metadata[open.key]),
         onChoose = { category -> scope.launch { store.setCategory(open.key, category) }; showCategories = false },
@@ -111,7 +130,7 @@ internal fun DeviceInboxHost(
         onDismiss = { showCategories = false },
         resetLabel = "Reset category"
     )
-    val conversationActions = open?.let { thread ->
+    val conversationActions = openReal?.let { thread ->
         val flags = metadata[thread.key]
         listOf(
             MenuAction("Change category") { showCategories = true },
@@ -119,12 +138,12 @@ internal fun DeviceInboxHost(
                 scope.launch { store.setPinned(thread.key, flags?.pinned != true) }
             },
             MenuAction(if (flags?.archived == true) "Restore conversation" else "Archive conversation") {
-                scope.launch { store.setArchived(thread.key, flags?.archived != true); openKey = null }
+                scope.launch { store.setArchived(thread.key, flags?.archived != true); openKey = null; pendingAddress = null }
             }
         )
     }
     val fullScreen = !wide && open != null
-    BackHandler(enabled = fullScreen) { openKey = null }
+    BackHandler(enabled = fullScreen) { openKey = null; pendingAddress = null }
     SideEffect { onConversationOpen(fullScreen) }
     DisposableEffect(Unit) { onDispose { onConversationOpen(false) } }
     val simLabel = { message: DeviceMessage ->
@@ -134,13 +153,14 @@ internal fun DeviceInboxHost(
     Row(Modifier.fillMaxSize()) {
         if (wide || !fullScreen) Box(Modifier.weight(1f).fillMaxHeight()) {
             DeviceInboxScreen(
-                state, arranged, metadata, openKey, { openKey = it }, search, { search = it }, listState,
-                showArchive, { showArchive = !showArchive; openKey = null }, filter, { filter = it }, onShowSamples, onRequestPermissions, now, zone
+                state, arranged, metadata, open?.key, { openKey = it; pendingAddress = null }, search, { search = it }, listState,
+                showArchive, { showArchive = !showArchive; openKey = null; pendingAddress = null }, filter, { filter = it },
+                onShowSamples, onRequestPermissions, now, zone, onNewMessage = { newMessageDialog = true }
             )
         }
         if (wide) VerticalDivider()
         if (open != null) Box(Modifier.weight(1f).fillMaxHeight()) {
-            DeviceConversationScreen(open, simLabel, loadImage, onBack = if (wide) null else ({ openKey = null }), now = now, zone = zone,
+            DeviceConversationScreen(open, simLabel, loadImage, onBack = if (wide) null else ({ openKey = null; pendingAddress = null }), now = now, zone = zone,
                 actions = conversationActions.orEmpty(), composer = { ReplyComposer(state, open) })
         } else if (wide) Box(Modifier.weight(1f).fillMaxHeight().background(chatBackground()), contentAlignment = Alignment.Center) {
             Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)) {
@@ -167,7 +187,8 @@ internal fun DeviceInboxScreen(
     onShowSamples: () -> Unit,
     onRequestPermissions: () -> Unit,
     now: () -> Instant = { Instant.now() },
-    zone: ZoneId = ZoneId.systemDefault()
+    zone: ZoneId = ZoneId.systemDefault(),
+    onNewMessage: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -238,7 +259,7 @@ internal fun DeviceInboxScreen(
                         else -> "Every conversation is archived. Open the archive from the menu."
                     }, Modifier.padding(20.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 conversations.isEmpty() -> Text("No conversations match", Modifier.padding(20.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                else -> LazyColumn(Modifier.fillMaxSize().testTag("device-inbox-list"), state = listState, contentPadding = PaddingValues(bottom = 24.dp)) {
+                else -> LazyColumn(Modifier.fillMaxSize().testTag("device-inbox-list"), state = listState, contentPadding = PaddingValues(bottom = 88.dp)) {
                     items(conversations, key = { it.key }) { conversation ->
                         DeviceConversationRow(conversation, formatConversationTime(conversation.last.date, now(), zone, Locale.getDefault()),
                             selected = conversation.key == selectedKey, category = deviceCategory(metadata[conversation.key]),
@@ -247,6 +268,12 @@ internal fun DeviceInboxScreen(
                     }
                 }
             }
+            // Declared after the list so it is drawn, and hit-tested, on top of it.
+            if (access.canSend) FloatingActionButton(
+                onClick = onNewMessage,
+                modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp).testTag("device-new-message"),
+                containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary
+            ) { Icon(Icons.Default.Edit, contentDescription = "New message") }
         }
     }
 }
@@ -289,4 +316,27 @@ internal fun DeviceConversationRow(conversation: DeviceConversation, time: Strin
                 color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
         }
     }
+}
+
+/** Asks for a phone number only. No contacts permission is requested; the number is validated like any SMS recipient. */
+@Composable
+internal fun NewMessageDialog(onDismiss: () -> Unit, onStart: (String) -> Unit) {
+    var number by rememberSaveable { mutableStateOf("") }
+    var error by rememberSaveable { mutableStateOf<String?>(null) }
+    AlertDialog(
+        onDismissRequest = onDismiss, title = { Text("New message") },
+        text = { Column {
+            Text("Enter the phone number to message. You will review the number, text and SIM before anything is sent.")
+            OutlinedTextField(
+                value = number, onValueChange = { number = it; error = null }, label = { Text("Phone number") }, singleLine = true,
+                isError = error != null, modifier = Modifier.fillMaxWidth().testTag("new-message-number"),
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone),
+                supportingText = { error?.let { Text(it, Modifier.testTag("new-message-error")) } }
+            )
+        } },
+        confirmButton = { TextButton(modifier = Modifier.testTag("new-message-continue"), onClick = {
+            try { onStart(smsAddress(number)) } catch (invalid: IllegalArgumentException) { error = invalid.message }
+        }) { Text("Continue") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    )
 }
