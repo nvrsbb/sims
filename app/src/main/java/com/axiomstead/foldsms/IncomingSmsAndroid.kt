@@ -41,7 +41,8 @@ class SmsDeliverReceiver : BroadcastReceiver() {
 }
 
 internal fun androidIncomingHandler(context: Context) = IncomingSmsHandler(
-    isDefaultApp = { Telephony.Sms.getDefaultSmsPackage(context) == context.packageName },
+    // SMS_DELIVER is sent by the system only to the default SMS app, so delivery itself proves the role; never drop a message on a failed lookup.
+    isDefaultApp = { true },
     store = IncomingStore { message ->
         val values = ContentValues().apply {
             put(Telephony.Sms.ADDRESS, message.address)

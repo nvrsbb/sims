@@ -33,4 +33,11 @@ class DefaultRoleTest {
         assertNull(recipientFromLink("sms", "?body=hi"))
         assertNull(recipientFromLink(null, "+15550100"))
     }
+
+    @Test fun aHeldRoleCountsAsDefaultEvenWhenTheLookupReturnsNull() {
+        assertEquals("com.axiomstead.foldsms", resolveDefaultSmsPackage(null, true, "com.axiomstead.foldsms"))
+        assertNull(resolveDefaultSmsPackage(null, false, "com.axiomstead.foldsms"))
+        assertEquals("com.google.android.apps.messaging", resolveDefaultSmsPackage("com.google.android.apps.messaging", false, "com.axiomstead.foldsms"))
+        assertEquals("com.google.android.apps.messaging", resolveDefaultSmsPackage("com.google.android.apps.messaging", true, "com.axiomstead.foldsms"))
+    }
 }

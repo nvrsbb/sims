@@ -11,7 +11,7 @@ import android.provider.Telephony
  */
 internal class DefaultAppProviderWrites(private val context: Context) : MessageActions {
     private val rows get() = context.getSharedPreferences("sms_stored_sends", Context.MODE_PRIVATE)
-    private fun isDefault() = Telephony.Sms.getDefaultSmsPackage(context) == context.packageName
+    private fun isDefault() = isDefaultSmsApp(context)
 
     override fun canModify(): Boolean = isDefault()
 
