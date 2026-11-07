@@ -38,7 +38,7 @@ See [the working agreements](AGENTS.md) for development, review, merge, and phon
 ## Planned Fold6 check (owner authorization required)
 
 1. Keep Google Messages as the default SMS app.
-2. Install only the preview APK and open **FoldSMS Preview**.
+2. Install only the preview APK and open **FoldSMS**.
 3. Check search, filters, opening a conversation, and the in-app Back button on the cover screen.
 4. Unfold and check that the inbox and conversation fit side by side. Also check text at your normal font size and in multi-window mode.
 5. Confirm sample sending stays disabled and preview launch requests no SMS permissions or default role. Do not enable device access or send carrier messages as part of this preview check; arrange a separately authorized test window.

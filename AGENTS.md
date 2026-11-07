@@ -4,9 +4,9 @@
 
 - Read `docs/MVP_SPEC.md` and `docs/CONTINUE.md` before starting work.
 - Native Kotlin / Jetpack Compose app for a Samsung Galaxy Z Fold6. No server, Vercel deployment, account, analytics, or network permission.
-- Owner authorized opt-in SMS receiving/sending on 2026-11-05. The companion reads Telephony and sends only after explicit number/body/SIM/part-count confirmation. Google Messages or another external app stays default for MMS, storage and notifications. Sample sending remains disabled; all development fixtures remain fabricated. Default-role requests, phone installation and carrier sends during tests are not authorized.
-- Owner authorized an opt-in MMS companion on 2026-11-06 while Google Messages remains default. Receive/read can be implemented without becoming default; carrier sends and phone installation remain outside development tests.
-- Owner requested SMS and MMS in the preview screen with the separate companion entry removed. Keep access opt-in from the main Device messages tab, preserve sample drafts and the SMS send journal, and leave MMS sending disabled until validated.
+- Owner authorized opt-in SMS receiving/sending on 2026-11-05 and an opt-in MMS companion on 2026-11-06. The app reads Telephony and sends only after explicit number/body/SIM/part-count confirmation. Development fixtures stay fabricated; tests never send, call carrier services or touch owner data.
+- Owner authorized on 2026-11-07: FoldSMS becoming the default SMS/MMS app (the owner accepts Android's role dialog; see `docs/DEFAULT_SMS.md`), including storing received and sent messages, notifications, mark read/unread and delete with confirmation; and optional read-only contacts access for names and choosing a recipient. MMS sending is still not authorized. Requesting the role, installing on the phone and carrier sends during tests are not done by development runs.
+- The app has no sample inbox or separate Device tab: the main screen is the real conversation list, with a welcome screen until the owner allows access.
 - Preserve drafts and local metadata through app updates. Never use real messages as fixtures or log private message text.
 
 ## Development
