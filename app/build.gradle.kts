@@ -15,6 +15,9 @@ android {
         versionCode = 3
         versionName = "0.3.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // A test that hangs (stuck emulator, deadlock) otherwise stalls the CI job for its whole 30-minute limit with no
+        // hint which test it was. With a per-test limit it fails with a stack trace and the test's name instead.
+        testInstrumentationRunnerArguments["timeout_msec"] = "180000"
     }
     // CI signs debug APKs with one stored key so phone updates keep the same signature.
     // Without FOLDSMS_KEYSTORE_FILE (local builds, forks), Android's per-machine debug key is used.
