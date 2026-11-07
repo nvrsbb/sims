@@ -20,7 +20,10 @@ import androidx.compose.ui.window.DialogProperties
 
 /** Only what the owner can actually change: appearance, Android permissions, and turning access off. */
 @Composable
-internal fun AppSettings(theme: ThemeChoice, onThemeChange: (ThemeChoice) -> Unit, onTurnOff: () -> Unit, onDismiss: () -> Unit) {
+internal fun AppSettings(
+    theme: ThemeChoice, onThemeChange: (ThemeChoice) -> Unit, onTurnOff: () -> Unit, onDismiss: () -> Unit,
+    isDefaultApp: Boolean = false, onMakeDefault: (() -> Unit)? = null
+) {
     val context = LocalContext.current
     val version = remember(context) { runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull().orEmpty() }
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
@@ -43,6 +46,14 @@ internal fun AppSettings(theme: ThemeChoice, onThemeChange: (ThemeChoice) -> Uni
                             Text(choice.label)
                         }
                     }
+                }
+                HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                Text("Default messaging app", style = MaterialTheme.typography.titleMedium)
+                if (isDefaultApp) {
+                    Text("FoldSMS is your default app.", Modifier.padding(vertical = 4.dp).testTag("settings-default-status"))
+                    TextButton(onClick = { context.startActivity(defaultAppsSettings()) }, modifier = Modifier.testTag("settings-switch-back")) { Text("Choose another app") }
+                } else if (onMakeDefault != null) {
+                    TextButton(onClick = onMakeDefault, modifier = Modifier.testTag("settings-make-default")) { Text("Make FoldSMS default") }
                 }
                 HorizontalDivider(Modifier.padding(vertical = 8.dp))
                 TextButton(onClick = {

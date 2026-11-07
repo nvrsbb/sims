@@ -30,3 +30,15 @@ Added the provider layer only; the delete and mark-read buttons are wired in ste
 - `MessageActions` (mark thread read, delete thread) refuse unless FoldSMS is default.
 
 Verified: JVM tests of the stage-to-type rule and part joining, lint, build. **Not verified:** the actual provider writes and deletes; they need the role and are part of the phone check.
+
+## Step 4 status (role components, actions and the prompt)
+
+- The manifest now declares everything the default SMS role needs: SMS_DELIVER and WAP_PUSH_DELIVER receivers, a SEND/SENDTO handler for `sms:`/`smsto:`/`mms:`/`mmsto:` links, and a RESPOND_VIA_MESSAGE service. **From this build the app is eligible for the role.** Nothing changes until the owner accepts the system dialog.
+- A link's number opens the new-message flow (same validation as typing it); its body text is ignored. Quick replies through RESPOND_VIA_MESSAGE are deliberately not sent, because every send needs the review dialog: declining a call with a message will do nothing while FoldSMS is default.
+- Reading and sending keep working when FoldSMS is the default app (the old "another app must be default" rule is gone; `SmsAccess.hasDefaultApp` means any default exists, `isDefaultApp` means FoldSMS).
+- Inbox banner "Make FoldSMS your default messaging app" with **Make default** and **Not now** (remembered). Settings has a "Default messaging app" section: make default, or **Choose another app**, which opens Android's own default-apps screen (the way back to Google Messages). The app re-reads the state when you return to it. Notification permission is asked right after the role is granted.
+- While default: opening a conversation marks it read; the conversation menu has **Mark as read** and **Delete conversation** (confirmation first). Without the role these do not appear.
+
+Verified: JVM tests (offer rule, default-app access, link parsing), lint, debug and Android-test assembly, and emulator tests with a fake platform and fake provider actions (`DefaultRoleUiTest`). **Not verified:** the system role dialog, real receiving of SMS/MMS, notifications, provider writes and deletes, the quick-reply behavior and switching back. All of these need the phone and are the check for this build. Suggested order on the phone: send yourself an SMS, receive a normal MMS picture, check the notification, open and delete a test conversation, then switch back to Google Messages.
+
+Version 0.6.0.
