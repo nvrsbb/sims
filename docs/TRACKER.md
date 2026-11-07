@@ -22,7 +22,20 @@ Status: **Planned → In progress → PR open → Merged**. Close an item only a
 | F-14 | Validate and restore a preview export | Postponed: owner prioritized SMS | — | Pending |
 | F-15 | Opt-in SMS receiving and sending companion | Merged | [#23](https://github.com/nvrsbb/sims/pull/23) | Owner reports SMS receive/send; other checks pending |
 | F-16 | Opt-in MMS receiving/sending companion | Receive slice merged; sending pending | [#24](https://github.com/nvrsbb/sims/pull/24) | Pending |
-| F-17 | Put device SMS/MMS in main preview; remove companion screen | PR open against main | [#27](https://github.com/nvrsbb/sims/pull/27) ([#26](https://github.com/nvrsbb/sims/pull/26) merged into the stack branch only) | Pending: verify signature-compatible update and Fold layout |
+| F-17 | Put device SMS/MMS in main preview; remove companion screen | Superseded by F-18 | [#27](https://github.com/nvrsbb/sims/pull/27) | Pending |
+| F-18 | Operational Chats tab: real conversations, reply, new message, pin/archive/categories; Telegram-style UI; shared CI signing key; Device tab removed (0.4.0) | Merged | [#37](https://github.com/nvrsbb/sims/pull/37) (stack #28–#35), reply-box fix [#38](https://github.com/nvrsbb/sims/pull/38) | Hosted emulator tests green; owner reported the reply box missing before #38. Fold layouts, large fonts, upgrade over the installed build and a real send remain to check on the phone |
+| F-19 | Owner phone check of 0.4.x: fold/unfold, large fonts, keyboard, Back, install over the old build, one real SMS to the owner’s own number | Next | — | Pending |
+| F-20 | App icon and proper app name; resolve the backup-rules lint warning | Planned | — | Pending |
+| F-21 | Archived real conversations return to the inbox when a new message arrives (or an explicit choice) | Planned | — | Pending |
+| F-22 | Search inside a conversation; delivery/failure status shown in the thread | Planned | — | Pending |
+| F-23 | Contact names for real conversations | Blocked: needs the contacts permission, not authorized | — | Pending |
+| F-24 | One unsent SMS draft per conversation | Planned: needs a journal/revision redesign first | — | Pending |
+| F-25 | Delete or mark-as-read real messages, notifications | Blocked: needs the default-SMS role, not authorized | — | Pending |
+| F-26 | Reduce emulator-test flakiness in CI | Ongoing | [#36](https://github.com/nvrsbb/sims/pull/36) fails a hung test after three minutes | About one random test failure per hosted run so far; most were timing or runner stalls |
+| F-27 | Small follow-ups from the lean app: launcher name "FoldSMS Preview" → "FoldSMS"; tune the automatic category rules from real-world misses; refresh `AGENTS.md` wording that still describes the Device tab and samples (the owner’s file, owner decides) | Planned | — | Pending |
+| F-28 | Review the owner’s `argon-grok-backlog.md` against the product boundary and fold what fits into this plan | Waiting: the file has not been supplied in any session | — | Pending |
+| F-29 | Optional later features from `REPLACEMENT_PLAN.md` phase 5: automated rules, scheduling, WebDAV, scam detection, widgets, S Pen refinements | Later | — | Pending |
+| F-30 | **Final step: ask the user to make FoldSMS their default message app** | Last on the list; blocked until the owner authorizes a default-role request and the replacement gates pass (see CONTINUE "Next work") | — | Pending |
 
 F-07–F-10 reached main through merged integration #18. Its 22 JVM tests and 25 emulator tests passed. No new phone checks are implied. #19 (hosted CI) and #22 (export) reached main at `83f7663`. #20 KSP and #21 interrupted-draft recovery remain separate; do not duplicate them.
 
