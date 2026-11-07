@@ -9,6 +9,8 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
@@ -77,7 +79,10 @@ internal fun DeviceInboxHost(
     val arranged = arrangeDeviceConversations(state.conversations, metadata, showArchive, filter)
     val openReal = state.conversations.firstOrNull { it.key == openKey }
     // A number with no history yet: an empty conversation that only exists on screen until the provider has a thread for it.
-    val synthetic = pendingAddress?.takeIf { openReal == null }?.let { DeviceConversation("new-${conversationAddressKey(it)}", 0, it, emptyList()) }
+    val synthetic = pendingAddress?.takeIf { openReal == null }?.let {
+        // A number with no thread yet still shows the contact's name.
+        withContactNames(listOf(DeviceConversation("new-${conversationAddressKey(it)}", 0, it, emptyList())), contactNameMap(state.contacts)).single()
+    }
     val open = openReal ?: synthetic
     LaunchedEffect(pendingAddress, state.conversations) {
         val pending = pendingAddress ?: return@LaunchedEffect
@@ -96,7 +101,9 @@ internal fun DeviceInboxHost(
     }
     if (newMessageDialog) NewMessageDialog(
         onDismiss = { newMessageDialog = false },
-        onStart = { number -> newMessageDialog = false; startConversation(number) }
+        onStart = { number -> newMessageDialog = false; startConversation(number) },
+        contacts = state.contacts, contactsCanRead = state.contactsCanRead || state.services.contacts == null,
+        onAllowContacts = onRequestPermissions
     )
     val canManage = state.access.isDefaultApp && actions?.canModify() == true
     LaunchedEffect(openReal?.key, openReal?.unreadCount, canManage) {
@@ -327,25 +334,37 @@ internal fun DeviceConversationRow(conversation: DeviceConversation, time: Strin
     }
 }
 
-/** Asks for a phone number only. No contacts permission is requested; the number is validated like any SMS recipient. */
+/**
+ * Asks for the person to message: a number, or a name to find among the contacts. The number is validated like any SMS
+ * recipient. Contacts are optional; without permission only typing a number works, with an offer to allow contacts.
+ */
 @Composable
-internal fun NewMessageDialog(onDismiss: () -> Unit, onStart: (String) -> Unit) {
+internal fun NewMessageDialog(
+    onDismiss: () -> Unit, onStart: (String) -> Unit,
+    contacts: List<ContactEntry> = emptyList(), contactsCanRead: Boolean = true, onAllowContacts: (() -> Unit)? = null
+) {
     var number by rememberSaveable { mutableStateOf("") }
     var error by rememberSaveable { mutableStateOf<String?>(null) }
+    val matches = remember(contacts, number) { searchContacts(contacts, number, limit = 5) }
+    fun start(value: String) { try { onStart(smsAddress(value)) } catch (invalid: IllegalArgumentException) { error = invalid.message } }
     AlertDialog(
         onDismissRequest = onDismiss, title = { Text("New message") },
-        text = { Column {
-            Text("Enter the phone number to message. You will review the number, text and SIM before anything is sent.")
+        text = { Column(Modifier.verticalScroll(rememberScrollState())) {
+            Text("Type a number" + (if (contactsCanRead) " or a contact's name" else "") + ". You will review the number, text and SIM before anything is sent.")
             OutlinedTextField(
-                value = number, onValueChange = { number = it; error = null }, label = { Text("Phone number") }, singleLine = true,
+                value = number, onValueChange = { number = it; error = null }, label = { Text(if (contactsCanRead) "Name or number" else "Phone number") }, singleLine = true,
                 isError = error != null, modifier = Modifier.fillMaxWidth().testTag("new-message-number"),
-                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone),
                 supportingText = { error?.let { Text(it, Modifier.testTag("new-message-error")) } }
             )
+            matches.forEachIndexed { index, entry ->
+                Column(Modifier.fillMaxWidth().clickable { start(entry.number) }.padding(vertical = 8.dp).testTag("new-message-contact-$index")) {
+                    Text(entry.name, fontWeight = FontWeight.SemiBold)
+                    Text(entry.number, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            if (!contactsCanRead && onAllowContacts != null) TextButton(onClick = onAllowContacts, modifier = Modifier.testTag("new-message-allow-contacts")) { Text("Allow contacts to search by name") }
         } },
-        confirmButton = { TextButton(modifier = Modifier.testTag("new-message-continue"), onClick = {
-            try { onStart(smsAddress(number)) } catch (invalid: IllegalArgumentException) { error = invalid.message }
-        }) { Text("Continue") } },
+        confirmButton = { TextButton(modifier = Modifier.testTag("new-message-continue"), onClick = { start(number) }) { Text("Continue") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
     )
 }

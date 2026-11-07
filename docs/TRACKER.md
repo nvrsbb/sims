@@ -28,7 +28,7 @@ Status: **Planned → In progress → PR open → Merged**. Close an item only a
 | F-20 | App icon and proper app name; resolve the backup-rules lint warning | Planned | — | Pending |
 | F-21 | Archived real conversations return to the inbox when a new message arrives (or an explicit choice) | Planned | — | Pending |
 | F-22 | Search inside a conversation; delivery/failure status shown in the thread | Planned | — | Pending |
-| F-23 | Contact names for real conversations | Blocked: needs the contacts permission, not authorized | — | Pending |
+| F-23 | Contact names for numbers and choosing a contact as the recipient | In review (owner authorized contacts access 2026-11-07) | feature/contacts | Optional READ_CONTACTS, asked with the other permissions; names shown in the list, conversation, search and notifications; New message finds contacts by name or number. Denying contacts changes nothing else. Not verified on a phone: the permission dialog and a real contact list |
 | F-24 | One unsent SMS draft per conversation | Planned: needs a journal/revision redesign first | — | Pending |
 | F-25 | Delete or mark-as-read real messages, notifications | Blocked: needs the default-SMS role, not authorized | — | Pending |
 | F-26 | Reduce emulator-test flakiness in CI | In review | [#36](https://github.com/nvrsbb/sims/pull/36) fails a hung test after three minutes; this change retries a failed test once and widens waits to 30 s | About one random test failure per hosted run before this change (different test each time, mostly 15 s waits for the inbox, passing on re-run). Retried tests are listed in the CI output and `flaky-retries.txt`; a test that needs a retry repeatedly should be fixed, not hidden. New test classes need `@RunWith(RetryRunner::class)` |
@@ -36,6 +36,8 @@ Status: **Planned → In progress → PR open → Merged**. Close an item only a
 | F-28 | Review the owner’s `argon-grok-backlog.md` against the product boundary and fold what fits into this plan | Waiting: the file has not been supplied in any session | — | Pending |
 | F-29 | Optional later features from `REPLACEMENT_PLAN.md` phase 5: automated rules, scheduling, WebDAV, scam detection, widgets, S Pen refinements | Later | — | Pending |
 | F-30 | **Final step: ask the user to make FoldSMS their default message app** | Last on the list; blocked until the owner authorizes a default-role request and the replacement gates pass (see CONTINUE "Next work") | — | Pending |
+| F-31 | Select conversations (long press, Select all) and mark read, mark unread or delete them | Planned (owner request 2026-11-07); needs the default role for the changes | — | Pending |
+| F-32 | "Unread only" filter in the three-dot menu | Planned (owner request 2026-11-07) | — | Pending |
 
 F-07–F-10 reached main through merged integration #18. Its 22 JVM tests and 25 emulator tests passed. No new phone checks are implied. #19 (hosted CI) and #22 (export) reached main at `83f7663`. #20 KSP and #21 interrupted-draft recovery remain separate; do not duplicate them.
 
