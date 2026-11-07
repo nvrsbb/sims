@@ -75,11 +75,6 @@ val MIGRATION_4_5 = object : Migration(4, 5) {
     }
 }
 
-internal const val DEFAULT_DEVICE_CATEGORY = "Unknown"
-
-/** Category shown for a real conversation: the owner's choice, else Unknown. */
-internal fun deviceCategory(metadata: DeviceConversationMetadata?): String = metadata?.category ?: DEFAULT_DEVICE_CATEGORY
-
 /**
  * Archive view or inbox view, optional category filter ("All" keeps everything), pinned first, then newest, then key.
  * New messages never move an archived conversation back automatically.
@@ -88,5 +83,5 @@ internal fun arrangeDeviceConversations(
     conversations: List<DeviceConversation>, metadata: Map<String, DeviceConversationMetadata>, showArchive: Boolean, filter: String
 ): List<DeviceConversation> = conversations
     .filter { (metadata[it.key]?.archived == true) == showArchive }
-    .filter { filter == "All" || deviceCategory(metadata[it.key]) == filter }
+    .filter { filter == "All" || effectiveCategory(it, metadata[it.key]) == filter }
     .sortedWith(compareByDescending<DeviceConversation> { metadata[it.key]?.pinned == true }.thenByDescending { it.last.date }.thenBy { it.key })
