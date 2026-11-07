@@ -58,7 +58,8 @@ class ExportUiTest {
         compose.onNodeWithText("Nothing is changed or deleted", substring = true).assertExists()
         compose.onNodeWithText("Cancel").performClick()
         compose.onNodeWithTag("export-text-only").assertDoesNotExist()
-        compose.onNodeWithTag("settings-done").assertExists() // back to nothing started
+        compose.onNodeWithTag("settings-done").assertDoesNotExist() // choosing closed Settings; cancelling leaves the inbox, nothing started
+        compose.onNodeWithTag("device-inbox-actions").assertExists()
     }
 
     private fun startExport(includeAttachments: Boolean) {
