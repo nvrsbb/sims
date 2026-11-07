@@ -15,7 +15,8 @@ internal class FakeSmsPlatform(private val consent: SmsConsentStore) : SmsPlatfo
     val events = MutableStateFlow(0)
     override fun access() = gate.copy(enabled = consent.enabled())
     override fun subscriptions() = sims
-    override fun recent(): List<DeviceSms> { reads++; return rows }
+    override fun recent(limit: Int): List<DeviceSms> { reads++; return rows.sortedWith(compareByDescending<DeviceSms> { it.date }.thenByDescending { it.id }).take(limit) }
+    override fun thread(threadId: Long): List<DeviceSms> = rows.filter { it.threadId == threadId }
     override fun split(body: String, subscriptionId: Int): List<String> { splits++; return body.chunked(partLength) }
     override fun dispatch(operationId: String, recipient: String, parts: List<String>, subscriptionId: Int) {
         val request = Request(operationId, recipient, parts.toList(), subscriptionId)

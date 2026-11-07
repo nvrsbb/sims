@@ -28,14 +28,14 @@ class SmsProviderSmokeTest {
             val platform = AndroidSmsPlatform(context, consent)
             assertTrue("An external default app and ordinary read/receive grants are required", platform.access().canRead)
             val deadline = SystemClock.elapsedRealtime() + 15_000
-            var rows = platform.recent().filter { it.body == expected }
+            var rows = platform.recent(500).filter { it.body == expected }
             while (rows.isEmpty() && SystemClock.elapsedRealtime() < deadline) {
                 SystemClock.sleep(100)
-                rows = platform.recent().filter { it.body == expected }
+                rows = platform.recent(500).filter { it.body == expected }
             }
             assertEquals(1, rows.size)
             assertEquals(Telephony.Sms.MESSAGE_TYPE_INBOX, rows.single().type)
-            assertEquals(rows.single().id, platform.recent().single { it.body == expected }.id)
+            assertEquals(rows.single().id, platform.recent(500).single { it.body == expected }.id)
         } finally { preferences.edit().clear().commit() }
     }
 }

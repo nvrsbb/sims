@@ -35,7 +35,8 @@ internal data class DeviceMms(val id: Long, val threadId: Long, val address: Str
 
 internal interface MmsPlatform {
     fun canRead(): Boolean
-    fun recent(): List<DeviceMms>
+    fun recent(limit: Int): List<DeviceMms>
+    fun thread(threadId: Long): List<DeviceMms>
     fun image(partId: Long): Bitmap?
     fun changes(): Flow<Unit>
 }
@@ -58,13 +59,16 @@ internal class AndroidMmsPlatform(private val context: Context, private val cons
     override fun canRead(): Boolean = AndroidSmsPlatform(context, consent).access().canRead &&
         ContextCompat.checkSelfPermission(context, Manifest.permission.RECEIVE_MMS) == PackageManager.PERMISSION_GRANTED
 
-    override fun recent(): List<DeviceMms> {
+    override fun recent(limit: Int): List<DeviceMms> = mmsRows(null, null, limit)
+    override fun thread(threadId: Long): List<DeviceMms> = if (threadId <= 0) emptyList() else mmsRows("thread_id = ?", arrayOf(threadId.toString()), 10_000)
+
+    private fun mmsRows(selection: String?, args: Array<String>?, limit: Int): List<DeviceMms> {
         check(canRead()) { "MMS read access is unavailable." }
         val resolver = context.contentResolver
         val columns = arrayOf("_id", "thread_id", "date", "msg_box", "read", "sub")
-        return resolver.query(Telephony.Mms.CONTENT_URI, columns, null, null, "date DESC, _id DESC")?.use { cursor ->
+        return resolver.query(Telephony.Mms.CONTENT_URI, columns, selection, args, "date DESC, _id DESC")?.use { cursor ->
             buildList {
-                while (size < 100 && cursor.moveToNext()) {
+                while (size < limit && cursor.moveToNext()) {
                     val id = cursor.getLong(0)
                     val addressUri = Telephony.Mms.CONTENT_URI.buildUpon().appendPath(id.toString()).appendPath("addr").build()
                     val addresses = resolver.query(addressUri, arrayOf("address", "type"), null, null, null)?.use { addr ->
