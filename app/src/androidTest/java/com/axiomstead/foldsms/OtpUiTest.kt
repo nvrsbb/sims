@@ -88,6 +88,13 @@ class OtpUiTest {
         compose.runOnIdle { assertEquals(listOf("482913"), copied) }
     }
 
+    @Test fun aCodeOlderThanADayHasNoCopyButtonInTheConversation() {
+        show(listOf(row(1, 10, "EXAMPLEBANK", otp, 2 * 24 * 60 * 60_000L)))
+        compose.onNodeWithTag("device-thread-thread-10").performClick()
+        compose.onNodeWithText("Your verification code is 482913. Do not share it.", substring = true).assertExists()
+        compose.onNodeWithText("Copy code 482913").assertDoesNotExist()
+    }
+
     @Test fun asDefaultAppCopyingMarksTheConversationRead() {
         val actions = FakeActions(true)
         show(listOf(row(1, 10, "EXAMPLEBANK", otp, 60_000)), actions, isDefault = true)

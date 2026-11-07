@@ -68,4 +68,9 @@ class OtpCodeTest {
         assertNull(recentOtp(thread("a", message(1, "Your code is 111111", 10_000_000 - 40 * 60_000)), now))
         assertNull(recentOtp(thread("a", message(1, "Hello", 10_000_000 - 1_000)), now))
     }
+
+    @Test fun aCodeIsOfferedForADayOnly() {
+        assertEquals(true, codeStillUseful(10_000_000 - 23 * 3_600_000L, now))
+        assertEquals(false, codeStillUseful(10_000_000 - 25 * 3_600_000L, now))
+    }
 }
