@@ -30,6 +30,12 @@ What automated tests cannot show: real carriers, notifications, the fold, the pr
 4. Tap Send twice quickly: one message only.
 5. Airplane mode, then send: the message shows **Failed** or **Sending…**, the draft stays, nothing is resent by itself.
 
+## C7. Reply from the notification (3 min, costs 1-2 SMS)
+1. Another phone texts you. Pull down the notification (unlocked) and use **Reply**: type `C7 quick reply` and send. The notice changes to "Reply sent" and goes away; the other phone gets the text; the conversation in FoldSMS shows it as sent.
+2. Reply with a long text (over 160 characters): the notice says it was saved as a draft; nothing is sent; opening FoldSMS shows the text in the reply box for review.
+3. Type something in a conversation's reply box and leave it unsent; then reply from a notification: the notice says you have an unsent message and the draft is untouched.
+4. A notification from a name sender (a shop or bank) has no Reply button.
+
 ## D. Pictures (10 min; optional, MMS depends on the sender's network)
 MMS is limited on the owner's network and some senders cannot send it at all, so a missing picture may be the carrier. Test only with a sender whose phone can send MMS; FoldSMS does not send pictures or take part in RCS, on purpose.
 1. A photo arrives from another phone: notification, picture in the thread, tap enlarges.

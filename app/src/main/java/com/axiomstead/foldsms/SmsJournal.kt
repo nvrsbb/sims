@@ -26,6 +26,7 @@ internal abstract class SmsSendDao {
     @Insert protected abstract suspend fun insertParts(values: List<SmsSendPart>)
     @Query("SELECT * FROM sms_attempts WHERE draftRevision = :revision")
     abstract suspend fun forRevision(revision: Long): List<SmsSendAttempt>
+    @Query("SELECT * FROM sms_attempts ORDER BY createdAt DESC, id DESC LIMIT 30") abstract suspend fun recentAttempts(): List<SmsSendAttempt>
     @Query("SELECT * FROM sms_attempts WHERE id = :id") abstract suspend fun attempt(id: String): SmsSendAttempt?
     @Query("SELECT * FROM sms_parts WHERE operationId = :id ORDER BY partIndex") abstract suspend fun parts(id: String): List<SmsSendPart>
     @Transaction @Query("SELECT * FROM sms_attempts ORDER BY createdAt DESC, id DESC LIMIT 30")

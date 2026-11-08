@@ -12,7 +12,7 @@ internal class SmsSendController(
     private val drafts: SmsDraftStore, private val journal: SmsSendDao
 ) {
     suspend fun confirm(draft: SmsDraft): SmsConfirmation = withContext(Dispatchers.IO) {
-        check(platform.access().canSend) { "SMS sending access is unavailable. Keep a different messaging app as default and review permissions." }
+        check(platform.access().canSend) { "SMS sending access is unavailable. Review the SMS and phone permissions." }
         val recipient = validateSmsDraft(draft)
         check(platform.subscriptions().any { it.id == draft.subscriptionId }) { "Choose an active SIM; the previous SIM is unavailable." }
         val parts = platform.split(draft.body, draft.subscriptionId).toList()

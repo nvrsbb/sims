@@ -61,6 +61,7 @@
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/mms_file_paths" />
         </provider>
         <receiver android:name=".CopyCodeReceiver" android:exported="false" />
+        <receiver android:name=".DirectReplyReceiver" android:exported="false" />
         <receiver android:name=".ClipboardClearReceiver" android:exported="false" />
         <receiver android:name=".SmsSentReceiver" android:exported="false" />
     </application>
