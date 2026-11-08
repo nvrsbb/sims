@@ -1,5 +1,16 @@
 # FoldSMS handoff — 2026-11-05
 
+## Status — 2026-11-08 (read this first; the sections below are history and some are out of date)
+
+The owner is the only user for now and wants to make the most of the unfolded Fold6.
+
+**Done and verified on the phone:** default SMS app, receive and send, notification tap opens the conversation, reply from the notification (including second SIM), Copy code, export, block list, contacts screen with add/edit, tap to call.
+**In review:** #76 balance and carrier codes (USSD, `*123#` for Smart); #77 records that the default Phone app stage is on hold.
+**Still to build (in order):** stage 4 grouping Smart's messages (waits for the owner's sender names, names only); stage 5 dial pad and call history (asks for the call-log permission); then polish what the owner finds on the open Fold (see `PHONE_TEST.md` section E).
+**Not planned:** default Phone app (owner decision 2026-11-08), MMS sending, RCS.
+**Not yet checked on the phone:** balance screen (H3), accessibility with TalkBack and large font, the Latest code card, clipboard clearing, whether a blocked number really stops texts and calls, fold and cover layouts.
+**Rules that still hold:** one PR per change, the owner merges, tests never send or call, no private text in logs, the Samsung Phone keeps handling calls and Google Messages stays installed as a fallback.
+
 ## Current state
 
 - Owner merged MMS read-only receive PR #24. PR #25 fixes its one ambiguous API 35 test assertion; the rerun passed 55 interaction/storage tests and the separate fabricated inbound SMS smoke. #25 remains open and is the base for the device-preview UI stack. The owner now wants SMS/MMS in the main preview screen and the separate companion entry removed. F-16 outbound MMS is still pending.
