@@ -19,6 +19,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -36,13 +38,13 @@ internal fun AppSettings(
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             Column(Modifier.safeDrawingPadding().padding(20.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Settings", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
+                    Text("Settings", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f).semantics { heading() })
                     TextButton(onClick = onDismiss, modifier = Modifier.testTag("settings-done")) { Text("Done") }
                 }
                 Spacer(Modifier.height(8.dp))
                 // Everything between the title and the version scrolls, so no setting is out of reach on the cover screen or at large fonts.
                 Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                Text("Appearance", style = MaterialTheme.typography.titleMedium)
+                Text("Appearance", Modifier.semantics { heading() }, style = MaterialTheme.typography.titleMedium)
                 Column(Modifier.selectableGroup()) {
                     ThemeChoice.entries.forEach { choice ->
                         Row(
@@ -56,7 +58,7 @@ internal fun AppSettings(
                     }
                 }
                 HorizontalDivider(Modifier.padding(vertical = 8.dp))
-                Text("Default messaging app", style = MaterialTheme.typography.titleMedium)
+                Text("Default messaging app", Modifier.semantics { heading() }, style = MaterialTheme.typography.titleMedium)
                 if (isDefaultApp) {
                     Text("FoldSMS is your default app.", Modifier.padding(vertical = 4.dp).testTag("settings-default-status"))
                     TextButton(onClick = { context.startActivity(defaultAppsSettings()) }, modifier = Modifier.testTag("settings-switch-back")) { Text("Choose another app") }
@@ -65,7 +67,7 @@ internal fun AppSettings(
                 }
                 if (onUnblock != null && blockedNumbers.isNotEmpty()) {
                     HorizontalDivider(Modifier.padding(vertical = 8.dp))
-                    Text("Blocked numbers", style = MaterialTheme.typography.titleMedium)
+                    Text("Blocked numbers", Modifier.semantics { heading() }, style = MaterialTheme.typography.titleMedium)
                     blockedNumbers.forEach { number ->
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(number, Modifier.weight(1f).testTag("settings-blocked-$number"))
@@ -75,13 +77,13 @@ internal fun AppSettings(
                 }
                 if (onExport != null) {
                     HorizontalDivider(Modifier.padding(vertical = 8.dp))
-                    Text("Backup", style = MaterialTheme.typography.titleMedium)
+                    Text("Backup", Modifier.semantics { heading() }, style = MaterialTheme.typography.titleMedium)
                     TextButton(onClick = onExport, modifier = Modifier.testTag("settings-export")) { Text("Export messages to a file") }
                 }
                 var entries by remember { mutableIntStateOf(Diagnostics.entryCount(context)) }
                 if (entries > 0) {
                     HorizontalDivider(Modifier.padding(vertical = 8.dp))
-                    Text("Troubleshooting", style = MaterialTheme.typography.titleMedium)
+                    Text("Troubleshooting", Modifier.semantics { heading() }, style = MaterialTheme.typography.titleMedium)
                     Text("$entries entries about failures. They contain no message text, numbers or names.", Modifier.padding(vertical = 4.dp).testTag("settings-diagnostics-count"),
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Row {
