@@ -84,6 +84,7 @@ internal fun DeviceInboxHost(
     openAddress: String? = null,
     onOpenAddressHandled: () -> Unit = {},
     onOpenContacts: () -> Unit = {},
+    onOpenUssd: () -> Unit = {},
     onCall: (String) -> Unit = {},
     intentLauncher: ((android.content.Intent) -> Unit)? = null
 ) {
@@ -289,7 +290,7 @@ internal fun DeviceInboxHost(
                 state, arranged, metadata, open?.key, { openKey = it; pendingAddress = null }, search, { search = it }, listState,
                 showArchive, { showArchive = !showArchive; openKey = null; pendingAddress = null }, filter, { filter = it },
                 onOpenSettings, onRequestPermissions, permissionsAsked, now, zone, onNewMessage = { newMessageDialog = true }, offer = offer,
-                unreadOnly = unreadOnly, onToggleUnread = { unreadOnly = !unreadOnly }, onOpenContacts = onOpenContacts, selection = selection,
+                unreadOnly = unreadOnly, onToggleUnread = { unreadOnly = !unreadOnly }, onOpenContacts = onOpenContacts, onOpenUssd = onOpenUssd, selection = selection,
                 dismissedCode = dismissedCode, onCopyCode = { thread, code, dismissKey -> copyFrom(thread, code, dismissKey) }
             )
         }
@@ -331,6 +332,7 @@ internal fun DeviceInboxScreen(
     unreadOnly: Boolean = false,
     onToggleUnread: () -> Unit = {},
     onOpenContacts: () -> Unit = {},
+    onOpenUssd: () -> Unit = {},
     selection: InboxSelection? = null,
     dismissedCode: String? = null,
     onCopyCode: (DeviceConversation?, String, String?) -> Unit = { _, _, _ -> }
@@ -377,7 +379,7 @@ internal fun DeviceInboxScreen(
                 MenuAction(if (unreadOnly) "Show all messages" else "Show unread only", onClick = onToggleUnread),
                 MenuAction(if (showArchive) "Inbox" else "Archived", onClick = onToggleArchive)
             ) + listOfNotNull(selection?.let { MenuAction("Select messages", onClick = it.onStart) }) +
-                MenuAction("Contacts", onClick = onOpenContacts) + MenuAction("Settings", onClick = onOpenSettings))
+                MenuAction("Contacts", onClick = onOpenContacts) + MenuAction("Balance and codes", onClick = onOpenUssd) + MenuAction("Settings", onClick = onOpenSettings))
         }
         val chipCategories = listOf("All") + chatCategories
         // At large font sizes the three chips no longer fit side by side on a narrow screen: they keep their natural width

@@ -79,6 +79,12 @@ MMS is limited on the owner's network and some senders cannot send it at all, so
 2. Conversation with a number → ⋮ → Call. A sender name (e.g. a bank) has no Call item.
 3. Refuse the permission once: the dialer should open with the number filled in.
 
+## H3. Balance (3 min, may cost a few centavos)
+
+1. Menu → Balance and codes → Check on *123#: the Smart answer shows. Try each SIM if you have two.
+2. Add a code with + (must look like *143#), then remove it.
+3. Switch to airplane mode and Check: a plain failure message, no crash.
+
 ## G. Switching back (3 min)
 1. Choose another app → Google Messages: your messages are all there, new ones arrive there.
 2. Switch to FoldSMS again from the banner or Settings: it works at once.

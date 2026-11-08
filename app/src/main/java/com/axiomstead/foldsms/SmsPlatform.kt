@@ -146,7 +146,7 @@ internal class AndroidSmsPlatform(private val context: Context, private val cons
 
 internal data class SmsServices(val platform: SmsPlatform, val consent: SmsConsentStore, val drafts: SmsDraftStore, val journal: SmsSendDao, val mms: MmsPlatform? = null,
     val actions: MessageActions? = null, val defaultPrompt: DefaultPromptStore? = null,
-    val contacts: ContactsPlatform? = null, val pages: PageSizes = PageSizes(), val blocker: NumberBlocker? = null) {
+    val contacts: ContactsPlatform? = null, val pages: PageSizes = PageSizes(), val blocker: NumberBlocker? = null, val ussd: UssdPlatform? = null) {
     val controller = SmsSendController(platform, consent, drafts, journal)
 }
 
