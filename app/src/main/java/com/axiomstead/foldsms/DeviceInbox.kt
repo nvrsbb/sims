@@ -84,6 +84,7 @@ internal fun DeviceInboxHost(
     openAddress: String? = null,
     onOpenAddressHandled: () -> Unit = {},
     onOpenContacts: () -> Unit = {},
+    onCall: (String) -> Unit = {},
     intentLauncher: ((android.content.Intent) -> Unit)? = null
 ) {
     val context = LocalContext.current
@@ -240,6 +241,7 @@ internal fun DeviceInboxHost(
         val flags = metadata[thread.key]
         listOf(
             MenuAction("Change category") { showCategories = true },
+            *(if (dialableNumber(thread.address) == null) emptyArray() else arrayOf(MenuAction("Call") { onCall(thread.address) })),
             *(if (!isBlockable(thread.address)) emptyArray() else if (thread.contactName == null) arrayOf(MenuAction("Add to contacts") { launch(addToContactsIntent(thread.address)) })
                 else listOfNotNull(editIntentForNumber(state.contacts, thread.address)?.let { intent -> MenuAction("Edit contact") { launch(intent) } }).toTypedArray()),
             MenuAction(if (flags?.pinned == true) "Unpin conversation" else "Pin conversation") {

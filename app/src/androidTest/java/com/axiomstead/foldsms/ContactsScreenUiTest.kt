@@ -140,4 +140,18 @@ class ContactsScreenUiTest {
         assertEquals(null, editIntentForNumber(contacts, "2025559999"))
         assertNotNull(editIntentForNumber(contacts, "+63 917 555 0199"))
     }
+
+    @Test fun callButtonPassesTheNumberOnAndEveryNumberGetsOne() {
+        val called = mutableListOf<String>()
+        compose.setContent {
+            MaterialTheme {
+                ContactsScreen(groups = groupContacts(contacts), canRead = true, onMessage = {}, onCall = { called += it },
+                    onEdit = {}, onAdd = {}, onAllow = {}, onDismiss = {})
+            }
+        }
+        compose.onNodeWithTag("contacts-row-Ana Cruz").performClick()
+        compose.waitUntil(UI_WAIT_MS) { compose.onAllNodesWithTag("contacts-call").fetchSemanticsNodes().size == 2 }
+        compose.onAllNodesWithTag("contacts-call")[1].performClick()
+        assertEquals(listOf("(02) 8555-0100"), called)
+    }
 }
