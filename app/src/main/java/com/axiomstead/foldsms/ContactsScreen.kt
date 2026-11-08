@@ -32,7 +32,7 @@ import androidx.compose.ui.window.DialogProperties
 @Composable
 internal fun ContactsScreen(
     groups: List<ContactGroup>, canRead: Boolean,
-    onMessage: (String) -> Unit, onEdit: (ContactGroup) -> Unit, onAdd: () -> Unit, onAllow: () -> Unit, onDismiss: () -> Unit
+    onMessage: (String) -> Unit, onCall: (String) -> Unit = {}, onEdit: (ContactGroup) -> Unit, onAdd: () -> Unit, onAllow: () -> Unit, onDismiss: () -> Unit
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     var openId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -57,6 +57,7 @@ internal fun ContactsScreen(
                         open.numbers.forEach { number ->
                             Row(Modifier.fillMaxWidth().heightIn(min = 56.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Text(number, Modifier.weight(1f).testTag("contacts-number"))
+                                if (dialableNumber(number) != null) TextButton(onClick = { onCall(number) }, modifier = Modifier.testTag("contacts-call")) { Text("Call") }
                                 TextButton(onClick = { onMessage(number) }, modifier = Modifier.testTag("contacts-message")) { Text("Message") }
                             }
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)

@@ -104,6 +104,7 @@ internal fun FoldSmsApp(
         scope.launch { state.refresh() }
     }
     val context = LocalContext.current
+    val callNumber = rememberCaller(intentLauncher) { message -> state.error = message }
     val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
     val roleResult = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         scope.launch { state.refresh() }
@@ -139,7 +140,7 @@ internal fun FoldSmsApp(
                     permissionsAsked = permissionsAsked,
                     onMakeDefault = makeDefault,
                     launchRecipient = contactTarget ?: launchRecipient, onLaunchRecipientHandled = { contactTarget = null; onLaunchRecipientHandled() },
-                    onOpenContacts = { showContacts = true }, intentLauncher = intentLauncher,
+                    onOpenContacts = { showContacts = true }, onCall = callNumber, intentLauncher = intentLauncher,
                     codeCopier = codeCopier, openAddress = openAddress, onOpenAddressHandled = onOpenAddressHandled
                 )
             }
@@ -150,6 +151,7 @@ internal fun FoldSmsApp(
             ContactsScreen(
                 groups = groups, canRead = state.contactsCanRead || state.services.contacts == null,
                 onMessage = { number -> contactTarget = number; showContacts = false },
+                onCall = callNumber,
                 onEdit = { group -> editContactIntent(group.contactId, group.lookupKey)?.let { intent ->
                     try { (intentLauncher ?: { i: android.content.Intent -> context.startActivity(i) })(intent) } catch (_: android.content.ActivityNotFoundException) { state.error = "No contacts app is available." }
                 } },
