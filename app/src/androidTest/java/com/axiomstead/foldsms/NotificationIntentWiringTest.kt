@@ -54,7 +54,9 @@ class NotificationIntentWiringTest {
             val tap = Intent(context, MainActivity::class.java).setAction(OPEN_CONVERSATION_ACTION).putExtra(EXTRA_OPEN_ADDRESS, "+15550101")
                 .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
             // What the system does for a tap on a notification while the screen is open: it calls onNewIntent on the running one.
-            scenario.onActivity { it.onNewIntent(tap) }
+            scenario.onActivity { activity ->
+                MainActivity::class.java.getDeclaredMethod("onNewIntent", Intent::class.java).apply { isAccessible = true }.invoke(activity, tap) // protected in Android
+            }
             assertTrue("no new intent arrived: ${Diagnostics.read(context)}", waitForLog("arrived=onNewIntent"))
             assertTrue("the inbox did not handle the request: ${Diagnostics.read(context)}", waitForLog("NOTIFICATION_OPEN result="))
         }
