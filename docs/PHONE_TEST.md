@@ -67,6 +67,12 @@ MMS is limited on the owner's network and some senders cannot send it at all, so
 2. Export again **With pictures and attachments**: the file is much bigger, takes longer, and the result line says how many attachments were included or could not be read.
 3. Start an export and press Cancel: the unfinished file is removed.
 
+## H. Contacts (5 min)
+
+1. Menu → Contacts: names show; search a name and 3+ digits of a number.
+2. Tap a name → opens a message to it. Edit opens the system editor.
+3. Open a conversation with an unsaved number → ⋮ → Add to contacts; save, come back, the name shows after refresh.
+
 ## G. Switching back (3 min)
 1. Choose another app → Google Messages: your messages are all there, new ones arrive there.
 2. Switch to FoldSMS again from the banner or Settings: it works at once.
