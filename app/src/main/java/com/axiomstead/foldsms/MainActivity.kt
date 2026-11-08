@@ -84,6 +84,7 @@ internal fun FoldSmsApp(
     var theme by remember { mutableStateOf(themeStore.get()) }
     var showSettings by rememberSaveable { mutableStateOf(false) }
     var showContacts by rememberSaveable { mutableStateOf(false) }
+    var showUssd by rememberSaveable { mutableStateOf(false) }
     var contactTarget by remember { mutableStateOf<String?>(null) } // a number picked in Contacts: opens a conversation with it
     var permissionsAsked by rememberSaveable { mutableStateOf(false) }
     val dark = theme.usesDarkColors(isSystemInDarkTheme())
@@ -104,6 +105,14 @@ internal fun FoldSmsApp(
         scope.launch { state.refresh() }
     }
     val context = LocalContext.current
+    val ussdCodes = remember(context) { UssdCodeStore(context.getSharedPreferences("ussd_codes", android.content.Context.MODE_PRIVATE)) }
+    var savedCodes by remember { mutableStateOf(ussdCodes.all()) }
+    val ussdPlatform = state.services.ussd ?: remember(context) { AndroidUssdPlatform(context.applicationContext) }
+    var pendingUssd by remember { mutableStateOf<Triple<String, Int?, (UssdResult) -> Unit>?>(null) }
+    val askCall = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        pendingUssd?.let { (code, sub, done) -> if (granted) ussdPlatform.run(code, sub, done) else done(UssdResult.Failed("Allow phone calls to check your balance.")) }
+        pendingUssd = null
+    }
     val callNumber = rememberCaller(intentLauncher) { message -> state.error = message }
     val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
     val roleResult = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
@@ -140,7 +149,7 @@ internal fun FoldSmsApp(
                     permissionsAsked = permissionsAsked,
                     onMakeDefault = makeDefault,
                     launchRecipient = contactTarget ?: launchRecipient, onLaunchRecipientHandled = { contactTarget = null; onLaunchRecipientHandled() },
-                    onOpenContacts = { showContacts = true }, onCall = callNumber, intentLauncher = intentLauncher,
+                    onOpenContacts = { showContacts = true }, onOpenUssd = { showUssd = true }, onCall = callNumber, intentLauncher = intentLauncher,
                     codeCopier = codeCopier, openAddress = openAddress, onOpenAddressHandled = onOpenAddressHandled
                 )
             }
@@ -160,6 +169,17 @@ internal fun FoldSmsApp(
                 onDismiss = { showContacts = false }
             )
         }
+        if (showUssd) UssdScreen(
+            codes = savedCodes, sims = remember { runCatching { state.services.platform.subscriptions() }.getOrDefault(emptyList()) },
+            onRun = { code, sub, done ->
+                if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.CALL_PHONE) == android.content.pm.PackageManager.PERMISSION_GRANTED)
+                    ussdPlatform.run(code, sub, done)
+                else { pendingUssd = Triple(code, sub, done); askCall.launch(android.Manifest.permission.CALL_PHONE) }
+            },
+            onSave = { c -> ussdCodes.save(c).also { savedCodes = ussdCodes.all() } },
+            onRemove = { code -> ussdCodes.remove(code); savedCodes = ussdCodes.all() },
+            onDismiss = { showUssd = false }
+        )
         if (showSettings) AppSettings(
             theme = theme,
             onExport = if (state.access.canRead) ({ showSettings = false; export.start() }) else null,
