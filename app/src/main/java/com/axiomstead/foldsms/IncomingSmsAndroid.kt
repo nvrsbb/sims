@@ -68,7 +68,13 @@ internal fun showIncomingNotification(context: Context, message: IncomingSms) {
         ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return
     val manager = context.getSystemService(NotificationManager::class.java) ?: return
     manager.createNotificationChannel(NotificationChannel(CHANNEL, "Messages", NotificationManager.IMPORTANCE_HIGH))
-    val open = PendingIntent.getActivity(context, 0, Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
+    // Tapping the notice opens that conversation. Each sender gets its own PendingIntent (own request code and own data), or the
+    // system would reuse one intent and every notice would open the same place.
+    val open = PendingIntent.getActivity(context, message.address.hashCode(),
+        Intent(context, MainActivity::class.java).setAction(OPEN_CONVERSATION_ACTION)
+            .setData(android.net.Uri.Builder().scheme("foldsms").authority("conversation").appendPath(message.address).build())
+            .putExtra(EXTRA_OPEN_ADDRESS, message.address)
+            .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP),
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
     // The lock screen shows only that a message arrived; sender and text appear once the phone is unlocked.
     val hidden = NotificationCompat.Builder(context, CHANNEL).setSmallIcon(android.R.drawable.stat_notify_chat).setContentTitle("New message").build()

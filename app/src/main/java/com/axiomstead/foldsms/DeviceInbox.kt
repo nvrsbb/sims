@@ -72,7 +72,9 @@ internal fun DeviceInboxHost(
     onMakeDefault: (() -> Unit)? = null,
     launchRecipient: String? = null,
     onLaunchRecipientHandled: () -> Unit = {},
-    codeCopier: ((String) -> Unit)? = null
+    codeCopier: ((String) -> Unit)? = null,
+    openAddress: String? = null,
+    onOpenAddressHandled: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val store = metadataStore ?: remember(context) { DeviceMetadataStore.get(context) }
@@ -119,6 +121,17 @@ internal fun DeviceInboxHost(
         else { openKey = null; pendingAddress = number }
     }
     // A number handed over by another app (sms:/smsto: link). Same validation as typing it; nothing is sent.
+    // A notification asks for the conversation with one sender. It is opened once the list has it; if it never shows up (for
+    // example it was deleted), the request is dropped and the list stays.
+    LaunchedEffect(openAddress, state.conversations, state.hasLoaded) {
+        val address = openAddress ?: return@LaunchedEffect
+        val thread = state.conversations.firstOrNull { sameRecipient(it.address, address) }
+        if (thread != null) {
+            openKey = thread.key; pendingAddress = null
+            showArchive = isArchived(thread, metadata[thread.key])
+            onOpenAddressHandled()
+        } else if (state.hasLoaded) onOpenAddressHandled()
+    }
     LaunchedEffect(launchRecipient, state.access.enabled) {
         val number = launchRecipient ?: return@LaunchedEffect
         runCatching { smsAddress(number) }.onSuccess { startConversation(it) }
