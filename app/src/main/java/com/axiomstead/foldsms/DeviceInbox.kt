@@ -137,8 +137,12 @@ internal fun DeviceInboxHost(
         if (thread != null) {
             openKey = thread.key; pendingAddress = null
             showArchive = isArchived(thread, metadata[thread.key])
+            Diagnostics.record(context, "NOTIFICATION_OPEN", "result=opened conversations=${state.conversations.size}")
             onOpenAddressHandled()
-        } else if (state.hasLoaded) onOpenAddressHandled()
+        } else if (state.hasLoaded) {
+            Diagnostics.record(context, "NOTIFICATION_OPEN", "result=not_found conversations=${state.conversations.size} exhausted=${state.exhausted}")
+            onOpenAddressHandled()
+        }
     }
     LaunchedEffect(launchRecipient, state.access.enabled) {
         val number = launchRecipient ?: return@LaunchedEffect

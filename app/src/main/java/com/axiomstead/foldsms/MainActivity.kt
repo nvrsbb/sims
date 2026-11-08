@@ -33,19 +33,23 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (savedInstanceState == null) { recipient = recipientFrom(intent); openAddress = intent?.getStringExtra(EXTRA_OPEN_ADDRESS) }
+        if (savedInstanceState == null) recipient = recipientFrom(intent)
+        // Read even after a recreation: the system may have recreated the screen to deliver a notification tap. The extra is
+        // removed once it has been used (below), so a later recreation does not open the same conversation again.
+        intent?.getStringExtra(EXTRA_OPEN_ADDRESS)?.let { openAddress = it; Diagnostics.record(this, "NOTIFICATION_TAP", "arrived=onCreate recreated=${savedInstanceState != null}") }
         setContent {
             val context = LocalContext.current
             val themeStore = remember(context) { ThemeStore(context.applicationContext) }
             FoldSmsApp(themeStore, launchRecipient = recipient, onLaunchRecipientHandled = { recipient = null },
-                openAddress = openAddress, onOpenAddressHandled = { openAddress = null })
+                openAddress = openAddress, onOpenAddressHandled = { openAddress = null; intent?.removeExtra(EXTRA_OPEN_ADDRESS) })
         }
     }
 
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
         recipientFrom(intent)?.let { recipient = it }
-        intent.getStringExtra(EXTRA_OPEN_ADDRESS)?.let { openAddress = it }
+        setIntent(intent)
+        intent.getStringExtra(EXTRA_OPEN_ADDRESS)?.let { openAddress = it; Diagnostics.record(this, "NOTIFICATION_TAP", "arrived=onNewIntent") }
     }
 }
 
