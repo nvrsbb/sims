@@ -36,7 +36,8 @@ What automated tests cannot show: real carriers, notifications, the fold, the pr
 3. Type something in a conversation's reply box and leave it unsent; then reply from a notification: the notice says you have an unsent message and the draft is untouched.
 4. A notification from a name sender (a shop or bank) has no Reply button.
 
-## D. Pictures (10 min; see the MMS notes in the chat for the iPhone)
+## D. Pictures (10 min; optional, MMS depends on the sender's network)
+MMS is limited on the owner's network and some senders cannot send it at all, so a missing picture may be the carrier. Test only with a sender whose phone can send MMS; FoldSMS does not send pictures or take part in RCS, on purpose.
 1. A photo arrives from another phone: notification, picture in the thread, tap enlarges.
 2. Photo with a caption, then several photos, then a short video (a video may be too big for the carrier, that is normal).
 3. A group message with three people.
@@ -71,4 +72,4 @@ What automated tests cannot show: real carriers, notifications, the fold, the pr
 2. Switch to FoldSMS again from the banner or Settings: it works at once.
 
 ## Not covered here
-Sending pictures (not built), RCS chats (not possible in FoldSMS; they stay in Google Messages), restoring a backup into FoldSMS (not built; the export is a safety copy).
+Sending pictures and RCS (deliberately not built; RCS chats stay in Google Messages), restoring a backup into FoldSMS (not built; the export is a safety copy).
