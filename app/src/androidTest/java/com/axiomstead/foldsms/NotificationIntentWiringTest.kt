@@ -49,8 +49,8 @@ class NotificationIntentWiringTest {
     }
 
     @Test fun aSecondTapWhileTheScreenIsOpenArrivesAsANewIntent() {
-        val first = Intent(context, MainActivity::class.java)
-        ActivityScenario.launch<MainActivity>(first).use { scenario ->
+        val scenario = ActivityScenario.launch<MainActivity>(Intent(context, MainActivity::class.java))
+        try {
             val tap = Intent(context, MainActivity::class.java).setAction(OPEN_CONVERSATION_ACTION).putExtra(EXTRA_OPEN_ADDRESS, "+15550101")
                 .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
             // What the system does for a tap on a notification while the screen is open: it calls onNewIntent on the running one.
@@ -59,6 +59,11 @@ class NotificationIntentWiringTest {
             }
             assertTrue("no new intent arrived: ${Diagnostics.read(context)}", waitForLog("arrived=onNewIntent"))
             assertTrue("the inbox did not handle the request: ${Diagnostics.read(context)}", waitForLog("NOTIFICATION_OPEN result="))
+        } finally {
+            // Closing waits for the screen to be destroyed, which an emulator sometimes does not report in time; that is not what
+            // this test is about, so the finish is requested and a late report is ignored.
+            runCatching { scenario.onActivity { it.finish() } }
+            runCatching { scenario.close() }
         }
     }
 }
