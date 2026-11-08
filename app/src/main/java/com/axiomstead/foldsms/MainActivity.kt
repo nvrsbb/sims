@@ -25,22 +25,29 @@ import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/** Set by a notification: open the conversation with this sender. */
+internal const val EXTRA_OPEN_ADDRESS = "com.axiomstead.foldsms.OPEN_ADDRESS"
+internal const val OPEN_CONVERSATION_ACTION = "com.axiomstead.foldsms.OPEN_CONVERSATION"
+
 class MainActivity : ComponentActivity() {
     private var recipient by mutableStateOf<String?>(null)
+    private var openAddress by mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (savedInstanceState == null) recipient = recipientFrom(intent)
+        if (savedInstanceState == null) { recipient = recipientFrom(intent); openAddress = intent?.getStringExtra(EXTRA_OPEN_ADDRESS) }
         setContent {
             val context = LocalContext.current
             val themeStore = remember(context) { ThemeStore(context.applicationContext) }
-            FoldSmsApp(themeStore, launchRecipient = recipient, onLaunchRecipientHandled = { recipient = null })
+            FoldSmsApp(themeStore, launchRecipient = recipient, onLaunchRecipientHandled = { recipient = null },
+                openAddress = openAddress, onOpenAddressHandled = { openAddress = null })
         }
     }
 
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
         recipientFrom(intent)?.let { recipient = it }
+        intent.getStringExtra(EXTRA_OPEN_ADDRESS)?.let { openAddress = it }
     }
 }
 
@@ -67,7 +74,9 @@ internal fun FoldSmsApp(
     launchRecipient: String? = null,
     onLaunchRecipientHandled: () -> Unit = {},
     codeCopier: ((String) -> Unit)? = null,
-    exportTarget: (() -> android.net.Uri)? = null
+    exportTarget: (() -> android.net.Uri)? = null,
+    openAddress: String? = null,
+    onOpenAddressHandled: () -> Unit = {}
 ) {
     var theme by remember { mutableStateOf(themeStore.get()) }
     var showSettings by rememberSaveable { mutableStateOf(false) }
@@ -137,7 +146,7 @@ internal fun FoldSmsApp(
                     permissionsAsked = permissionsAsked,
                     onMakeDefault = makeDefault,
                     launchRecipient = launchRecipient, onLaunchRecipientHandled = onLaunchRecipientHandled,
-                    codeCopier = codeCopier
+                    codeCopier = codeCopier, openAddress = openAddress, onOpenAddressHandled = onOpenAddressHandled
                 )
             }
         }
