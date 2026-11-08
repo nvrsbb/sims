@@ -82,9 +82,14 @@ internal fun DeviceInboxHost(
     onLaunchRecipientHandled: () -> Unit = {},
     codeCopier: ((String) -> Unit)? = null,
     openAddress: String? = null,
-    onOpenAddressHandled: () -> Unit = {}
+    onOpenAddressHandled: () -> Unit = {},
+    onOpenContacts: () -> Unit = {},
+    intentLauncher: ((android.content.Intent) -> Unit)? = null
 ) {
     val context = LocalContext.current
+    val launch = intentLauncher ?: { intent ->
+        try { context.startActivity(intent) } catch (_: android.content.ActivityNotFoundException) { state.error = "No contacts app is available." }
+    }
     val store = metadataStore ?: remember(context) { DeviceMetadataStore.get(context) }
     val scope = rememberCoroutineScope()
     val metadata by store.all.collectAsState(initial = emptyMap())
@@ -235,6 +240,8 @@ internal fun DeviceInboxHost(
         val flags = metadata[thread.key]
         listOf(
             MenuAction("Change category") { showCategories = true },
+            *(if (!isBlockable(thread.address)) emptyArray() else if (thread.contactName == null) arrayOf(MenuAction("Add to contacts") { launch(addToContactsIntent(thread.address)) })
+                else listOfNotNull(editIntentForNumber(state.contacts, thread.address)?.let { intent -> MenuAction("Edit contact") { launch(intent) } }).toTypedArray()),
             MenuAction(if (flags?.pinned == true) "Unpin conversation" else "Pin conversation") {
                 scope.launch { store.setPinned(thread.key, flags?.pinned != true) }
             },
@@ -280,7 +287,7 @@ internal fun DeviceInboxHost(
                 state, arranged, metadata, open?.key, { openKey = it; pendingAddress = null }, search, { search = it }, listState,
                 showArchive, { showArchive = !showArchive; openKey = null; pendingAddress = null }, filter, { filter = it },
                 onOpenSettings, onRequestPermissions, permissionsAsked, now, zone, onNewMessage = { newMessageDialog = true }, offer = offer,
-                unreadOnly = unreadOnly, onToggleUnread = { unreadOnly = !unreadOnly }, selection = selection,
+                unreadOnly = unreadOnly, onToggleUnread = { unreadOnly = !unreadOnly }, onOpenContacts = onOpenContacts, selection = selection,
                 dismissedCode = dismissedCode, onCopyCode = { thread, code, dismissKey -> copyFrom(thread, code, dismissKey) }
             )
         }
@@ -321,6 +328,7 @@ internal fun DeviceInboxScreen(
     offer: DefaultOffer? = null,
     unreadOnly: Boolean = false,
     onToggleUnread: () -> Unit = {},
+    onOpenContacts: () -> Unit = {},
     selection: InboxSelection? = null,
     dismissedCode: String? = null,
     onCopyCode: (DeviceConversation?, String, String?) -> Unit = { _, _, _ -> }
@@ -366,7 +374,8 @@ internal fun DeviceInboxScreen(
             OverflowMenu("device-inbox-actions", "menu", listOf(
                 MenuAction(if (unreadOnly) "Show all messages" else "Show unread only", onClick = onToggleUnread),
                 MenuAction(if (showArchive) "Inbox" else "Archived", onClick = onToggleArchive)
-            ) + listOfNotNull(selection?.let { MenuAction("Select messages", onClick = it.onStart) }) + MenuAction("Settings", onClick = onOpenSettings))
+            ) + listOfNotNull(selection?.let { MenuAction("Select messages", onClick = it.onStart) }) +
+                MenuAction("Contacts", onClick = onOpenContacts) + MenuAction("Settings", onClick = onOpenSettings))
         }
         val chipCategories = listOf("All") + chatCategories
         // At large font sizes the three chips no longer fit side by side on a narrow screen: they keep their natural width

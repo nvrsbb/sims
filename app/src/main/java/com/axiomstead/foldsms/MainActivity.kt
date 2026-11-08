@@ -78,10 +78,13 @@ internal fun FoldSmsApp(
     codeCopier: ((String) -> Unit)? = null,
     exportTarget: (() -> android.net.Uri)? = null,
     openAddress: String? = null,
-    onOpenAddressHandled: () -> Unit = {}
+    onOpenAddressHandled: () -> Unit = {},
+    intentLauncher: ((android.content.Intent) -> Unit)? = null
 ) {
     var theme by remember { mutableStateOf(themeStore.get()) }
     var showSettings by rememberSaveable { mutableStateOf(false) }
+    var showContacts by rememberSaveable { mutableStateOf(false) }
+    var contactTarget by remember { mutableStateOf<String?>(null) } // a number picked in Contacts: opens a conversation with it
     var permissionsAsked by rememberSaveable { mutableStateOf(false) }
     val dark = theme.usesDarkColors(isSystemInDarkTheme())
     val colors = if (dark) darkAppColors else lightAppColors
@@ -135,12 +138,26 @@ internal fun FoldSmsApp(
                     onRequestPermissions = { requestPermissions.launch(smsPermissions) },
                     permissionsAsked = permissionsAsked,
                     onMakeDefault = makeDefault,
-                    launchRecipient = launchRecipient, onLaunchRecipientHandled = onLaunchRecipientHandled,
+                    launchRecipient = contactTarget ?: launchRecipient, onLaunchRecipientHandled = { contactTarget = null; onLaunchRecipientHandled() },
+                    onOpenContacts = { showContacts = true }, intentLauncher = intentLauncher,
                     codeCopier = codeCopier, openAddress = openAddress, onOpenAddressHandled = onOpenAddressHandled
                 )
             }
         }
         export.Dialogs()
+        if (showContacts) {
+            val groups = remember(state.contacts) { groupContacts(state.contacts) }
+            ContactsScreen(
+                groups = groups, canRead = state.contactsCanRead || state.services.contacts == null,
+                onMessage = { number -> contactTarget = number; showContacts = false },
+                onEdit = { group -> editContactIntent(group.contactId, group.lookupKey)?.let { intent ->
+                    try { (intentLauncher ?: { i: android.content.Intent -> context.startActivity(i) })(intent) } catch (_: android.content.ActivityNotFoundException) { state.error = "No contacts app is available." }
+                } },
+                onAdd = { try { (intentLauncher ?: { i: android.content.Intent -> context.startActivity(i) })(newContactIntent()) } catch (_: android.content.ActivityNotFoundException) { state.error = "No contacts app is available." } },
+                onAllow = { requestPermissions.launch(smsPermissions) },
+                onDismiss = { showContacts = false }
+            )
+        }
         if (showSettings) AppSettings(
             theme = theme,
             onExport = if (state.access.canRead) ({ showSettings = false; export.start() }) else null,
