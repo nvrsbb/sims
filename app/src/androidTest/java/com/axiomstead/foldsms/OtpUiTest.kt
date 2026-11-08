@@ -53,7 +53,7 @@ class OtpUiTest {
 
     @Test fun aRecentCodeShowsInTheLatestCodeCardAndCopyingItHidesTheCard() {
         show(listOf(row(1, 10, "EXAMPLEBANK", otp, 60_000), row(2, 20, "2025550101", "Lunch?", 30_000)))
-        compose.onNodeWithTag("device-latest-code-value").assertTextEquals("482913")
+        compose.onNodeWithTag("device-latest-code-value", useUnmergedTree = true).assertTextEquals("482913") // the card is one merged node for a screen reader, so the value is read from the unmerged tree
         compose.onNodeWithTag("device-latest-code-copy").performClick()
         compose.runOnIdle { assertEquals(listOf("482913"), copied) }
         compose.onNodeWithTag("device-latest-code").assertDoesNotExist()

@@ -32,6 +32,9 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -127,7 +130,7 @@ internal fun DeviceConversationScreen(
                 Column(Modifier.weight(1f)) {
                     Text(conversation.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
                         maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.testTag("device-conversation-title"))
+                        modifier = Modifier.testTag("device-conversation-title").semantics { heading() })
                     val mmsCount = conversation.messages.count { it.kind == DeviceMessageKind.MMS }
                     Text(listOfNotNull(conversation.contactName?.let { conversation.address.ifBlank { null } }, if (mmsCount > 0) "SMS and MMS" else "SMS", if (blocked) "Blocked" else null).joinToString(" · "), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
                 }
@@ -174,7 +177,8 @@ private fun MessageBubble(
     val outgoing = message.outgoing
     Box(Modifier.fillMaxWidth().testTag("device-message-${message.key}"), contentAlignment = if (outgoing) Alignment.CenterEnd else Alignment.CenterStart) {
         Surface(
-            Modifier.widthIn(max = 520.dp).fillMaxWidth(0.84f).wrapContentWidth(if (outgoing) Alignment.End else Alignment.Start),
+            Modifier.widthIn(max = 520.dp).fillMaxWidth(0.84f).wrapContentWidth(if (outgoing) Alignment.End else Alignment.Start)
+                .semantics { stateDescription = if (outgoing) "Sent by you" else "Received" },
             shape = bubbleShape(outgoing),
             color = if (outgoing) MaterialTheme.colorScheme.primary.copy(alpha = 0.16f).compositeOver(MaterialTheme.colorScheme.surface)
                 else MaterialTheme.colorScheme.surface

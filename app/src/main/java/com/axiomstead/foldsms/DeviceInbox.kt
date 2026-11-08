@@ -10,6 +10,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
@@ -357,19 +365,30 @@ internal fun DeviceInboxScreen(
             ) + listOfNotNull(selection?.let { MenuAction("Select messages", onClick = it.onStart) }) + MenuAction("Settings", onClick = onOpenSettings))
         }
         val chipCategories = listOf("All") + chatCategories
-        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp).testTag("device-category-filters"), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        // At large font sizes the three chips no longer fit side by side on a narrow screen: they keep their natural width
+        // and the row scrolls, so no label is cut. At normal sizes they share the row without scrolling.
+        val largeFont = androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.15f
+        Row(
+            Modifier.fillMaxWidth().then(if (largeFont) Modifier.horizontalScroll(rememberScrollState()) else Modifier)
+                .padding(horizontal = 8.dp, vertical = 4.dp).testTag("device-category-filters"),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
             chipCategories.forEach { c ->
                 val label = c
+                val selectedChip = c == filter
                 Surface(
                     onClick = { onFilter(c) },
-                    modifier = Modifier.weight(label.length + 2f).testTag("device-category-filter-$c"),
+                    modifier = (if (largeFont) Modifier else Modifier.weight(label.length + 2f)).heightIn(min = 48.dp).testTag("device-category-filter-$c")
+                        .semantics { role = Role.Tab; selected = selectedChip },
                     shape = RoundedCornerShape(8.dp),
-                    color = if (c == filter) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f) else Color.Transparent,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, if (c == filter) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant)
+                    color = if (selectedChip) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f) else Color.Transparent,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, if (selectedChip) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant)
                 ) {
-                    Text(label, Modifier.padding(horizontal = 2.dp, vertical = 7.dp), fontSize = 14.sp, maxLines = 1, softWrap = false,
-                        overflow = TextOverflow.Clip, textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                        color = if (c == filter) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                    Box(Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(horizontal = if (largeFont) 16.dp else 2.dp), contentAlignment = Alignment.Center) {
+                        Text(label, fontSize = 14.sp, maxLines = 1, softWrap = false, overflow = TextOverflow.Clip,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            color = if (selectedChip) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
             }
         }
@@ -378,13 +397,13 @@ internal fun DeviceInboxScreen(
             shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
         ) {
             Row(Modifier.padding(start = 14.dp, end = 6.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
+                Column(Modifier.weight(1f).semantics(mergeDescendants = true) { contentDescription = "Latest code ${latest.code}, from ${latest.sender}" }) {
                     Text("Latest code · ${latest.sender}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(latest.code, Modifier.testTag("device-latest-code-value"), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
                 }
                 Button(onClick = {
                     onCopyCode(state.conversations.firstOrNull { it.key == latest.conversationKey }, latest.code, "${latest.dateMillis}:${latest.code}")
-                }, modifier = Modifier.testTag("device-latest-code-copy")) { Text("Copy") }
+                }, modifier = Modifier.testTag("device-latest-code-copy").semantics { contentDescription = "Copy code ${latest.code}" }) { Text("Copy") }
             }
         }
         Column(Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
@@ -476,6 +495,10 @@ internal fun DeviceConversationRow(
         Modifier.fillMaxWidth()
             .background(if (selected) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent)
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            .semantics(mergeDescendants = true) {
+                val facts = listOfNotNull(if (unread > 0) "$unread unread" else null, if (pinned) "pinned" else null, if (last.failed) "last message failed" else null)
+                if (facts.isNotEmpty()) stateDescription = facts.joinToString(", ")
+            }
             .testTag("device-thread-${conversation.key}").padding(horizontal = 12.dp, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -494,7 +517,7 @@ internal fun DeviceConversationRow(
                 val prefix = if (last.outgoing) "You: " else ""
                 Text(prefix + last.preview.lineSequence().first(), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (code != null) Text("Copy $code", Modifier.padding(start = 8.dp).clickable { onCopyCode(code) }.padding(vertical = 2.dp)
+                if (code != null) Text("Copy $code", Modifier.padding(start = 8.dp).heightIn(min = 48.dp).clickable(role = Role.Button) { onCopyCode(code) }.wrapContentHeight(Alignment.CenterVertically).padding(horizontal = 4.dp)
                     .testTag("device-copy-code-${conversation.key}"), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                 if (pinned) Text("Pinned", Modifier.padding(start = 6.dp).testTag("device-pinned-${conversation.key}"), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                 if (last.failed) Text("Failed", Modifier.padding(start = 6.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
