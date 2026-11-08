@@ -90,6 +90,7 @@ internal fun showIncomingNotification(context: Context, message: IncomingSms) {
         .setStyle(NotificationCompat.BigTextStyle().bigText(message.body.trim()))
         .setCategory(NotificationCompat.CATEGORY_MESSAGE).setVisibility(NotificationCompat.VISIBILITY_PRIVATE).setPublicVersion(hidden)
         .setContentIntent(open).setAutoCancel(true)
+    replyAction(context, message.address, message.subscriptionId)?.let(builder::addAction)
     if (copy != null) builder.addAction(0, "Copy code", copy).setTimeoutAfter(10 * 60_000L) // a code is useless after a few minutes
     val notification = builder.build()
     manager.notify(message.address, 0, notification) // one slot per sender: a newer message replaces the older notice
