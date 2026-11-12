@@ -103,6 +103,17 @@ class ReplyComposerTest {
         assertEquals(listOf("Hello there"), sms.requests.single().parts)
     }
 
+    @Test fun typingASpaceTidiesPunctuationAndSendTidiesTheLastWord() {
+        seedAndOpen()
+        compose.onNodeWithTag("reply-composer").performTextInput("hi,Ana.ok ")
+        compose.waitUntil(UI_WAIT_MS) { compose.onAllNodesWithText("hi, Ana. Ok ").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("reply-composer").performTextInput("thanks.bye")
+        compose.waitUntil(UI_WAIT_MS) { runCatching { compose.onNodeWithTag("reply-send").assertIsEnabled() }.isSuccess }
+        compose.onNodeWithTag("reply-send").click()
+        compose.waitUntil(UI_WAIT_MS) { sms.requests.size == 1 }
+        assertEquals(listOf("hi, Ana. Ok thanks. Bye"), sms.requests.single().parts)
+    }
+
     @Test fun tappingSendTwiceQuicklySendsOnce() {
         seedAndOpen()
         compose.onNodeWithTag("reply-composer").performTextInput("Hello there")

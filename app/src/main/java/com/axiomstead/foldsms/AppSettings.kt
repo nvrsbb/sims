@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -56,6 +57,19 @@ internal fun AppSettings(
                             Text(choice.label)
                         }
                     }
+                }
+                HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                Text("Typing", Modifier.semantics { heading() }, style = MaterialTheme.typography.titleMedium)
+                var tidy by remember { mutableStateOf(TypingPrefs.tidy(context)) }
+                Row(
+                    Modifier.fillMaxWidth().heightIn(min = 56.dp).selectable(selected = tidy, role = Role.Switch, onClick = { tidy = !tidy; TypingPrefs.setTidy(context, tidy) }).testTag("settings-tidy"),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Tidy punctuation")
+                        Text("Adds a space after , . ! ? and capitalizes after a full stop. Web addresses and numbers are left alone.", style = MaterialTheme.typography.bodySmall)
+                    }
+                    Switch(checked = tidy, onCheckedChange = null)
                 }
                 HorizontalDivider(Modifier.padding(vertical = 8.dp))
                 Text("Default messaging app", Modifier.semantics { heading() }, style = MaterialTheme.typography.titleMedium)
