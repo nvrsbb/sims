@@ -85,6 +85,13 @@ MMS is limited on the owner's network and some senders cannot send it at all, so
 2. Add a code with + (must look like *143#), then remove it.
 3. Switch to airplane mode and Check: a plain failure message, no crash.
 
+## H4. Tidy typing (2 min)
+
+1. In a reply type `hi,ana.ok ` then a space: it should become `hi, ana. Ok `.
+2. Type `example.com` and `3.5` and `10:30`: they must stay unchanged.
+3. Backspace over an inserted space: it must stay deleted.
+4. Settings → Typing → turn off: nothing is changed any more.
+
 ## G. Switching back (3 min)
 1. Choose another app → Google Messages: your messages are all there, new ones arrive there.
 2. Switch to FoldSMS again from the banner or Settings: it works at once.

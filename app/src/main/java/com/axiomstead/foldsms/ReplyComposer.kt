@@ -14,7 +14,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -30,7 +33,9 @@ import kotlinx.coroutines.withContext
 @Composable
 internal fun ReplyComposer(state: DeviceMessagesState, conversation: DeviceConversation, modifier: Modifier = Modifier) {
     val services = state.services
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    var selection by remember(conversation.address) { mutableStateOf(TextRange.Zero) }
     val draft by remember(services) { services.drafts.changes }.collectAsState(initial = services.drafts.read())
     val attempts by remember(services) { services.journal.observeRecent() }.collectAsState(initial = emptyList())
     var busy by remember { mutableStateOf(false) }
@@ -113,8 +118,14 @@ internal fun ReplyComposer(state: DeviceMessagesState, conversation: DeviceConve
                     }
                     Row(verticalAlignment = Alignment.Bottom) {
                         TextField(
-                            value = composerText(conversation.address, draft),
-                            onValueChange = { text -> services.drafts.edit(address = conversation.address, body = text, subscriptionId = sim?.id) },
+                            value = composerText(conversation.address, draft).let { shown -> TextFieldValue(shown, TextRange(selection.start.coerceIn(0, shown.length), selection.end.coerceIn(0, shown.length))) },
+                            onValueChange = { typed ->
+                                val before = composerText(conversation.address, draft)
+                                val result = if (TypingPrefs.tidy(context)) tidyWhileTyping(before, typed.text, typed.selection.start, typed.selection.end)
+                                    else Tidied(typed.text, typed.selection.start, typed.selection.end)
+                                selection = TextRange(result.start, result.end)
+                                services.drafts.edit(address = conversation.address, body = result.text, subscriptionId = sim?.id)
+                            },
                             placeholder = { Text("SMS message") },
                             modifier = Modifier.weight(1f).testTag("reply-composer"),
                             minLines = 1, maxLines = 5, shape = RoundedCornerShape(24.dp),
@@ -131,6 +142,7 @@ internal fun ReplyComposer(state: DeviceMessagesState, conversation: DeviceConve
                                 busy = true; error = null
                                 scope.launch {
                                     try {
+                                        if (TypingPrefs.tidy(context)) tidyPunctuation(services.drafts.read().body).text.let { tidy -> services.drafts.edit(body = tidy) }
                                         val send = services.controller.confirm(services.drafts.read())
                                         if (needsSendReview(conversation.messages.isNotEmpty(), send.parts.size, duplicateRiskFor(send))) confirmation = send
                                         else services.controller.submit(send)
