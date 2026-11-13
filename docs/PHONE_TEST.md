@@ -87,7 +87,7 @@ MMS is limited on the owner's network and some senders cannot send it at all, so
 
 ## H4. Tidy typing (2 min)
 
-1. In a reply type `hi,ana.ok ` then a space: it should become `hi, ana. Ok `.
+1. In a reply type `hi,ana.ok ` then a space: it should become `Hi, ana. Ok `.
 2. Type `example.com` and `3.5` and `10:30`: they must stay unchanged.
 3. Backspace over an inserted space: it must stay deleted.
 4. Type fast, with and without swipe typing: the letters must stay in the order you typed them.
