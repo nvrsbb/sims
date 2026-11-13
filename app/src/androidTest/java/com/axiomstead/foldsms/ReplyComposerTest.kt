@@ -103,6 +103,13 @@ class ReplyComposerTest {
         assertEquals(listOf("Hello there"), sms.requests.single().parts)
     }
 
+    @Test fun lettersTypedInQuickSuccessionStayInOrder() {
+        seedAndOpen()
+        val box = compose.onNodeWithTag("reply-composer")
+        listOf("te", "st", ".ak", "aja", ".h").forEach { box.performTextInput(it) } // no waiting in between, like fast typing
+        compose.waitUntil(UI_WAIT_MS) { compose.onAllNodesWithText("test.akaja.h").fetchSemanticsNodes().isNotEmpty() }
+    }
+
     @Test fun typingASpaceTidiesPunctuationAndSendTidiesTheLastWord() {
         seedAndOpen()
         compose.onNodeWithTag("reply-composer").performTextInput("hi,Ana.ok ")

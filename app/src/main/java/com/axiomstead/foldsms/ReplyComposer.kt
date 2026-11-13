@@ -35,8 +35,18 @@ internal fun ReplyComposer(state: DeviceMessagesState, conversation: DeviceConve
     val services = state.services
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var selection by remember(conversation.address) { mutableStateOf(TextRange.Zero) }
     val draft by remember(services) { services.drafts.changes }.collectAsState(initial = services.drafts.read())
+    // What the box shows lives here, so typing never waits for the draft flow (a stale value made letters land out of order).
+    // The draft replaces it only when something else changed the draft: sending, discarding, restoring.
+    var field by remember(conversation.address) { mutableStateOf(composerText(conversation.address, draft).let { TextFieldValue(it, TextRange(it.length)) }) }
+    var ownRevision by remember(conversation.address) { mutableLongStateOf(draft.revision) }
+    LaunchedEffect(draft.revision) {
+        if (draft.revision > ownRevision) {
+            ownRevision = draft.revision
+            val shown = composerText(conversation.address, draft)
+            if (shown != field.text) field = TextFieldValue(shown, TextRange(shown.length))
+        }
+    }
     val attempts by remember(services) { services.journal.observeRecent() }.collectAsState(initial = emptyList())
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -118,13 +128,15 @@ internal fun ReplyComposer(state: DeviceMessagesState, conversation: DeviceConve
                     }
                     Row(verticalAlignment = Alignment.Bottom) {
                         TextField(
-                            value = composerText(conversation.address, draft).let { shown -> TextFieldValue(shown, TextRange(selection.start.coerceIn(0, shown.length), selection.end.coerceIn(0, shown.length))) },
+                            value = field,
                             onValueChange = { typed ->
-                                val before = composerText(conversation.address, draft)
+                                val before = field.text
                                 val result = if (TypingPrefs.tidy(context)) tidyWhileTyping(before, typed.text, typed.selection.start, typed.selection.end)
                                     else Tidied(typed.text, typed.selection.start, typed.selection.end)
-                                selection = TextRange(result.start, result.end)
+                                // The keyboard's own value (with its composing word) is kept unless the text was really tidied.
+                                field = if (result.text == typed.text) typed else TextFieldValue(result.text, TextRange(result.start, result.end))
                                 services.drafts.edit(address = conversation.address, body = result.text, subscriptionId = sim?.id)
+                                ownRevision = services.drafts.read().revision
                             },
                             placeholder = { Text("SMS message") },
                             modifier = Modifier.weight(1f).testTag("reply-composer"),
