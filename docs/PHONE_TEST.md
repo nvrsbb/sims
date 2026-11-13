@@ -90,7 +90,8 @@ MMS is limited on the owner's network and some senders cannot send it at all, so
 1. In a reply type `hi,ana.ok ` then a space: it should become `hi, ana. Ok `.
 2. Type `example.com` and `3.5` and `10:30`: they must stay unchanged.
 3. Backspace over an inserted space: it must stay deleted.
-4. Settings → Typing → turn off: nothing is changed any more.
+4. Type fast, with and without swipe typing: the letters must stay in the order you typed them.
+5. Settings → Typing → turn off: nothing is changed any more.
 
 ## G. Switching back (3 min)
 1. Choose another app → Google Messages: your messages are all there, new ones arrive there.
