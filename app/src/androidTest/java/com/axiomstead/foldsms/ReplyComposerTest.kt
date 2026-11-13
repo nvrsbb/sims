@@ -84,7 +84,7 @@ class ReplyComposerTest {
     @Test fun aMessageOfSeveralPartsAsksFirstShowingRecipientSimPartsAndTextAndCancelSendsNothing() {
         seedAndOpen()
         compose.onNodeWithTag("reply-send").assertIsNotEnabled() // nothing typed yet
-        val long = "x".repeat(150) // 70 characters per part in the fake platform: three parts
+        val long = "X" + "x".repeat(149) // starts with a capital: Send now capitalizes the first letter, so a lowercase start would change the text // 70 characters per part in the fake platform: three parts
         review(long)
         compose.onNodeWithText("To: 2025550101").assertExists()
         compose.onNodeWithText("SIM 1 · Fabricated SIM").assertExists()
