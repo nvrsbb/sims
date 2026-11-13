@@ -16,7 +16,7 @@ private fun linkLike(token: String): Boolean {
 
 /**
  * Puts one space after , . ! ? when a letter follows straight away (also after : and ; when they follow a letter, so ":D" stays),
- * and capitalizes the first letter after . ! ? and a space. Left alone: numbers like 3.5 or 1,000 or 10:30, web and e-mail
+ * and capitalizes the first letter of the message and the first letter after . ! ? and a space. Left alone: numbers like 3.5 or 1,000 or 10:30, web and e-mail
  * addresses, letters-and-dots like "e.g", "..." and common abbreviations such as "etc." or "Mr.". Nothing else is changed.
  */
 internal fun tidyPunctuation(text: String, selStart: Int = 0, selEnd: Int = 0): Tidied {
@@ -44,14 +44,14 @@ internal fun tidyPunctuation(text: String, selStart: Int = 0, selEnd: Int = 0): 
     }
     val out = StringBuilder()
     val map = IntArray(text.length + 1)
-    var capNext = false
+    var capNext = true // the first letter of the message counts as the start of a sentence
     for (idx in 0..text.length) {
         map[idx] = out.length
         if (idx == text.length) break
         val c = text[idx]
         val gap = idx > 0 && c.isLetter() && !protected[idx] && !protected[idx - 1] && spaceAfter(idx - 1)
         if (gap) out.append(' ')
-        val startsWord = c.isLetter() && (gap || (idx > 0 && text[idx - 1].isWhitespace()))
+        val startsWord = c.isLetter() && (gap || idx == 0 || text[idx - 1].isWhitespace())
         if (c.isLetter() && capNext && startsWord && c.isLowerCase() && !protected[idx]) out.append(c.uppercaseChar()) else out.append(c)
         when {
             c.isWhitespace() -> {}

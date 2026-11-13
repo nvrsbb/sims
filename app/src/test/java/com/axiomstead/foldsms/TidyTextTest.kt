@@ -9,18 +9,22 @@ class TidyTextTest {
     @Test fun addsOneSpaceAfterCommonPunctuationWhenALetterFollows() {
         assertEquals("Hi, Ana. How are you? Fine! Thanks", tidy("Hi,Ana.How are you?Fine!Thanks"))
         assertEquals("Note: buy rice", tidy("Note:buy rice"))
-        assertEquals("one; two", tidy("one;two"))
+        assertEquals("One; two", tidy("one;two"))
     }
 
     @Test fun existingSpacesAreNotDoubled() {
         assertEquals("Hi, Ana. Ok", tidy("Hi, Ana. Ok"))
-        assertEquals("a,  b", tidy("a,  b")) // spacing the owner typed on purpose is kept
+        assertEquals("A,  b", tidy("a,  b")) // spacing the owner typed on purpose is kept
     }
 
     @Test fun capitalizesTheLetterAfterASentenceEnd() {
         assertEquals("Ok. Then we go! Really? Yes", tidy("Ok. then we go! really? yes"))
         assertEquals("Ok.\nThen", tidy("Ok.\nthen"))
-        assertEquals("Hello world", tidy("Hello world")) // the start of the message is left alone
+        assertEquals("Hello world", tidy("Hello world"))
+        assertEquals("Hh hh nj. Hhh", tidy("hh hh nj. hhh")) // the first letter too
+        assertEquals("  Hello", tidy("  hello"))
+        assertEquals("2pm ok", tidy("2pm ok")) // not when the message starts with a number
+        assertEquals("example.com is up", tidy("example.com is up")) // nor on a web address
     }
 
     @Test fun numbersTimesAndMoneyAreUntouched() {
